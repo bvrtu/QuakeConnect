@@ -1,0 +1,120 @@
+import 'package:flutter/material.dart';
+import '../models/earthquake.dart';
+import '../theme/app_theme.dart';
+
+class EarthquakeCard extends StatelessWidget {
+  final Earthquake earthquake;
+
+  const EarthquakeCard({
+    super.key,
+    required this.earthquake,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final magnitudeColor = AppTheme.getMagnitudeColor(earthquake.magnitude);
+    final borderColor = AppTheme.getMagnitudeBorderColor(earthquake.magnitude);
+
+    // Get magnitude color with opacity for background
+    final backgroundColor = magnitudeColor.withOpacity(0.1);
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Magnitude Box
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: magnitudeColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(
+                  earthquake.magnitude.toStringAsFixed(1),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Location
+                  Text(
+                    earthquake.location,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  // Time and Depth Row
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, size: 16, color: Colors.grey.shade700),
+                      const SizedBox(width: 6),
+                      Text(
+                        earthquake.timeAgo,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Icon(Icons.layers, size: 16, color: Colors.grey.shade700),
+                      const SizedBox(width: 6),
+                      Text(
+                        "${earthquake.depth.toStringAsFixed(1)} km deep",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  // Distance
+                  Row(
+                    children: [
+                      Icon(Icons.location_on, size: 16, color: Colors.grey.shade700),
+                      const SizedBox(width: 6),
+                      Text(
+                        "${earthquake.distance.toStringAsFixed(0)} km away",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
