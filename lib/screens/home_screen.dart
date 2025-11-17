@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/earthquake.dart';
 import '../widgets/earthquake_card.dart';
-import '../widgets/bottom_nav_bar.dart';
 import 'notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -79,27 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.all(0),
-        child: CustomBottomNavBar(
-          selectedIndex: 0,
-          onTap: (index) {
-            // Handle navigation
-            if (index == 0) {
-              // Already on home
-            } else {
-              // TODO: Navigate to other screens
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${['Home', 'Map', 'Safety', 'Profile', 'Settings'][index]} screen will be added later'),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
-            }
-          },
         ),
       ),
     );
