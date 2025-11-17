@@ -15,7 +15,7 @@ class _MapScreenState extends State<MapScreen> {
   final List<Earthquake> _earthquakes = Earthquake.getSampleData();
   Earthquake? _selectedEarthquake;
   final LatLng _turkeyCenter = const LatLng(39.0, 35.0);
-  double _zoomLevel = 6.0;
+  final double _zoomLevel = 6.0;
   MapType _currentMapType = MapType.normal;
 
   @override
@@ -63,7 +63,6 @@ class _MapScreenState extends State<MapScreen> {
       );
     }
   }
-
 
   void _showMapTypeDialog(BuildContext context) {
     showModalBottomSheet(
@@ -141,7 +140,7 @@ class _MapScreenState extends State<MapScreen> {
           children: [
             // Header
             _buildHeader(),
-            
+
             // Map Area
             Expanded(
               child: Stack(
@@ -161,7 +160,7 @@ class _MapScreenState extends State<MapScreen> {
                     myLocationButtonEnabled: false,
                     mapToolbarEnabled: false,
                   ),
-                  
+
                   // Earthquake Info Card Overlay
                   if (_selectedEarthquake != null)
                     Positioned(
@@ -218,7 +217,7 @@ class _MapScreenState extends State<MapScreen> {
         border: Border.all(color: borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -265,7 +264,11 @@ class _MapScreenState extends State<MapScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.access_time, size: 12, color: Colors.grey.shade600),
+                    Icon(
+                      Icons.access_time,
+                      size: 12,
+                      color: Colors.grey.shade600,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       earthquake.timeAgo,
@@ -285,7 +288,11 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Icon(Icons.location_on, size: 12, color: Colors.grey.shade600),
+                    Icon(
+                      Icons.location_on,
+                      size: 12,
+                      color: Colors.grey.shade600,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       "${earthquake.distance.toStringAsFixed(0)} km",

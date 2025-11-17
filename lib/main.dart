@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/map_screen.dart';
+import 'screens/safety_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -20,7 +21,7 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const MapScreen(),
-    const Placeholder(), // Safety screen
+    const SafetyScreen(),
     const Placeholder(), // Profile screen
     const Placeholder(), // Settings screen
   ];
@@ -44,22 +45,10 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
           selectedItemColor: Colors.red,
           unselectedItemColor: Colors.grey,
           items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.map),
-              label: 'Map',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.shield),
-              label: 'Safety',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Profile',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
+            BottomNavigationBarItem(icon: Icon(Icons.shield), label: 'Safety'),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
             BottomNavigationBarItem(
               icon: Icon(Icons.settings),
               label: 'Settings',

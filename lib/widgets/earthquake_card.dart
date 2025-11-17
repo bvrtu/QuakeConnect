@@ -5,10 +5,7 @@ import '../theme/app_theme.dart';
 class EarthquakeCard extends StatelessWidget {
   final Earthquake earthquake;
 
-  const EarthquakeCard({
-    super.key,
-    required this.earthquake,
-  });
+  const EarthquakeCard({super.key, required this.earthquake});
 
   @override
   Widget build(BuildContext context) {
@@ -16,8 +13,8 @@ class EarthquakeCard extends StatelessWidget {
     final borderColor = AppTheme.getMagnitudeBorderColor(earthquake.magnitude);
 
     // Get magnitude color with opacity for background
-    final backgroundColor = magnitudeColor.withOpacity(0.1);
-    
+    final backgroundColor = magnitudeColor.withValues(alpha: 0.1);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -70,7 +67,11 @@ class EarthquakeCard extends StatelessWidget {
                   // Time and Depth Row
                   Row(
                     children: [
-                      Icon(Icons.access_time, size: 16, color: Colors.grey.shade700),
+                      Icon(
+                        Icons.access_time,
+                        size: 16,
+                        color: Colors.grey.shade700,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         earthquake.timeAgo,
@@ -97,7 +98,11 @@ class EarthquakeCard extends StatelessWidget {
                   // Distance
                   Row(
                     children: [
-                      Icon(Icons.location_on, size: 16, color: Colors.grey.shade700),
+                      Icon(
+                        Icons.location_on,
+                        size: 16,
+                        color: Colors.grey.shade700,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         "${earthquake.distance.toStringAsFixed(0)} km away",

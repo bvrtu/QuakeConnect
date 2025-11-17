@@ -4,10 +4,7 @@ import '../models/notification_model.dart';
 class NotificationCard extends StatelessWidget {
   final NotificationModel notification;
 
-  const NotificationCard({
-    super.key,
-    required this.notification,
-  });
+  const NotificationCard({super.key, required this.notification});
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +24,7 @@ class NotificationCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: notification.iconColor.withOpacity(0.1),
+              color: notification.iconColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -57,9 +54,13 @@ class NotificationCard extends StatelessWidget {
                       ),
                     ),
                     // Badge
-                    if (notification.magnitude != null && notification.badgeColor != null)
+                    if (notification.magnitude != null &&
+                        notification.badgeColor != null)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: notification.badgeColor,
                           borderRadius: BorderRadius.circular(12),
@@ -89,10 +90,7 @@ class NotificationCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   notification.timeAgo,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
               ],
             ),
@@ -102,4 +100,3 @@ class NotificationCard extends StatelessWidget {
     );
   }
 }
-
