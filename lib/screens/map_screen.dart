@@ -16,6 +16,7 @@ class _MapScreenState extends State<MapScreen> {
   Earthquake? _selectedEarthquake;
   final LatLng _turkeyCenter = const LatLng(39.0, 35.0);
   double _zoomLevel = 6.0;
+  MapType _currentMapType = MapType.normal;
 
   @override
   void initState() {
@@ -63,6 +64,74 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+
+  void _showMapTypeDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.map),
+                title: const Text('Normal'),
+                trailing: _currentMapType == MapType.normal
+                    ? const Icon(Icons.check, color: Colors.red)
+                    : null,
+                onTap: () {
+                  setState(() {
+                    _currentMapType = MapType.normal;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.terrain),
+                title: const Text('Satellite'),
+                trailing: _currentMapType == MapType.satellite
+                    ? const Icon(Icons.check, color: Colors.red)
+                    : null,
+                onTap: () {
+                  setState(() {
+                    _currentMapType = MapType.satellite;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.terrain),
+                title: const Text('Terrain'),
+                trailing: _currentMapType == MapType.terrain
+                    ? const Icon(Icons.check, color: Colors.red)
+                    : null,
+                onTap: () {
+                  setState(() {
+                    _currentMapType = MapType.terrain;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.layers_outlined),
+                title: const Text('Hybrid'),
+                trailing: _currentMapType == MapType.hybrid
+                    ? const Icon(Icons.check, color: Colors.red)
+                    : null,
+                onTap: () {
+                  setState(() {
+                    _currentMapType = MapType.hybrid;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,7 +156,7 @@ class _MapScreenState extends State<MapScreen> {
                       _mapController = controller;
                     },
                     markers: _createMarkers(),
-                    mapType: MapType.normal,
+                    mapType: _currentMapType,
                     zoomControlsEnabled: true,
                     myLocationButtonEnabled: false,
                     mapToolbarEnabled: false,
@@ -129,27 +198,7 @@ class _MapScreenState extends State<MapScreen> {
             icon: const Icon(Icons.layers, size: 24),
             color: Colors.black87,
             onPressed: () {
-              // TODO: Implement map layers
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Map layers feature coming soon'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-            },
-          ),
-          // Maximize button
-          IconButton(
-            icon: const Icon(Icons.fullscreen, size: 24),
-            color: Colors.black87,
-            onPressed: () {
-              // TODO: Implement fullscreen map
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Fullscreen map feature coming soon'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
+              _showMapTypeDialog(context);
             },
           ),
         ],
