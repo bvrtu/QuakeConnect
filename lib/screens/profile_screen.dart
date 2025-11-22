@@ -99,6 +99,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
+            SliverToBoxAdapter(child: _buildTopHeader()),
+            SliverToBoxAdapter(child: const SizedBox(height: 8)),
             SliverToBoxAdapter(child: _buildHeaderCard()),
             SliverToBoxAdapter(child: const SizedBox(height: 16)),
             SliverToBoxAdapter(child: _buildCountsRow()),
@@ -147,6 +149,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildTopHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+      child: Row(
+        children: const [
+          Text(
+            'Profile',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeaderCard() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -168,7 +188,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Stack(
                   clipBehavior: Clip.none,
@@ -194,36 +214,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Column(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(fullName,
                           style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 4),
-                      Text(username,
-                          style: TextStyle(
-                              color: Colors.grey.shade600, fontSize: 14)),
-                      const SizedBox(height: 8),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.2)),
+                      const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.grey.shade300),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.verified, size: 16),
-                            SizedBox(width: 6),
-                            Text('Verified',
-                                style: TextStyle(fontWeight: FontWeight.w600)),
+                          children: [
+                            const Icon(Icons.alternate_email,
+                                size: 14, color: Color(0xFF6246EA)),
+                            const SizedBox(width: 6),
+                            Text(
+                              username.startsWith('@')
+                                  ? username.substring(1)
+                                  : username,
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 8),
                     ],
                   ),
+                ),
                 ),
               ],
             ),
@@ -450,19 +482,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return (first + second).toUpperCase();
   }
 
+  Color _accentFromBg(int bg) {
+    final base = Color(bg);
+    final hsl = HSLColor.fromColor(base);
+    final sat = (hsl.saturation + 0.25).clamp(0.0, 1.0) as double;
+    final light = (hsl.lightness - 0.15).clamp(0.0, 1.0) as double;
+    return hsl.withSaturation(sat).withLightness(light).toColor();
+  }
+
+  Color _accentFromColor(Color base) {
+    final hsl = HSLColor.fromColor(base);
+    final sat = (hsl.saturation + 0.25).clamp(0.0, 1.0) as double;
+    final light = (hsl.lightness - 0.15).clamp(0.0, 1.0) as double;
+    return hsl.withSaturation(sat).withLightness(light).toColor();
+  }
+
   Widget _buildInfoTile(String title, String value, int bg) {
+    final base = Color(bg);
+    final accent = _accentFromBg(bg);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color(bg).withOpacity(0.35),
+        color: base.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: accent, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 15)),
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(title,
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 15)),
+            ],
+          ),
           const SizedBox(height: 6),
           Text(value,
               style:
@@ -523,56 +592,276 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (context) {
-        int tab = 1; // 0: Upload, 1: Choose Color
+        int tab = 0; // 0: Upload Image, 1: Choose Color
+        String? pickedImagePath; // demo placeholder
+        int tempGradientIndex = gradientIndex;
+
+        final gradients = [
+          [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
+          [const Color(0xFF00C853), const Color(0xFF1DE9B6)],
+          [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
+          [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
+          [const Color(0xFFFF4081), const Color(0xFFFFAB40)],
+          [const Color(0xFF00BCD4), const Color(0xFF448AFF)],
+          [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
+          [const Color(0xFFFFA726), const Color(0xFFFF7043)],
+          [const Color(0xFF7E57C2), const Color(0xFFAB47BC)],
+          [const Color(0xFF66BB6A), const Color(0xFF43A047)],
+          [const Color(0xFF42A5F5), const Color(0xFF1E88E5)],
+          [const Color(0xFFEC407A), const Color(0xFFAB47BC)],
+        ];
+
+        Widget previewAvatar() {
+          final colors = gradients[tempGradientIndex % gradients.length];
+          return Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(colors: colors),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              _initials(fullName),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 32,
+              ),
+            ),
+          );
+        }
+
         return StatefulBuilder(builder: (context, setSheet) {
           return Padding(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom),
-            child: SizedBox(
-              height: 460,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Row(
-                      children: const [
-                        Icon(Icons.photo_camera_outlined),
-                        SizedBox(width: 8),
-                        Text('Change Profile Picture',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        _seg(tab == 0, 'Upload Image', () => setSheet(() => tab = 0)),
-                        const SizedBox(width: 8),
-                        _seg(tab == 1, 'Choose Color', () => setSheet(() => tab = 1)),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: tab == 0
-                        ? _UploadPanel(onPicked: (path) {
-                            // For demo we only show banner
-                            Navigator.pop(context);
-                            _showSnack('Profile photo updated');
-                          })
-                        : _ColorPanel(
-                            currentIndex: gradientIndex,
-                            onSelect: (i) {
-                              setState(() => gradientIndex = i);
-                              Navigator.pop(context);
-                              _showSnack('Avatar color updated');
-                            },
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: SafeArea(
+              top: false,
+              child: SizedBox(
+                height: 520,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.photo_camera_outlined),
+                          const SizedBox(width: 8),
+                          const Text('Change Profile Picture',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                            splashRadius: 20,
                           ),
-                  ),
-                ],
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    const SizedBox(height: 12),
+                    Center(child: previewAvatar()),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => setSheet(() => tab = 0),
+                                borderRadius: BorderRadius.circular(22),
+                                child: Container(
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: tab == 0 ? Colors.white : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(22),
+                                    boxShadow: tab == 0
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.06),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.file_upload_outlined,
+                                          size: 18,
+                                          color: tab == 0 ? Colors.black : Colors.black87),
+                                      const SizedBox(width: 8),
+                                      const Text('Upload Image',
+                                          style: TextStyle(fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => setSheet(() => tab = 1),
+                                borderRadius: BorderRadius.circular(22),
+                                child: Container(
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: tab == 1 ? Colors.white : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(22),
+                                    boxShadow: tab == 1
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.06),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.color_lens_outlined,
+                                          size: 18,
+                                          color: tab == 1 ? Colors.black : Colors.black87),
+                                      const SizedBox(width: 8),
+                                      const Text('Choose Color',
+                                          style: TextStyle(fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: tab == 0
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  const Text('Upload your photo',
+                                      style: TextStyle(fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        setSheet(() => pickedImagePath = 'local');
+                                      },
+                                      icon: const Icon(Icons.file_upload_outlined),
+                                      label: const Text('Choose Image'),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                        minimumSize: const Size.fromHeight(52),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('Max file size: 5MB. Supported: JPG, PNG, GIF',
+                                      style: TextStyle(color: Colors.grey.shade600)),
+                                ],
+                              )
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  const Text('Choose a gradient color',
+                                      style: TextStyle(fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 12,
+                                    runSpacing: 12,
+                                    children: [
+                                      for (int i = 0; i < gradients.length; i++)
+                                        GestureDetector(
+                                          onTap: () => setSheet(() => tempGradientIndex = i),
+                                          child: Container(
+                                            width: 56,
+                                            height: 56,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              gradient: LinearGradient(colors: gradients[i]),
+                                              border: Border.all(
+                                                color: i == tempGradientIndex ? Colors.black : Colors.white,
+                                                width: 3,
+                                              ),
+                                              boxShadow: const [
+                                                BoxShadow(color: Color(0x22000000), blurRadius: 8, offset: Offset(0, 4)),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (tab == 1) {
+                                  setState(() => gradientIndex = tempGradientIndex);
+                                  Navigator.pop(context);
+                                  _showSnack('Avatar color updated');
+                                } else {
+                                  Navigator.pop(context);
+                                  _showSnack(pickedImagePath == null ? 'No image selected' : 'Profile photo updated');
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: const Text('Save Changes'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -695,20 +984,35 @@ class _CountTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Derive a stronger border color similar to info tiles
+    Color accentFrom(Color base) {
+      final hsl = HSLColor.fromColor(base);
+      final sat = (hsl.saturation + 0.25).clamp(0.0, 1.0) as double;
+      final light = (hsl.lightness - 0.15).clamp(0.0, 1.0) as double;
+      return hsl.withSaturation(sat).withLightness(light).toColor();
+    }
+    final accent = accentFrom(color);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.35),
+          color: color.withValues(alpha: 0.22),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: accent, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: color.withOpacity(0.9),
+              backgroundColor: accent,
               child: Icon(icon, color: Colors.white),
             ),
             const SizedBox(width: 12),
@@ -916,9 +1220,33 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
             'Personal Information',
             Column(
               children: [
-                TextField(controller: ageCtrl, decoration: const InputDecoration(labelText: 'Age (years) *')),
-                TextField(controller: heightCtrl, decoration: const InputDecoration(labelText: 'Height (cm) *')),
-                TextField(controller: weightCtrl, decoration: const InputDecoration(labelText: 'Weight (kg) *')),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: ageCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Age (years) *',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: heightCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Height (cm) *',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: weightCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Weight (kg) *',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  ),
+                ),
                 const SizedBox(height: 12),
                 _disabilityDropdown(),
               ],
@@ -1012,10 +1340,21 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
         foregroundColor: Colors.black,
         elevation: 0.5,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.save_outlined),
-            onPressed: _save,
-          )
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: ElevatedButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.save_outlined, size: 18),
+              label: const Text('Save'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+            ),
+          ),
         ],
       ),
       body: ListView(
@@ -1033,15 +1372,30 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: Colors.red.shade100,
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        shape: BoxShape.circle,
+                      ),
                       child: const Icon(Icons.phone_in_talk, color: Colors.redAccent),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Emergency Contact Details',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Emergency Contact Details',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Add someone who should be notified in emergencies',
+                            style: TextStyle(color: Colors.grey.shade600),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1049,16 +1403,39 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                 const SizedBox(height: 12),
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Full Name *', hintText: 'e.g., Elif Yılmaz'),
+                  decoration: InputDecoration(
+                    labelText: 'Full Name *',
+                    hintText: 'e.g., Elif Yılmaz',
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  ),
                 ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: phoneCtrl,
-                  decoration: const InputDecoration(labelText: 'Phone Number *', hintText: 'e.g., +90 532 123 4567'),
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number *',
+                    hintText: 'e.g., +90 532 123 4567',
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  ),
                   keyboardType: TextInputType.phone,
                 ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: relationCtrl,
-                  decoration: const InputDecoration(labelText: 'Relation *', hintText: 'e.g., Spouse, Friend, Family'),
+                  decoration: InputDecoration(
+                    labelText: 'Relation *',
+                    hintText: 'e.g., Spouse, Friend, Family',
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Container(
@@ -1068,8 +1445,18 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFD0E4FF)),
                   ),
-                  child: const Text(
-                    'Emergency contacts will be notified when you mark yourself as safe or when you need help.',
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.tips_and_updates_outlined, color: Color(0xFF1E88E5)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Emergency contacts will be notified when you mark yourself as safe or when you need help.',
+                          style: const TextStyle(height: 1.3),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
