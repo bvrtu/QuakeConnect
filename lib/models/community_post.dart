@@ -33,6 +33,38 @@ class CommunityPost {
     this.isReposted = false,
   });
 
+  CommunityPost copyWith({
+    String? id,
+    String? authorName,
+    String? handle,
+    CommunityPostType? type,
+    String? message,
+    String? location,
+    DateTime? timestamp,
+    int? likes,
+    int? comments,
+    int? shares,
+    int? reposts,
+    bool? isLiked,
+    bool? isReposted,
+  }) {
+    return CommunityPost(
+      id: id ?? this.id,
+      authorName: authorName ?? this.authorName,
+      handle: handle ?? this.handle,
+      type: type ?? this.type,
+      message: message ?? this.message,
+      location: location ?? this.location,
+      timestamp: timestamp ?? this.timestamp,
+      likes: likes ?? this.likes,
+      comments: comments ?? this.comments,
+      shares: shares ?? this.shares,
+      reposts: reposts ?? this.reposts,
+      isLiked: isLiked ?? this.isLiked,
+      isReposted: isReposted ?? this.isReposted,
+    );
+  }
+
   String get timeAgo {
     final difference = DateTime.now().difference(timestamp);
     if (difference.inMinutes < 1) return 'Just now';
