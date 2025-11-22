@@ -19,14 +19,18 @@ class QuakeConnectApp extends StatefulWidget {
 
 class _QuakeConnectAppState extends State<QuakeConnectApp> {
   int _selectedIndex = 0;
+  bool _isDarkMode = false;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const MapScreen(),
-    const SafetyScreen(),
-    const ProfileScreen(),
-    const SettingsScreen(),
-  ];
+  List<Widget> get _screens => [
+        const HomeScreen(),
+        const MapScreen(),
+        const SafetyScreen(),
+        const ProfileScreen(),
+        SettingsScreen(
+          darkMode: _isDarkMode,
+          onDarkModeChanged: (v) => setState(() => _isDarkMode = v),
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +38,8 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
       title: 'QuakeConnect',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: Scaffold(
         body: _screens[_selectedIndex],
         bottomNavigationBar: BottomNavigationBar(

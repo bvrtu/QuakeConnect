@@ -23,18 +23,18 @@ class NotificationsScreen extends StatelessWidget {
                   // Notifications title with badge
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.notifications,
                         size: 24,
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       const SizedBox(width: 12),
-                      const Text(
+                      Text(
                         'Notifications',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -58,8 +58,7 @@ class NotificationsScreen extends StatelessWidget {
                   const Spacer(),
                   // Close button
                   IconButton(
-                    icon: const Icon(Icons.close, size: 28),
-                    color: Colors.black87,
+                    icon: Icon(Icons.close, size: 28, color: Theme.of(context).colorScheme.onSurface),
                     onPressed: () {
                       Navigator.of(context).pop();
                     },

@@ -100,20 +100,20 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'QuakeConnect',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                  letterSpacing: -0.5,
-                ),
-              ),
+              Text('QuakeConnect',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    letterSpacing: -0.5,
+                  )),
               Text(
                 'Real-time updates from Turkey',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade600,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -126,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.notifications_outlined),
-                color: Colors.black87,
+                color: Theme.of(context).colorScheme.onSurface,
                 iconSize: 28,
                 onPressed: () {
                   Navigator.of(context).push(
@@ -162,21 +162,22 @@ class _HomeScreenState extends State<HomeScreen> {
         controller: _searchController,
         decoration: InputDecoration(
           hintText: 'Search location...',
-          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          prefixIcon: Icon(Icons.search,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade300
+                  : Colors.grey),
           suffixIcon: IconButton(
-            icon: const Icon(Icons.clear, color: Colors.grey),
+            icon: Icon(Icons.clear,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade300
+                    : Colors.grey),
             onPressed: () {
               setState(() {
                 _searchController.clear();
               });
             },
           ),
-          filled: true,
-          fillColor: Colors.grey.shade100,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
+          // Use theme InputDecoration (light/dark friendly)
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
         onChanged: (value) {
@@ -210,6 +211,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildFilterButton(String label, int index, {IconData? icon}) {
     final isSelected = _selectedFilterIndex == index;
 
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ElevatedButton(
       onPressed: () {
         setState(() {
@@ -217,14 +220,16 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.black87 : Colors.white,
-        foregroundColor: isSelected ? Colors.white : Colors.black87,
+        backgroundColor: isSelected ? cs.primary : cs.surface,
+        foregroundColor: isSelected ? cs.onPrimary : cs.onSurface,
         elevation: 0,
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: isSelected ? Colors.black87 : Colors.grey.shade300,
+            color: isSelected
+                ? cs.primary
+                : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
             width: 1,
           ),
         ),

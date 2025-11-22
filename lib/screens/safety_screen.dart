@@ -209,18 +209,24 @@ class _SafetyScreenState extends State<SafetyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Safety & Community',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.5,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Share your status and local updates',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade600,
+                  fontSize: 15,
+                ),
               ),
               const SizedBox(height: 24),
               _buildSafetyStatusCard(),
@@ -236,10 +242,14 @@ class _SafetyScreenState extends State<SafetyScreen> {
   }
 
   Widget _buildSafetyStatusCard() {
-    final background = _hasMarkedSafe ? const Color(0xFFE8F5E9) : Colors.white;
+    final surface = Theme.of(context).colorScheme.surface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final background = _hasMarkedSafe
+        ? (isDark ? const Color(0xFF15361B) : const Color(0xFFE8F5E9))
+        : surface;
     final borderColor = _hasMarkedSafe
         ? const Color(0xFF2E7D32)
-        : Colors.grey.shade200;
+        : (isDark ? Colors.grey.shade700 : Colors.grey.shade200);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -264,7 +274,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
                 decoration: BoxDecoration(
                   color: _hasMarkedSafe
                       ? const Color(0xFF2E7D32)
-                      : Colors.grey.shade100,
+                      : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -282,9 +292,10 @@ class _SafetyScreenState extends State<SafetyScreen> {
                       _hasMarkedSafe
                           ? 'You\'ve marked yourself as safe'
                           : 'Your Safety Status',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -294,7 +305,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
                           : 'Let others know you\'re safe',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
                       ),
                     ),
                   ],
@@ -310,7 +321,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _hasMarkedSafe
                     ? const Color(0xFF2E7D32)
-                    : Colors.black,
+                    : Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -332,20 +343,23 @@ class _SafetyScreenState extends State<SafetyScreen> {
   }
 
   Widget _buildShareInformationCard() {
+    final surface = Theme.of(context).colorScheme.surface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Share Local Information',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          ),
+          Text('Share Local Information',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface)),
           const SizedBox(height: 12),
           TextField(
             controller: _postController,
@@ -355,8 +369,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
             decoration: InputDecoration(
               hintText:
                   'Report local conditions, road status, or emergency needs...',
-              filled: true,
-              fillColor: Colors.grey.shade100,
+              // use themed input decoration
             ),
           ),
           const SizedBox(height: 12),
@@ -444,14 +457,23 @@ class _SafetyScreenState extends State<SafetyScreen> {
   }
 
   Widget _buildPostButton() {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ElevatedButton(
       onPressed: _canPost ? _handlePost : null,
       style: ElevatedButton.styleFrom(
-        backgroundColor: _canPost ? Colors.black : Colors.grey.shade200,
-        foregroundColor: _canPost ? Colors.white : Colors.grey.shade500,
+        backgroundColor: _canPost
+            ? cs.primary
+            : (isDark ? Colors.white.withValues(alpha: 0.10) : Colors.grey.shade200),
+        foregroundColor: _canPost
+            ? Colors.white
+            : (isDark ? Colors.grey.shade300 : Colors.grey.shade500),
         shape: const CircleBorder(),
         padding: const EdgeInsets.all(12),
         minimumSize: const Size(42, 42),
+        side: _canPost
+            ? BorderSide.none
+            : BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
       ),
       child: const Icon(Icons.send, size: 20),
     );
@@ -465,11 +487,12 @@ class _SafetyScreenState extends State<SafetyScreen> {
     bool compact = false,
   }) {
     final isSelected = _selectedCategory == category;
-    final borderColor = isSelected ? activeColor : Colors.grey.shade300;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isSelected ? activeColor : (isDark ? Colors.grey.shade700 : Colors.grey.shade300);
     final background = isSelected
         ? activeColor.withValues(alpha: 0.12)
-        : Colors.white;
-    final textColor = isSelected ? activeColor : Colors.grey.shade700;
+        : Theme.of(context).colorScheme.surface;
+    final textColor = isSelected ? activeColor : (isDark ? Colors.grey.shade300 : Colors.grey.shade700);
     final horizontalPadding = compact ? 10.0 : 14.0;
     final verticalPadding = compact ? 10.0 : 12.0;
     final iconSize = compact ? 16.0 : 18.0;

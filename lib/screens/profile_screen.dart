@@ -172,9 +172,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white, // plain white header (no gradient)
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade700
+                : Colors.grey.shade200,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.02),
@@ -229,9 +233,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade700
+                                  : Colors.grey.shade300),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -244,7 +254,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ? username.substring(1)
                                   : username,
                               style: TextStyle(
-                                color: Colors.grey.shade700,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey.shade300
+                                    : Colors.grey.shade700,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -278,12 +291,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Icon(Icons.location_on, size: 18, color: Colors.blueGrey),
+                Icon(Icons.location_on,
+                    size: 18,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade300
+                        : Colors.blueGrey),
                 const SizedBox(width: 6),
                 Expanded(
                     child: Text(location,
                         style: TextStyle(
-                            color: Colors.grey.shade700, fontSize: 15))),
+                            color: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? Colors.grey.shade300
+                                : Colors.grey.shade700,
+                            fontSize: 15))),
               ],
             ),
             const SizedBox(height: 8),
@@ -295,7 +316,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Expanded(
                     child: Text(email,
                         style: TextStyle(
-                            color: Colors.grey.shade700, fontSize: 15))),
+                            color: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? Colors.grey.shade300
+                                : Colors.grey.shade700,
+                            fontSize: 15))),
               ],
             ),
             const SizedBox(height: 16),
@@ -354,11 +379,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           const Icon(Icons.phone_in_talk, color: Colors.redAccent),
           const SizedBox(width: 8),
-          const Text('Emergency Contacts',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          Text('Emergency Contacts',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface)),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.add_circle_outline),
+            icon: Icon(Icons.add_circle_outline,
+                color: Theme.of(context).colorScheme.onSurface),
             onPressed: _openAddContactMenu,
           )
         ],
@@ -376,9 +405,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade700
+                          : Colors.grey.shade200),
                 ),
                 child: Row(
                   children: [
@@ -405,7 +437,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey.shade800
+                                      : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(c.relation,
@@ -416,7 +451,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 4),
                           Text(c.phone,
                               style: TextStyle(
-                                  color: Colors.grey.shade700, fontSize: 14)),
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey.shade300
+                                      : Colors.grey.shade700,
+                                  fontSize: 14)),
                         ],
                       ),
                     ),
@@ -500,10 +539,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildInfoTile(String title, String value, int bg) {
     final base = Color(bg);
     final accent = _accentFromBg(bg);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: base.withValues(alpha: 0.22),
+        color: isDark ? base.withValues(alpha: 0.12) : base.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: accent, width: 2),
         boxShadow: [
@@ -529,13 +569,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(width: 6),
               Text(title,
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 15)),
+                  style: TextStyle(
+                      color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                      fontSize: 15)),
             ],
           ),
           const SizedBox(height: 6),
           Text(value,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface)),
         ],
       ),
     );
@@ -873,7 +917,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _openAddContactMenu() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
@@ -914,11 +958,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ];
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (context) {
+        final onSurface = Theme.of(context).colorScheme.onSurface;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return SafeArea(
           child: SizedBox(
             height: 420,
@@ -934,8 +980,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: const TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
-                  title: Text(c.name),
-                  subtitle: Text('${c.phone}  •  ${c.relation}'),
+                  title: Text(c.name, style: TextStyle(color: onSurface)),
+                  subtitle: Text('${c.phone}  •  ${c.relation}',
+                      style: TextStyle(
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade700)),
                   trailing: ElevatedButton(
                     onPressed: () {
                       setState(() => contacts.add(c));
@@ -1020,11 +1070,18 @@ class _CountTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: TextStyle(color: Colors.grey.shade700)),
+                  Text(label,
+                      style: TextStyle(
+                          color: Theme.of(context).brightness ==
+                                  Brightness.dark
+                              ? Colors.grey.shade300
+                              : Colors.grey.shade700)),
                   const SizedBox(height: 4),
                   Text('$value',
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w600)),
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface)),
                 ],
               ),
             ),
@@ -1058,8 +1115,6 @@ class _FollowListScreenState extends State<_FollowListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0.5,
       ),
       body: ListView.separated(
@@ -1161,8 +1216,6 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Profile'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0.5,
         actions: [
           IconButton(
@@ -1282,14 +1335,20 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade700
+                : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(title,
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface)),
           const SizedBox(height: 10),
           child,
         ],
@@ -1336,8 +1395,6 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Emergency Contact'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0.5,
         actions: [
           Padding(
@@ -1363,9 +1420,12 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade700
+                      : Colors.grey.shade200),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1386,14 +1446,21 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Emergency Contact Details',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).colorScheme.onSurface),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'Add someone who should be notified in emergencies',
-                            style: TextStyle(color: Colors.grey.shade600),
+                            style: TextStyle(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade600),
                           ),
                         ],
                       ),
@@ -1407,7 +1474,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     labelText: 'Full Name *',
                     hintText: 'e.g., Elif Yılmaz',
                     filled: true,
-                    fillColor: Colors.grey.shade100,
+                    fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   ),
@@ -1419,7 +1486,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     labelText: 'Phone Number *',
                     hintText: 'e.g., +90 532 123 4567',
                     filled: true,
-                    fillColor: Colors.grey.shade100,
+                    fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   ),
@@ -1432,7 +1499,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     labelText: 'Relation *',
                     hintText: 'e.g., Spouse, Friend, Family',
                     filled: true,
-                    fillColor: Colors.grey.shade100,
+                    fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   ),
@@ -1441,19 +1508,32 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F2FF),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF14253B)
+                        : const Color(0xFFE8F2FF),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFD0E4FF)),
+                    border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF2A3E59)
+                            : const Color(0xFFD0E4FF)),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.tips_and_updates_outlined, color: Color(0xFF1E88E5)),
+                      Icon(Icons.tips_and_updates_outlined,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF8AB4F8)
+                              : const Color(0xFF1E88E5)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Emergency contacts will be notified when you mark yourself as safe or when you need help.',
-                          style: const TextStyle(height: 1.3),
+                          style: TextStyle(
+                              height: 1.3,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade200
+                                  : null),
                         ),
                       ),
                     ],

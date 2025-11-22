@@ -17,6 +17,10 @@ class _MapScreenState extends State<MapScreen> {
   final LatLng _turkeyCenter = const LatLng(39.0, 35.0);
   final double _zoomLevel = 6.0;
   MapType _currentMapType = MapType.normal;
+  bool _appliedDark = false;
+
+  // Minimal dark map style for better night readability
+  static const String _darkMapStyle = '[{"elementType":"geometry","stylers":[{"color":"#242f3e"}]},{"elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"elementType":"labels.text.stroke","stylers":[{"color":"#242f3e"}]},{"featureType":"administrative","elementType":"geometry","stylers":[{"color":"#757575"}]},{"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#d6d6d6"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#263c3f"}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#38414e"}]},{"featureType":"road","elementType":"geometry.stroke","stylers":[{"color":"#212a37"}]},{"featureType":"transit","elementType":"geometry","stylers":[{"color":"#2f3948"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#17263c"}]}]';
 
   @override
   void initState() {
@@ -61,6 +65,18 @@ class _MapScreenState extends State<MapScreen> {
           10.0,
         ),
       );
+    }
+  }
+
+  void _applyMapStyle() {
+    if (_mapController == null) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (isDark && !_appliedDark) {
+      _mapController!.setMapStyle(_darkMapStyle);
+      _appliedDark = true;
+    } else if (!isDark && _appliedDark) {
+      _mapController!.setMapStyle(null);
+      _appliedDark = false;
     }
   }
 
@@ -153,6 +169,7 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                     onMapCreated: (GoogleMapController controller) {
                       _mapController = controller;
+                    _applyMapStyle();
                     },
                     markers: _createMarkers(),
                     mapType: _currentMapType,
@@ -183,19 +200,16 @@ class _MapScreenState extends State<MapScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          const Text(
-            'Map',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
+          Text('Map',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
           const Spacer(),
           // Layers button
           IconButton(
-            icon: const Icon(Icons.layers, size: 24),
-            color: Colors.black87,
+            icon: Icon(Icons.layers, size: 24, color: Theme.of(context).colorScheme.onSurface),
             onPressed: () {
               _showMapTypeDialog(context);
             },
@@ -208,16 +222,18 @@ class _MapScreenState extends State<MapScreen> {
   Widget _buildEarthquakeCard(Earthquake earthquake) {
     final magnitudeColor = AppTheme.getMagnitudeColor(earthquake.magnitude);
     final borderColor = AppTheme.getMagnitudeBorderColor(earthquake.magnitude);
+    final surface = Theme.of(context).colorScheme.surface;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -253,10 +269,10 @@ class _MapScreenState extends State<MapScreen> {
               children: [
                 Text(
                   earthquake.location,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -264,42 +280,25 @@ class _MapScreenState extends State<MapScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(
-                      Icons.access_time,
-                      size: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    Icon(Icons.access_time, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     const SizedBox(width: 4),
                     Text(
                       earthquake.timeAgo,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     ),
                     const SizedBox(width: 12),
-                    Icon(Icons.layers, size: 12, color: Colors.grey.shade600),
+                    Icon(Icons.layers, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     const SizedBox(width: 4),
                     Text(
                       "${earthquake.depth.toStringAsFixed(1)} km",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     ),
                     const SizedBox(width: 12),
-                    Icon(
-                      Icons.location_on,
-                      size: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    Icon(Icons.location_on, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     const SizedBox(width: 4),
                     Text(
                       "${earthquake.distance.toStringAsFixed(0)} km",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     ),
                   ],
                 ),

@@ -81,13 +81,17 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
 
   @override
   Widget build(BuildContext context) {
+    final surface = Theme.of(context).colorScheme.surface;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,10 +123,10 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                             children: [
                               Text(
                                 widget.post.authorName,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
+                                  color: onSurface,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -131,7 +135,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                   Text(
                                     widget.post.handle,
                                     style: TextStyle(
-                                      color: Colors.grey.shade600,
+                                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                       fontSize: 13,
                                     ),
                                   ),
@@ -148,7 +152,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                   Text(
                                     widget.post.timeAgo,
                                     style: TextStyle(
-                                      color: Colors.grey.shade600,
+                                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                       fontSize: 13,
                                     ),
                                   ),
@@ -163,26 +167,26 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                     const SizedBox(height: 12),
                     Text(
                       widget.post.message,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
-                        color: Colors.black87,
+                        color: onSurface,
                         height: 1.4,
                       ),
                     ),
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.location_on,
                           size: 16,
-                          color: Colors.grey,
+                          color: isDark ? Colors.grey.shade300 : Colors.grey,
                         ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             widget.post.location,
                             style: TextStyle(
-                              color: Colors.grey.shade600,
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                               fontSize: 13,
                             ),
                           ),
@@ -322,7 +326,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -398,17 +402,17 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Row(children: [
-                        const Icon(Icons.mode_comment_outlined),
+                        Icon(Icons.mode_comment_outlined, color: Theme.of(context).colorScheme.onSurface),
                         const SizedBox(width: 8),
-                        const Text('Thread', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        Text('Thread', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
                         const Spacer(),
-                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
+                        IconButton(icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface), onPressed: () => Navigator.of(context).pop()),
                       ]),
                     ),
                     const Divider(height: 1),
                     Expanded(
                       child: _comments.isEmpty
-                          ? Center(child: Text('No replies yet. Start the conversation.', style: TextStyle(color: Colors.grey.shade600)))
+                          ? Center(child: Text('No replies yet. Start the conversation.', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600)))
                           : ListView.separated(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               itemCount: _comments.length,
@@ -424,7 +428,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                       margin: const EdgeInsets.fromLTRB(0, 12, 0, 16),
                       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.surface,
                         boxShadow: [
                           BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, -2)),
                         ],
@@ -439,7 +443,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                             decoration: InputDecoration(
                               hintText: replyingTo == null ? 'Reply...' : 'Replying to @' + replyingTo!.handle.substring(1),
                               filled: true,
-                              fillColor: Colors.grey.shade100,
+                              fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                             ),

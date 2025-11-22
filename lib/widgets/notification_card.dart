@@ -8,13 +8,17 @@ class NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = Theme.of(context).colorScheme.surface;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300, width: 1),
+        border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,10 +50,10 @@ class NotificationCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         notification.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: onSurface,
                         ),
                       ),
                     ),
@@ -81,7 +85,7 @@ class NotificationCard extends StatelessWidget {
                   notification.content,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade700,
+                    color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
                     height: 1.4,
                   ),
                   maxLines: 2,
@@ -90,7 +94,7 @@ class NotificationCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   notification.timeAgo,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
                 ),
               ],
             ),

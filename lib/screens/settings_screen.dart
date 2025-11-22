@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final bool darkMode;
+  final ValueChanged<bool> onDarkModeChanged;
+  const SettingsScreen({super.key, required this.darkMode, required this.onDarkModeChanged});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool darkMode = false;
   String language = 'English';
 
   bool pushNotifications = true;
@@ -28,18 +29,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Settings',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.5,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Customize your experience',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+                style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade300
+                        : Colors.grey.shade600,
+                    fontSize: 15),
               ),
               const SizedBox(height: 16),
               _section(
@@ -49,8 +55,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.brightness_5_outlined,
                     title: 'Dark Mode',
                     subtitle: 'Toggle dark theme',
-                    value: darkMode,
-                    onChanged: (v) => setState(() => darkMode = v),
+                    value: widget.darkMode,
+                    onChanged: (v) {
+                      widget.onDarkModeChanged(v);
+                      setState(() {});
+                    },
                   )),
               ),
               _section(
@@ -134,7 +143,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<Widget> _rowHeader(String title) => [
         Text(
           title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
       ];
 
@@ -145,21 +158,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         CircleAvatar(
           radius: 18,
-          backgroundColor: Colors.grey.shade100,
-          child: Icon(icon, color: Colors.black87),
+          backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+          child: Icon(icon, color: onSurface),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: onSurface)),
               const SizedBox(height: 4),
-              Text(subtitle, style: TextStyle(color: Colors.grey.shade600)),
+              Text(subtitle, style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
             ],
           ),
         ),
@@ -169,6 +184,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _languagePicker() {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -176,19 +193,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: Colors.grey.shade100,
-              child: const Icon(Icons.language, color: Colors.black87),
+              backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+              child: Icon(Icons.language, color: onSurface),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('App Language',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text('App Language',
+                      style: TextStyle(fontWeight: FontWeight.w600, color: onSurface)),
                   const SizedBox(height: 4),
                   Text('Choose your preferred language',
-                      style: TextStyle(color: Colors.grey.shade600)),
+                      style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
                 ],
               ),
             ),
@@ -204,7 +221,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onChanged: (v) => setState(() => language = v ?? language),
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.grey.shade100,
+            fillColor: Theme.of(context).inputDecorationTheme.fillColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide.none,
@@ -247,11 +264,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.grey.shade200,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade700
+                : Colors.grey.shade200,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(minMagnitude.toStringAsFixed(1),
-              style: const TextStyle(fontWeight: FontWeight.w600)),
+              style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
         ),
       ],
     );
@@ -261,16 +280,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade700
+                : Colors.grey.shade200),
       ),
       child: Row(
         children: [
           Text(label,
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 15)),
+              style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade700,
+                  fontSize: 15)),
           const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(value,
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface)),
         ],
       ),
     );
@@ -298,9 +327,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       margin: const EdgeInsets.only(top: 12, bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade700
+                : Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),

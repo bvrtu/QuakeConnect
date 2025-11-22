@@ -11,9 +11,15 @@ class EarthquakeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final magnitudeColor = AppTheme.getMagnitudeColor(earthquake.magnitude);
     final borderColor = AppTheme.getMagnitudeBorderColor(earthquake.magnitude);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = Theme.of(context).colorScheme.surface;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
-    // Get magnitude color with opacity for background
-    final backgroundColor = magnitudeColor.withValues(alpha: 0.1);
+    // Blend a magnitude tint onto the surface so it works on both themes
+    final backgroundColor = Color.alphaBlend(
+      magnitudeColor.withValues(alpha: isDark ? 0.18 : 0.10),
+      surface,
+    );
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -55,10 +61,10 @@ class EarthquakeCard extends StatelessWidget {
                   // Location
                   Text(
                     earthquake.location,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: onSurface,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -67,30 +73,18 @@ class EarthquakeCard extends StatelessWidget {
                   // Time and Depth Row
                   Row(
                     children: [
-                      Icon(
-                        Icons.access_time,
-                        size: 16,
-                        color: Colors.grey.shade700,
-                      ),
+                      Icon(Icons.access_time, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
                       const SizedBox(width: 6),
                       Text(
                         earthquake.timeAgo,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(width: 20),
-                      Icon(Icons.layers, size: 16, color: Colors.grey.shade700),
+                      Icon(Icons.layers, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
                       const SizedBox(width: 6),
                       Text(
                         "${earthquake.depth.toStringAsFixed(1)} km deep",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
@@ -98,19 +92,11 @@ class EarthquakeCard extends StatelessWidget {
                   // Distance
                   Row(
                     children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 16,
-                        color: Colors.grey.shade700,
-                      ),
+                      Icon(Icons.location_on, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
                       const SizedBox(width: 6),
                       Text(
                         "${earthquake.distance.toStringAsFixed(0)} km away",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
