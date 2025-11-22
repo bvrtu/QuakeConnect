@@ -3,6 +3,7 @@ import 'screens/home_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/safety_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/settings_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -24,7 +25,7 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
     const MapScreen(),
     const SafetyScreen(),
     const ProfileScreen(),
-    const Placeholder(), // Settings screen
+    const SettingsScreen(),
   ];
 
   @override
