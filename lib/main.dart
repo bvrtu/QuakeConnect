@@ -5,6 +5,8 @@ import 'screens/safety_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 import 'theme/app_theme.dart';
+import 'l10n/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
   runApp(const QuakeConnectApp());
@@ -20,6 +22,7 @@ class QuakeConnectApp extends StatefulWidget {
 class _QuakeConnectAppState extends State<QuakeConnectApp> {
   int _selectedIndex = 0;
   bool _isDarkMode = false;
+  Locale _locale = const Locale('en');
 
   List<Widget> get _screens => [
         const HomeScreen(),
@@ -29,6 +32,8 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
         SettingsScreen(
           darkMode: _isDarkMode,
           onDarkModeChanged: (v) => setState(() => _isDarkMode = v),
+          languageCode: _locale.languageCode,
+          onLanguageChanged: (code) => setState(() => _locale = Locale(code)),
         ),
       ];
 
@@ -40,7 +45,17 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      home: Scaffold(
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en'), Locale('tr')],
+      locale: _locale,
+      home: Builder(builder: (context) {
+        final t = AppLocalizations.of(context);
+        return Scaffold(
         body: _screens[_selectedIndex],
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
@@ -52,18 +67,15 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
           },
           selectedItemColor: Colors.red,
           unselectedItemColor: Colors.grey,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
-            BottomNavigationBarItem(icon: Icon(Icons.shield), label: 'Safety'),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Settings',
-            ),
+          items: [
+            BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
+            BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
+            BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
+            BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
+            BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
           ],
         ),
-      ),
+      );}),
     );
   }
 }

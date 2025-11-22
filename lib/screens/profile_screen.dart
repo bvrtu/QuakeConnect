@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
+import '../l10n/app_localizations.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,7 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int age = 32;
   int heightCm = 175;
   int weightKg = 75;
-  String disability = 'None';
+  String disability = 'none';
 
   // Avatar style
   int gradientIndex = 0; // pick from predefined gradients
@@ -153,10 +154,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
       child: Row(
-        children: const [
+        children: [
           Text(
-            'Profile',
-            style: TextStyle(
+            AppLocalizations.of(context).profileTitle,
+            style: const TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.5,
@@ -275,17 +276,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildInfoTile('Age', '$age years', 0xFFE3F2FD)),
+                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Yaş' : 'Age', '$age ${Localizations.localeOf(context).languageCode == 'tr' ? 'yıl' : 'years'}', 0xFFE3F2FD)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildInfoTile('Height', '$heightCm cm', 0xFFE8F5E9)),
+                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Boy' : 'Height', '$heightCm cm', 0xFFE8F5E9)),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _buildInfoTile('Weight', '$weightKg kg', 0xFFFFF3E0)),
+                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Kilo' : 'Weight', '$weightKg kg', 0xFFFFF3E0)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildInfoTile('Disability', disability, 0xFFF3E5F5)),
+                Expanded(child: _buildInfoTile(AppLocalizations.of(context).disabilityStatus, _disabilityLabel(context, disability), 0xFFF3E5F5)),
               ],
             ),
             const SizedBox(height: 16),
@@ -334,7 +335,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Edit Profile'),
+                child: Text(AppLocalizations.of(context).editProfile),
               ),
             ),
           ],
@@ -352,7 +353,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: _CountTile(
               color: const Color(0xFFF3E8FF),
               icon: Icons.groups,
-              label: 'Followers',
+              label: AppLocalizations.of(context).followers,
               value: followers,
               onTap: () => _openFollowList(isFollowers: true),
             ),
@@ -362,7 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: _CountTile(
               color: const Color(0xFFE3F2FD),
               icon: Icons.person_add,
-              label: 'Following',
+              label: AppLocalizations.of(context).following,
               value: following,
               onTap: () => _openFollowList(isFollowers: false),
             ),
@@ -379,7 +380,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           const Icon(Icons.phone_in_talk, color: Colors.redAccent),
           const SizedBox(width: 8),
-          Text('Emergency Contacts',
+          Text(AppLocalizations.of(context).emergencyContacts,
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -443,7 +444,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(20),
                                 ),
-                                child: Text(c.relation,
+                                child: Text(_localizedRelation(context, c.relation),
                                     style: const TextStyle(fontSize: 12)),
                               ),
                             ],
@@ -469,7 +470,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Call'),
+                      child: Text(AppLocalizations.of(context).call),
                     ),
                   ],
                 ),
@@ -519,6 +520,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final first = p.isNotEmpty ? p.first[0] : '?';
     final second = p.length > 1 ? p[1][0] : '';
     return (first + second).toUpperCase();
+  }
+
+  String _localizedRelation(BuildContext context, String relation) {
+    final l = AppLocalizations.of(context);
+    final r = relation.toLowerCase();
+    if (r.contains('spouse') || r.contains('eş')) return l.spouse;
+    if (r.contains('brother') || r.contains('erkek') || r.contains('kardeş')) return l.brother;
+    if (r.contains('sister') || r.contains('kız')) return l.sister;
+    if (r.contains('friend') || r.contains('arkadaş')) return l.friend;
+    if (r.contains('family') || r.contains('aile')) return l.family;
+    return relation;
+  }
+
+  String _disabilityLabel(BuildContext context, String key) {
+    final isTr = Localizations.localeOf(context).languageCode == 'tr';
+    final labels = {
+      'none': isTr ? 'Yok' : 'None',
+      'physical': isTr ? 'Fiziksel' : 'Physical',
+      'visual': isTr ? 'Görme' : 'Visual',
+      'hearing': isTr ? 'İşitme' : 'Hearing',
+      'speech': isTr ? 'Konuşma' : 'Speech',
+      'mental': isTr ? 'Zihinsel' : 'Mental',
+      'multiple': isTr ? 'Birden Fazla' : 'Multiple Disabilities',
+      'other': isTr ? 'Diğer' : 'Other',
+    };
+    return labels[key] ?? key;
   }
 
   Color _accentFromBg(int bg) {
@@ -620,7 +647,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => _FollowListScreen(
-          title: isFollowers ? 'Followers' : 'Following',
+          title: isFollowers ? AppLocalizations.of(context).followers : AppLocalizations.of(context).following,
           initial: List.generate(5, (i) => _FollowUser.sample(i)),
         ),
       ),
@@ -876,7 +903,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              child: const Text('Cancel'),
+                              child: Text(AppLocalizations.of(context).cancel),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -922,13 +949,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (context) {
+        final onSurface = Theme.of(context).colorScheme.onSurface;
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.import_contacts_outlined),
-                title: const Text('Import from Contacts'),
+                leading: Icon(Icons.import_contacts_outlined, color: onSurface),
+                title: Text(AppLocalizations.of(context).importContacts, style: TextStyle(color: onSurface)),
                 onTap: () {
                   Navigator.pop(context);
                   _openImportContacts();
@@ -936,8 +964,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const Divider(height: 1),
               ListTile(
-                leading: const Icon(Icons.person_add_alt),
-                title: const Text('Add Manually'),
+                leading: Icon(Icons.person_add_alt, color: onSurface),
+                title: Text(AppLocalizations.of(context).addManually, style: TextStyle(color: onSurface)),
                 onTap: () {
                   Navigator.pop(context);
                   _openAddContactForm();
@@ -990,13 +1018,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () {
                       setState(() => contacts.add(c));
                       Navigator.pop(context);
-                      _showSnack('Contact added');
+                      _showSnack(AppLocalizations.of(context).contactAdded);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('Add'),
+                    child: Text(AppLocalizations.of(context).add),
                   ),
                 );
               },
@@ -1143,7 +1171,7 @@ class _FollowListScreenState extends State<_FollowListScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              child: Text(u.following ? 'Following' : 'Follow'),
+              child: Text(u.following ? AppLocalizations.of(context).followingBtn : AppLocalizations.of(context).follow),
             ),
           );
         },
@@ -1184,7 +1212,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
   late final TextEditingController ageCtrl;
   late final TextEditingController heightCtrl;
   late final TextEditingController weightCtrl;
-  String disability = 'None';
+  String disability = 'none';
 
   @override
   void initState() {
@@ -1215,7 +1243,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        title: Text(AppLocalizations.of(context).editProfile),
         elevation: 0.5,
         actions: [
           IconButton(
@@ -1228,7 +1256,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           _section(
-            'Profile Picture',
+            AppLocalizations.of(context).profilePicture,
             Row(
               children: [
                 Container(
@@ -1250,54 +1278,54 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text('Go to your profile to change your profile picture',
+                  child: Text(AppLocalizations.of(context).goToProfileChangePp,
                       style: TextStyle(color: Colors.grey.shade600)),
                 ),
               ],
             ),
           ),
           _section(
-            'Name *',
+            '${AppLocalizations.of(context).nameLabel} *',
             TextField(controller: fullNameCtrl),
           ),
           _section(
-            'Username *',
+            '${AppLocalizations.of(context).usernameLabel} *',
             Row(children: [
               const Text('@  ', style: TextStyle(color: Colors.grey)),
               Expanded(child: TextField(controller: usernameCtrl)),
             ]),
           ),
-          _section('Location', TextField(controller: locationCtrl)),
-          _section('Email *', TextField(controller: emailCtrl)),
+          _section(AppLocalizations.of(context).locationLabel, TextField(controller: locationCtrl)),
+          _section('${AppLocalizations.of(context).emailLabel} *', TextField(controller: emailCtrl)),
           _section(
-            'Personal Information',
+            AppLocalizations.of(context).personalInfo,
             Column(
               children: [
                 const SizedBox(height: 8),
                 TextField(
                   controller: ageCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Age (years) *',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  decoration: InputDecoration(
+                    labelText: '${AppLocalizations.of(context).ageYears} *',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: heightCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Height (cm) *',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  decoration: InputDecoration(
+                    labelText: '${AppLocalizations.of(context).heightCm} *',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: weightCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Weight (kg) *',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  decoration: InputDecoration(
+                    labelText: '${AppLocalizations.of(context).weightKg} *',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1311,22 +1339,26 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
   }
 
   Widget _disabilityDropdown() {
-    final items = [
-      'None',
-      'Mobility Impairment',
-      'Visual Impairment',
-      'Hearing Impairment',
-      'Cognitive Impairment',
-      'Multiple Disabilities',
-      'Other',
-    ];
+    final isTr = Localizations.localeOf(context).languageCode == 'tr';
+    final keys = ['none','physical','visual','hearing','speech','mental','multiple','other'];
+    final labels = {
+      'none': isTr ? 'Yok' : 'None',
+      'physical': isTr ? 'Fiziksel' : 'Physical',
+      'visual': isTr ? 'Görme' : 'Visual',
+      'hearing': isTr ? 'İşitme' : 'Hearing',
+      'speech': isTr ? 'Konuşma' : 'Speech',
+      'mental': isTr ? 'Zihinsel' : 'Mental',
+      'multiple': isTr ? 'Birden Fazla' : 'Multiple Disabilities',
+      'other': isTr ? 'Diğer' : 'Other',
+    };
+    final current = keys.contains(disability) ? disability : 'none';
     return DropdownButtonFormField<String>(
-      value: disability,
-      items: items
-          .map((e) => DropdownMenuItem<String>(value: e, child: Text(e)))
+      value: current,
+      items: keys
+          .map((k) => DropdownMenuItem<String>(value: k, child: Text(labels[k] ?? k)))
           .toList(),
-      onChanged: (v) => setState(() => disability = v ?? disability),
-      decoration: const InputDecoration(labelText: 'Disability Status'),
+      onChanged: (v) => setState(() => disability = v ?? current),
+      decoration: InputDecoration(labelText: AppLocalizations.of(context).disabilityStatus),
     );
   }
 
@@ -1394,7 +1426,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Emergency Contact'),
+        title: Text(AppLocalizations.of(context).emergencyContacts),
         elevation: 0.5,
         actions: [
           Padding(
@@ -1402,7 +1434,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
             child: ElevatedButton.icon(
               onPressed: _save,
               icon: const Icon(Icons.save_outlined, size: 18),
-              label: const Text('Save'),
+              label: Text(AppLocalizations.of(context).signOut.replaceAll('Sign Out', 'Save')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
@@ -1447,7 +1479,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Emergency Contact Details',
+                            AppLocalizations.of(context).addEmergencyContact,
                             style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
@@ -1455,7 +1487,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Add someone who should be notified in emergencies',
+                            AppLocalizations.of(context).emergencyTip,
                             style: TextStyle(
                                 color: Theme.of(context).brightness ==
                                         Brightness.dark
@@ -1471,7 +1503,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                 TextField(
                   controller: nameCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Full Name *',
+                    labelText: '${AppLocalizations.of(context).fullName} *',
                     hintText: 'e.g., Elif Yılmaz',
                     filled: true,
                     fillColor: Theme.of(context).inputDecorationTheme.fillColor,
@@ -1483,7 +1515,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                 TextField(
                   controller: phoneCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Phone Number *',
+                    labelText: '${AppLocalizations.of(context).phoneNumber} *',
                     hintText: 'e.g., +90 532 123 4567',
                     filled: true,
                     fillColor: Theme.of(context).inputDecorationTheme.fillColor,
@@ -1496,8 +1528,8 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                 TextField(
                   controller: relationCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Relation *',
-                    hintText: 'e.g., Spouse, Friend, Family',
+                    labelText: '${AppLocalizations.of(context).relation} *',
+                    hintText: AppLocalizations.of(context).relationHint,
                     filled: true,
                     fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -1527,7 +1559,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Emergency contacts will be notified when you mark yourself as safe or when you need help.',
+                          AppLocalizations.of(context).emergencyTip,
                           style: TextStyle(
                               height: 1.3,
                               color: Theme.of(context).brightness ==

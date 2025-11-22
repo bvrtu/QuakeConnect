@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/community_post.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/formatters.dart';
 
 class Comment {
   final String id;
@@ -150,7 +152,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    widget.post.timeAgo,
+                                    formatTimeAgo(context, widget.post.timestamp),
                                     style: TextStyle(
                                       color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                       fontSize: 13,
@@ -232,7 +234,11 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
         border: Border.all(color: widget.post.badgeColor),
       ),
       child: Text(
-        widget.post.badgeLabel,
+        widget.post.type == CommunityPostType.needHelp
+            ? AppLocalizations.of(context).needHelp
+            : widget.post.type == CommunityPostType.info
+                ? AppLocalizations.of(context).shareInfo
+                : AppLocalizations.of(context).imSafe,
         style: TextStyle(
           color: widget.post.badgeColor,
           fontSize: 12,
@@ -357,7 +363,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                               Row(children: [
                                 Text(c.authorName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                                 const SizedBox(width: 6),
-                                Text(c.timeAgo, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                Text(formatTimeAgo(context, c.timestamp), style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
                               ]),
                               const SizedBox(height: 4),
                               Text(c.text, style: const TextStyle(fontSize: 14)),
@@ -404,7 +410,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                       child: Row(children: [
                         Icon(Icons.mode_comment_outlined, color: Theme.of(context).colorScheme.onSurface),
                         const SizedBox(width: 8),
-                        Text('Thread', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+                        Text(AppLocalizations.of(context).thread, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
                         const Spacer(),
                         IconButton(icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface), onPressed: () => Navigator.of(context).pop()),
                       ]),
@@ -412,7 +418,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                     const Divider(height: 1),
                     Expanded(
                       child: _comments.isEmpty
-                          ? Center(child: Text('No replies yet. Start the conversation.', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600)))
+                          ? Center(child: Text(AppLocalizations.of(context).noRepliesYet, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600)))
                           : ListView.separated(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               itemCount: _comments.length,
@@ -441,7 +447,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                             minLines: 1,
                             maxLines: 4,
                             decoration: InputDecoration(
-                              hintText: replyingTo == null ? 'Reply...' : 'Replying to @' + replyingTo!.handle.substring(1),
+                              hintText: replyingTo == null ? AppLocalizations.of(context).reply : '${AppLocalizations.of(context).replyingTo} @' + replyingTo!.handle.substring(1),
                               filled: true,
                               fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),

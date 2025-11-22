@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
+import '../l10n/app_localizations.dart';
 
 class AllCommunityUpdatesScreen extends StatefulWidget {
   final List<CommunityPost> posts;
@@ -28,9 +29,9 @@ class _AllCommunityUpdatesScreenState extends State<AllCommunityUpdatesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Community Updates',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context).communityUpdatesTitle,
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),

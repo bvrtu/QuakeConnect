@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/earthquake.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/formatters.dart';
 
 class EarthquakeCard extends StatelessWidget {
   final Earthquake earthquake;
@@ -76,14 +78,14 @@ class EarthquakeCard extends StatelessWidget {
                       Icon(Icons.access_time, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
                       const SizedBox(width: 6),
                       Text(
-                        earthquake.timeAgo,
+                        translateRelativeFromEnglish(context, earthquake.timeAgo),
                         style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(width: 20),
                       Icon(Icons.layers, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
                       const SizedBox(width: 6),
                       Text(
-                        "${earthquake.depth.toStringAsFixed(1)} km deep",
+                        "${earthquake.depth.toStringAsFixed(1)} km ${AppLocalizations.of(context).deepSuffix}",
                         style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
                       ),
                     ],
@@ -95,7 +97,7 @@ class EarthquakeCard extends StatelessWidget {
                       Icon(Icons.location_on, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
                       const SizedBox(width: 6),
                       Text(
-                        "${earthquake.distance.toStringAsFixed(0)} km away",
+                        "${earthquake.distance.toStringAsFixed(0)} km ${AppLocalizations.of(context).awaySuffix}",
                         style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
                       ),
                     ],

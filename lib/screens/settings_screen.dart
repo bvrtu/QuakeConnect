@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool darkMode;
   final ValueChanged<bool> onDarkModeChanged;
-  const SettingsScreen({super.key, required this.darkMode, required this.onDarkModeChanged});
+  final String languageCode;
+  final ValueChanged<String> onLanguageChanged;
+  const SettingsScreen({super.key, required this.darkMode, required this.onDarkModeChanged, required this.languageCode, required this.onLanguageChanged});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String language = 'English';
+  late String language;
 
   bool pushNotifications = true;
   double minMagnitude = 4.0;
@@ -22,6 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    language = widget.languageCode == 'tr' ? 'Türkçe' : 'English';
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -30,7 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Settings',
+                AppLocalizations.of(context).settingsTitle,
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
@@ -40,7 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Customize your experience',
+                AppLocalizations.of(context).settingsCustomize,
                 style: TextStyle(
                     color: Theme.of(context).brightness == Brightness.dark
                         ? Colors.grey.shade300
@@ -49,12 +53,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 16),
               _section(
-                child: _rowHeader('Appearance')
+                child: _rowHeader(AppLocalizations.of(context).appearance)
                   ..add(const SizedBox(height: 12))
                   ..add(_switchTile(
                     icon: Icons.brightness_5_outlined,
-                    title: 'Dark Mode',
-                    subtitle: 'Toggle dark theme',
+                    title: AppLocalizations.of(context).darkMode,
+                    subtitle: AppLocalizations.of(context).toggleDarkTheme,
                     value: widget.darkMode,
                     onChanged: (v) {
                       widget.onDarkModeChanged(v);
@@ -63,18 +67,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   )),
               ),
               _section(
-                child: _rowHeader('Language')
+                child: _rowHeader(AppLocalizations.of(context).language)
                   ..add(const SizedBox(height: 12))
                   ..add(_languagePicker()),
               ),
               _section(
                 child: [
-                  ..._rowHeader('Notification Settings'),
+                  ..._rowHeader(AppLocalizations.of(context).notificationSettings),
                   const SizedBox(height: 12),
                   _switchTile(
                     icon: Icons.notifications_outlined,
-                    title: 'Push Notifications',
-                    subtitle: 'Receive earthquake alerts',
+                    title: AppLocalizations.of(context).pushNotifications,
+                    subtitle: AppLocalizations.of(context).receiveAlerts,
                     value: pushNotifications,
                     onChanged: (v) => setState(() => pushNotifications = v),
                   ),
@@ -82,22 +86,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _minMagnitudeSlider(),
                   const SizedBox(height: 8),
                   Text(
-                    'Only notify for earthquakes of magnitude ${minMagnitude.toStringAsFixed(1)} or higher',
+                    AppLocalizations.of(context).onlyNotifyFor(minMagnitude.toStringAsFixed(1)),
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
                   const Divider(height: 24),
                   _switchTile(
                     icon: Icons.radar_outlined,
-                    title: 'Nearby Earthquake Alerts',
-                    subtitle: 'Within 100 km radius',
+                    title: AppLocalizations.of(context).nearbyAlerts,
+                    subtitle: AppLocalizations.of(context).withinKm,
                     value: nearbyAlerts,
                     onChanged: (v) => setState(() => nearbyAlerts = v),
                   ),
                   const Divider(height: 24),
                   _switchTile(
                     icon: Icons.forum_outlined,
-                    title: 'Community Updates',
-                    subtitle: 'Local reports in your area',
+                    title: AppLocalizations.of(context).communityUpdates,
+                    subtitle: AppLocalizations.of(context).localReports,
                     value: communityUpdates,
                     onChanged: (v) => setState(() => communityUpdates = v),
                   ),
@@ -105,20 +109,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               _section(
                 child: [
-                  ..._rowHeader('Location & Privacy'),
+                  ..._rowHeader(AppLocalizations.of(context).locationPrivacy),
                   const SizedBox(height: 12),
                   _switchTile(
                     icon: Icons.location_on_outlined,
-                    title: 'Location Services',
-                    subtitle: 'Show nearby earthquakes',
+                    title: AppLocalizations.of(context).locationServices,
+                    subtitle: AppLocalizations.of(context).showNearby,
                     value: locationServices,
                     onChanged: (v) => setState(() => locationServices = v),
                   ),
                   const Divider(height: 24),
                   _switchTile(
                     icon: Icons.shield_outlined,
-                    title: 'Share Safety Status',
-                    subtitle: 'Let contacts see your status',
+                    title: AppLocalizations.of(context).shareSafetyStatus,
+                    subtitle: AppLocalizations.of(context).letContactsSee,
                     value: shareSafetyStatus,
                     onChanged: (v) => setState(() => shareSafetyStatus = v),
                   ),
@@ -126,9 +130,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               _section(
                 child: [
-                  ..._rowHeader('About'),
+                  ..._rowHeader(AppLocalizations.of(context).about),
                   const SizedBox(height: 12),
-                  _aboutRow('Version', '1.0.0'),
+                  _aboutRow(AppLocalizations.of(context).version, '1.0.0'),
                 ],
               ),
               const SizedBox(height: 8),
@@ -201,10 +205,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('App Language',
+                  Text(AppLocalizations.of(context).appLanguage,
                       style: TextStyle(fontWeight: FontWeight.w600, color: onSurface)),
                   const SizedBox(height: 4),
-                  Text('Choose your preferred language',
+                  Text(AppLocalizations.of(context).chooseLanguage,
                       style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
                 ],
               ),
@@ -216,9 +220,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           value: language,
           items: const [
             DropdownMenuItem(value: 'English', child: Text('English')),
-            DropdownMenuItem(value: 'Turkish', child: Text('Turkish')),
+            DropdownMenuItem(value: 'Türkçe', child: Text('Türkçe')),
           ],
-          onChanged: (v) => setState(() => language = v ?? language),
+          onChanged: (v) {
+            if (v == null) return;
+            setState(() => language = v);
+            widget.onLanguageChanged(v == 'Türkçe' ? 'tr' : 'en');
+          },
           decoration: InputDecoration(
             filled: true,
             fillColor: Theme.of(context).inputDecorationTheme.fillColor,
@@ -242,8 +250,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Minimum Magnitude Alert',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(AppLocalizations.of(context).minMagnitudeAlert,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 12),
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(

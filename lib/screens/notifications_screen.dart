@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/notification_model.dart';
 import '../widgets/notification_card.dart';
+import '../l10n/app_localizations.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -30,7 +31,7 @@ class NotificationsScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Notifications',
+                        AppLocalizations.of(context).notificationsTitle,
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,

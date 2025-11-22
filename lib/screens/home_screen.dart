@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/earthquake.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/earthquake_card.dart';
 import 'notifications_screen.dart';
 
@@ -108,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     letterSpacing: -0.5,
                   )),
               Text(
-                'Real-time updates from Turkey',
+                AppLocalizations.of(context).homeSubtitle,
                 style: TextStyle(
                   fontSize: 13,
                   color: Theme.of(context).brightness == Brightness.dark
@@ -161,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
-          hintText: 'Search location...',
+          hintText: AppLocalizations.of(context).searchHint,
           prefixIcon: Icon(Icons.search,
               color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.grey.shade300
@@ -193,15 +194,15 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         children: [
           Expanded(
-            child: _buildFilterButton('All Quakes', 0),
+            child: _buildFilterButton(AppLocalizations.of(context).filtersAll, 0),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: _buildFilterButton('Nearby', 1, icon: Icons.location_on),
+            child: _buildFilterButton(AppLocalizations.of(context).filtersNearby, 1, icon: Icons.location_on),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: _buildFilterButton('Major (5.0+)', 2, icon: Icons.warning_amber_rounded),
+            child: _buildFilterButton(AppLocalizations.of(context).filtersMajor, 2, icon: Icons.warning_amber_rounded),
           ),
         ],
       ),

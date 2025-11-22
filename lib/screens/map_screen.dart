@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/earthquake.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/formatters.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -90,7 +92,7 @@ class _MapScreenState extends State<MapScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.map),
-                title: const Text('Normal'),
+                title: Text(AppLocalizations.of(context).mapNormal),
                 trailing: _currentMapType == MapType.normal
                     ? const Icon(Icons.check, color: Colors.red)
                     : null,
@@ -103,7 +105,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.terrain),
-                title: const Text('Satellite'),
+                title: Text(AppLocalizations.of(context).mapSatellite),
                 trailing: _currentMapType == MapType.satellite
                     ? const Icon(Icons.check, color: Colors.red)
                     : null,
@@ -116,7 +118,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.terrain),
-                title: const Text('Terrain'),
+                title: Text(AppLocalizations.of(context).mapTerrain),
                 trailing: _currentMapType == MapType.terrain
                     ? const Icon(Icons.check, color: Colors.red)
                     : null,
@@ -129,7 +131,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.layers_outlined),
-                title: const Text('Hybrid'),
+                title: Text(AppLocalizations.of(context).mapHybrid),
                 trailing: _currentMapType == MapType.hybrid
                     ? const Icon(Icons.check, color: Colors.red)
                     : null,
@@ -200,7 +202,7 @@ class _MapScreenState extends State<MapScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          Text('Map',
+          Text(AppLocalizations.of(context).mapTitle,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -283,21 +285,21 @@ class _MapScreenState extends State<MapScreen> {
                     Icon(Icons.access_time, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     const SizedBox(width: 4),
                     Text(
-                      earthquake.timeAgo,
+                      translateRelativeFromEnglish(context, earthquake.timeAgo),
                       style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     ),
                     const SizedBox(width: 12),
                     Icon(Icons.layers, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     const SizedBox(width: 4),
                     Text(
-                      "${earthquake.depth.toStringAsFixed(1)} km",
+                      "${earthquake.depth.toStringAsFixed(1)} km ${AppLocalizations.of(context).deepSuffix}",
                       style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     ),
                     const SizedBox(width: 12),
                     Icon(Icons.location_on, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     const SizedBox(width: 4),
                     Text(
-                      "${earthquake.distance.toStringAsFixed(0)} km",
+                      "${earthquake.distance.toStringAsFixed(0)} km ${AppLocalizations.of(context).awaySuffix}",
                       style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
                     ),
                   ],

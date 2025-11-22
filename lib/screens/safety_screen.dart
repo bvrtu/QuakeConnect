@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
 import 'all_community_updates_screen.dart';
+import '../l10n/app_localizations.dart';
 
 class SafetyScreen extends StatefulWidget {
   const SafetyScreen({super.key});
@@ -117,7 +118,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
         _hasMarkedSafe = false;
       });
       _showTopBanner(
-        'Safety status cleared',
+        AppLocalizations.of(context).safetyStatusCleared,
         background: Colors.black87,
         icon: Icons.info_outline,
       );
@@ -128,18 +129,16 @@ class _SafetyScreenState extends State<SafetyScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Mark as Safe?'),
-          content: const Text(
-            'We will notify your emergency contacts that you are safe. Do you want to continue?',
-          ),
+          title: Text(AppLocalizations.of(context).markSafeTitle),
+          content: Text(AppLocalizations.of(context).markSafePrompt),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context).cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Confirm'),
+              child: Text(AppLocalizations.of(context).confirm),
             ),
           ],
         );
@@ -155,7 +154,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
     });
 
     _showTopBanner(
-      'Safety status sent to emergency contacts',
+      AppLocalizations.of(context).safetyStatusSent,
       background: const Color(0xFF2E7D32),
       icon: Icons.check_circle,
     );
@@ -186,7 +185,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
       _selectedCategory = null;
     });
 
-    _showTopBanner('Your update has been shared with the community');
+    _showTopBanner(AppLocalizations.of(context).postShared);
   }
 
   void _navigateToAllUpdates() {
@@ -210,7 +209,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Safety & Community',
+                AppLocalizations.of(context).safetyTitle,
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
@@ -220,7 +219,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Share your status and local updates',
+                AppLocalizations.of(context).safetySubtitle,
                 style: TextStyle(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.grey.shade300
@@ -290,8 +289,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
                   children: [
                     Text(
                       _hasMarkedSafe
-                          ? 'You\'ve marked yourself as safe'
-                          : 'Your Safety Status',
+                          ? AppLocalizations.of(context).imSafe
+                          : AppLocalizations.of(context).yourSafetyStatus,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -301,8 +300,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
                     const SizedBox(height: 6),
                     Text(
                       _hasMarkedSafe
-                          ? 'Notification sent to emergency contacts'
-                          : 'Let others know you\'re safe',
+                          ? AppLocalizations.of(context).emergencyTip
+                          : AppLocalizations.of(context).letOthersKnow,
                       style: TextStyle(
                         fontSize: 14,
                         color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
@@ -329,7 +328,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
                 ),
               ),
               child: Text(
-                _hasMarkedSafe ? "I'm Safe" : 'Mark as Safe',
+                _hasMarkedSafe ? AppLocalizations.of(context).imSafe : AppLocalizations.of(context).markAsSafe,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -355,7 +354,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Share Local Information',
+          Text(AppLocalizations.of(context).shareLocalInfo,
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -367,9 +366,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
             maxLines: 5,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              hintText:
-                  'Report local conditions, road status, or emergency needs...',
-              // use themed input decoration
+              hintText: AppLocalizations.of(context).shareLocalInfo,
             ),
           ),
           const SizedBox(height: 12),
@@ -378,7 +375,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
               Expanded(
                 child: _buildCategoryButton(
                   category: PostCategory.needHelp,
-                  label: 'Need Help',
+                  label: AppLocalizations.of(context).needHelp,
                   icon: Icons.warning_amber_rounded,
                   activeColor: const Color(0xFFE53935),
                   compact: true,
@@ -388,7 +385,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
               Expanded(
                 child: _buildCategoryButton(
                   category: PostCategory.info,
-                  label: 'Share Info',
+                  label: AppLocalizations.of(context).shareInfo,
                   icon: Icons.info_outline,
                   activeColor: const Color(0xFF1E88E5),
                   compact: true,
@@ -398,7 +395,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
               Expanded(
                 child: _buildCategoryButton(
                   category: PostCategory.safe,
-                  label: "I'm Safe",
+                  label: AppLocalizations.of(context).imSafe,
                   icon: Icons.shield_outlined,
                   activeColor: const Color(0xFF2E7D32),
                   compact: true,
@@ -420,14 +417,14 @@ class _SafetyScreenState extends State<SafetyScreen> {
       children: [
         Row(
           children: [
-            const Text(
-              'Community Updates',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            Text(
+              AppLocalizations.of(context).communityUpdatesTitle,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const Spacer(),
             TextButton(
               onPressed: _navigateToAllUpdates,
-              child: const Text('View All'),
+              child: Text(AppLocalizations.of(context).viewAll),
             ),
           ],
         ),
@@ -439,7 +436,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
               color: Colors.grey.shade100,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Text('No updates yet. Be the first to share!'),
+            child: Text(AppLocalizations.of(context).noUpdatesYet),
           )
         else
           Column(
@@ -509,7 +506,10 @@ class _SafetyScreenState extends State<SafetyScreen> {
         });
       },
       icon: Icon(icon, size: iconSize, color: textColor),
-      label: Text(label, style: labelStyle),
+      label: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(label, style: labelStyle, maxLines: 1),
+      ),
       style: OutlinedButton.styleFrom(
         backgroundColor: background,
         side: BorderSide(color: borderColor),
