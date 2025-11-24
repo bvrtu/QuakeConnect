@@ -3,9 +3,13 @@ import '../models/earthquake.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/earthquake_card.dart';
 import 'notifications_screen.dart';
+import 'map_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final void Function(Earthquake earthquake)? onOpenOnMap;
+  final VoidCallback? onOpenMapTab;
+  final VoidCallback? onOpenSafetyTab;
+  const HomeScreen({super.key, this.onOpenOnMap, this.onOpenMapTab, this.onOpenSafetyTab});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -74,7 +78,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.only(top: 8, bottom: 8),
                 itemCount: _filteredEarthquakes.length,
                 itemBuilder: (context, index) {
-                  return EarthquakeCard(earthquake: _filteredEarthquakes[index]);
+                  final eq = _filteredEarthquakes[index];
+                  return EarthquakeCard(
+                    earthquake: eq,
+                    onTap: () {
+                      if (widget.onOpenOnMap != null) {
+                        widget.onOpenOnMap!(eq);
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => MapScreen(initialSelection: eq),
+                          ),
+                        );
+                      }
+                    },
+                  );
                 },
               ),
             ),
@@ -132,7 +150,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => const NotificationsScreen(),
+                      builder: (context) => NotificationsScreen(
+                        onOpenMapTab: widget.onOpenMapTab,
+                        onOpenSafetyTab: widget.onOpenSafetyTab,
+                        onOpenOnMap: widget.onOpenOnMap,
+                      ),
                     ),
                   );
                 },

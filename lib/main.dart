@@ -4,6 +4,7 @@ import 'screens/map_screen.dart';
 import 'screens/safety_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
+import 'models/earthquake.dart';
 import 'theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -23,10 +24,31 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
   int _selectedIndex = 0;
   bool _isDarkMode = false;
   Locale _locale = const Locale('en');
+  Earthquake? _mapSelection;
+
+  void _openOnMap(Earthquake eq) {
+    setState(() {
+      _mapSelection = eq;
+      _selectedIndex = 1; // Map tab
+    });
+  }
+
+  void _openMapTab() {
+    setState(() {
+      _mapSelection = null;
+      _selectedIndex = 1;
+    });
+  }
+
+  void _openSafetyTab() {
+    setState(() {
+      _selectedIndex = 2;
+    });
+  }
 
   List<Widget> get _screens => [
-        const HomeScreen(),
-        const MapScreen(),
+        HomeScreen(onOpenOnMap: _openOnMap, onOpenMapTab: _openMapTab, onOpenSafetyTab: _openSafetyTab),
+        MapScreen(initialSelection: _mapSelection),
         const SafetyScreen(),
         const ProfileScreen(),
         SettingsScreen(

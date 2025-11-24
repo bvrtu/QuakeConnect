@@ -6,7 +6,8 @@ import '../l10n/app_localizations.dart';
 import '../l10n/formatters.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key});
+  final Earthquake? initialSelection;
+  const MapScreen({super.key, this.initialSelection});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -20,6 +21,7 @@ class _MapScreenState extends State<MapScreen> {
   final double _zoomLevel = 6.0;
   MapType _currentMapType = MapType.normal;
   bool _appliedDark = false;
+  bool _pendingInitialAnimation = false;
 
   // Minimal dark map style for better night readability
   static const String _darkMapStyle = '[{"elementType":"geometry","stylers":[{"color":"#242f3e"}]},{"elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"elementType":"labels.text.stroke","stylers":[{"color":"#242f3e"}]},{"featureType":"administrative","elementType":"geometry","stylers":[{"color":"#757575"}]},{"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#d6d6d6"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#263c3f"}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#38414e"}]},{"featureType":"road","elementType":"geometry.stroke","stylers":[{"color":"#212a37"}]},{"featureType":"transit","elementType":"geometry","stylers":[{"color":"#2f3948"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#17263c"}]}]';
@@ -27,7 +29,16 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedEarthquake = _earthquakes.first;
+    if (widget.initialSelection != null) {
+      // Find the matching instance in local list by coordinates (fallback to first)
+      _selectedEarthquake = _earthquakes.firstWhere(
+        (e) => e.latitude == widget.initialSelection!.latitude && e.longitude == widget.initialSelection!.longitude,
+        orElse: () => widget.initialSelection!,
+      );
+      _pendingInitialAnimation = true;
+    } else {
+      _selectedEarthquake = _earthquakes.first;
+    }
   }
 
   Set<Marker> _createMarkers() {
@@ -61,12 +72,14 @@ class _MapScreenState extends State<MapScreen> {
 
   void _animateToEarthquake(Earthquake earthquake) {
     if (_mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(earthquake.latitude, earthquake.longitude),
-          10.0,
-        ),
-      );
+      // Smooth zoom-in effect: center, slight zoom, then closer
+      final target = LatLng(earthquake.latitude, earthquake.longitude);
+      _mapController!.animateCamera(CameraUpdate.newLatLngZoom(target, 7.5));
+      Future.delayed(const Duration(milliseconds: 250), () {
+        if (_mapController != null) {
+          _mapController!.animateCamera(CameraUpdate.newLatLngZoom(target, 10.5));
+        }
+      });
     }
   }
 
@@ -172,6 +185,15 @@ class _MapScreenState extends State<MapScreen> {
                     onMapCreated: (GoogleMapController controller) {
                       _mapController = controller;
                     _applyMapStyle();
+                    // Run initial selection animation after map is ready
+                    if (_pendingInitialAnimation && _selectedEarthquake != null) {
+                      Future.delayed(const Duration(milliseconds: 150), () {
+                        if (mounted && _mapController != null && _selectedEarthquake != null) {
+                          _animateToEarthquake(_selectedEarthquake!);
+                          _pendingInitialAnimation = false;
+                        }
+                      });
+                    }
                     },
                     markers: _createMarkers(),
                     mapType: _currentMapType,

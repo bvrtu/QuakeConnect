@@ -6,8 +6,9 @@ import '../l10n/formatters.dart';
 
 class EarthquakeCard extends StatelessWidget {
   final Earthquake earthquake;
+  final VoidCallback? onTap;
 
-  const EarthquakeCard({super.key, required this.earthquake});
+  const EarthquakeCard({super.key, required this.earthquake, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +24,10 @@ class EarthquakeCard extends StatelessWidget {
       surface,
     );
 
-    return Container(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: backgroundColor,
@@ -108,6 +112,7 @@ class EarthquakeCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

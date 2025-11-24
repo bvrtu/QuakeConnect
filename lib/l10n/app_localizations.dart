@@ -98,6 +98,8 @@ class AppLocalizations {
       'emergency_contacts': 'Emergency Contacts',
       'call': 'Call',
       'notifications_title': 'Notifications',
+      'no_notifications_title': 'No notifications',
+      'no_notifications_subtitle': "You're all caught up. We'll keep you posted.",
       'away_suffix': 'away',
       'deep_suffix': 'deep',
       'thread': 'Thread',
@@ -212,6 +214,8 @@ class AppLocalizations {
       'emergency_contacts': 'Acil Durum Kişileri',
       'call': 'Ara',
       'notifications_title': 'Bildirimler',
+      'no_notifications_title': 'Bildirim yok',
+      'no_notifications_subtitle': 'Şimdilik yeni bir bildirim yok. Gelişmeleri sana bildireceğiz.',
       'away_suffix': 'uzakta',
       'deep_suffix': 'derinlik',
       'thread': 'Sohbet',
@@ -313,6 +317,8 @@ class AppLocalizations {
   String get emergencyContacts => _t('emergency_contacts');
   String get call => _t('call');
   String get notificationsTitle => _t('notifications_title');
+  String get noNotificationsTitle => _t('no_notifications_title');
+  String get noNotificationsSubtitle => _t('no_notifications_subtitle');
   String get awaySuffix => _t('away_suffix');
   String get deepSuffix => _t('deep_suffix');
   String get thread => _t('thread');
