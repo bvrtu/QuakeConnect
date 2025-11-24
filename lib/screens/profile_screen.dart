@@ -19,7 +19,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int age = 32;
   int heightCm = 175;
   int weightKg = 75;
-  String disability = 'none';
+  List<String> disabilities = const <String>[];
+  String? disabilityOther;
 
   // Avatar style
   int gradientIndex = 0; // pick from predefined gradients
@@ -286,7 +287,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Kilo' : 'Weight', '$weightKg kg', 0xFFFFF3E0)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildInfoTile(AppLocalizations.of(context).disabilityStatus, _disabilityLabel(context, disability), 0xFFF3E5F5)),
+                Expanded(child: _buildInfoTile(AppLocalizations.of(context).disabilityStatus, _disabilitiesLabel(context, disabilities, disabilityOther), 0xFFF3E5F5)),
               ],
             ),
             const SizedBox(height: 16),
@@ -533,19 +534,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return relation;
   }
 
-  String _disabilityLabel(BuildContext context, String key) {
+  String _disabilitiesLabel(BuildContext context, List<String> keys, String? otherText) {
+    if (keys.isEmpty) return AppLocalizations.of(context).noneOption;
     final isTr = Localizations.localeOf(context).languageCode == 'tr';
     final labels = {
-      'none': isTr ? 'Yok' : 'None',
       'physical': isTr ? 'Fiziksel' : 'Physical',
       'visual': isTr ? 'Görme' : 'Visual',
       'hearing': isTr ? 'İşitme' : 'Hearing',
       'speech': isTr ? 'Konuşma' : 'Speech',
       'mental': isTr ? 'Zihinsel' : 'Mental',
-      'multiple': isTr ? 'Birden Fazla' : 'Multiple Disabilities',
-      'other': isTr ? 'Diğer' : 'Other',
+      'other': (otherText != null && otherText.trim().isNotEmpty)
+          ? otherText.trim()
+          : (isTr ? 'Diğer' : 'Other'),
     };
-    return labels[key] ?? key;
+    return keys.map((k) => labels[k] ?? k).join(', ');
   }
 
   Color _accentFromBg(int bg) {
@@ -623,7 +625,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           age: age,
           heightCm: heightCm,
           weightKg: weightKg,
-          disability: disability,
+          disabilities: disabilities,
+          disabilityOther: disabilityOther,
         ),
       ),
     ).then((value) {
@@ -636,7 +639,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           age = value['age'] ?? age;
           heightCm = value['heightCm'] ?? heightCm;
           weightKg = value['weightKg'] ?? weightKg;
-          disability = value['disability'] ?? disability;
+          disabilities = (value['disabilities'] as List<String>? ?? disabilities);
+          disabilityOther = value['disabilityOther'] as String? ?? disabilityOther;
         });
         _showSnack('Profile updated');
       }
@@ -1188,7 +1192,8 @@ class _EditProfileScreen extends StatefulWidget {
   final int age;
   final int heightCm;
   final int weightKg;
-  final String disability;
+  final List<String> disabilities;
+  final String? disabilityOther;
   const _EditProfileScreen({
     required this.fullName,
     required this.username,
@@ -1197,7 +1202,8 @@ class _EditProfileScreen extends StatefulWidget {
     required this.age,
     required this.heightCm,
     required this.weightKg,
-    required this.disability,
+    required this.disabilities,
+    required this.disabilityOther,
   });
 
   @override
@@ -1212,7 +1218,9 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
   late final TextEditingController ageCtrl;
   late final TextEditingController heightCtrl;
   late final TextEditingController weightCtrl;
-  String disability = 'none';
+  bool hasDisability = false;
+  Set<String> selectedDisabilityKeys = <String>{};
+  final TextEditingController otherCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -1224,7 +1232,9 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
     ageCtrl = TextEditingController(text: widget.age.toString());
     heightCtrl = TextEditingController(text: widget.heightCm.toString());
     weightCtrl = TextEditingController(text: widget.weightKg.toString());
-    disability = widget.disability;
+    hasDisability = widget.disabilities.isNotEmpty;
+    selectedDisabilityKeys = widget.disabilities.toSet();
+    otherCtrl.text = widget.disabilityOther ?? '';
   }
 
   @override
@@ -1236,6 +1246,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
     ageCtrl.dispose();
     heightCtrl.dispose();
     weightCtrl.dispose();
+    otherCtrl.dispose();
     super.dispose();
   }
 
@@ -1329,7 +1340,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _disabilityDropdown(),
+                _disabilitySelector(),
               ],
             ),
           ),
@@ -1338,27 +1349,89 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
     );
   }
 
-  Widget _disabilityDropdown() {
+  Widget _disabilitySelector() {
     final isTr = Localizations.localeOf(context).languageCode == 'tr';
-    final keys = ['none','physical','visual','hearing','speech','mental','multiple','other'];
-    final labels = {
-      'none': isTr ? 'Yok' : 'None',
-      'physical': isTr ? 'Fiziksel' : 'Physical',
-      'visual': isTr ? 'Görme' : 'Visual',
-      'hearing': isTr ? 'İşitme' : 'Hearing',
-      'speech': isTr ? 'Konuşma' : 'Speech',
-      'mental': isTr ? 'Zihinsel' : 'Mental',
-      'multiple': isTr ? 'Birden Fazla' : 'Multiple Disabilities',
-      'other': isTr ? 'Diğer' : 'Other',
-    };
-    final current = keys.contains(disability) ? disability : 'none';
-    return DropdownButtonFormField<String>(
-      value: current,
-      items: keys
-          .map((k) => DropdownMenuItem<String>(value: k, child: Text(labels[k] ?? k)))
-          .toList(),
-      onChanged: (v) => setState(() => disability = v ?? current),
-      decoration: InputDecoration(labelText: AppLocalizations.of(context).disabilityStatus),
+    final chips = <Map<String, String>>[
+      {'key': 'physical', 'label': isTr ? 'Fiziksel' : 'Physical'},
+      {'key': 'visual', 'label': isTr ? 'Görme' : 'Visual'},
+      {'key': 'hearing', 'label': isTr ? 'İşitme' : 'Hearing'},
+      {'key': 'speech', 'label': isTr ? 'Konuşma' : 'Speech'},
+      {'key': 'mental', 'label': isTr ? 'Zihinsel' : 'Mental'},
+      {'key': 'other', 'label': isTr ? 'Diğer' : 'Other'},
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(AppLocalizations.of(context).disabilityStatus,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            ChoiceChip(
+              selected: !hasDisability,
+              label: Text(AppLocalizations.of(context).noneOption),
+              onSelected: (_) => setState(() {
+                hasDisability = false;
+                selectedDisabilityKeys.clear();
+              }),
+            ),
+            const SizedBox(width: 8),
+            ChoiceChip(
+              selected: hasDisability,
+              label: Text(AppLocalizations.of(context).presentOption),
+              onSelected: (_) => setState(() {
+                hasDisability = true;
+              }),
+            ),
+          ],
+        ),
+        if (hasDisability) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final m in chips)
+                FilterChip(
+                  label: Text(m['label']!),
+                  selected: selectedDisabilityKeys.contains(m['key']!),
+                  onSelected: (sel) => setState(() {
+                    if (sel) {
+                      selectedDisabilityKeys.add(m['key']!);
+                    } else {
+                      selectedDisabilityKeys.remove(m['key']!);
+                    }
+                  }),
+                ),
+            ],
+          ),
+          if (selectedDisabilityKeys.contains('other')) ...[
+            const SizedBox(height: 10),
+            TextField(
+              controller: otherCtrl,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).otherSpecify,
+                filled: true,
+                fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade700
+                        : Colors.grey.shade300,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                ),
+              ),
+            ),
+          ],
+        ]
+      ],
     );
   }
 
@@ -1397,7 +1470,10 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
       'age': int.tryParse(ageCtrl.text.trim()) ?? widget.age,
       'heightCm': int.tryParse(heightCtrl.text.trim()) ?? widget.heightCm,
       'weightKg': int.tryParse(weightCtrl.text.trim()) ?? widget.weightKg,
-      'disability': disability,
+      'disabilities': hasDisability ? selectedDisabilityKeys.toList() : <String>[],
+      'disabilityOther': hasDisability && selectedDisabilityKeys.contains('other')
+          ? otherCtrl.text.trim()
+          : null,
     });
   }
 }

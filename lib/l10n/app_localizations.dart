@@ -57,6 +57,7 @@ class AppLocalizations {
       'weight_kg': 'Weight (kg)',
       'disability_status': 'Disability Status',
       'none_option': 'None',
+      'present_option': 'Present',
       'emergency_tip': 'Emergency contacts will be notified when you mark yourself as safe or when you need help.',
       'go_to_profile_change_pp': 'Go to your profile to change your profile picture',
 
@@ -122,6 +123,7 @@ class AppLocalizations {
       'sister': 'Sister',
       'friend': 'Friend',
       'family': 'Family',
+      'other_specify': 'Other (please specify)',
     },
     'tr': {
       'nav_home': 'Ana Sayfa',
@@ -169,6 +171,7 @@ class AppLocalizations {
       'weight_kg': 'Kilo (kg)',
       'disability_status': 'Engel Durumu',
       'none_option': 'Yok',
+      'present_option': 'Var',
       'emergency_tip': 'Güvenli olduğunuzu işaretlediğinizde veya yardıma ihtiyacınız olduğunda acil durum kişileri bilgilendirilir.',
       'go_to_profile_change_pp': 'Profil fotoğrafını değiştirmek için profil sayfana git',
 
@@ -234,6 +237,7 @@ class AppLocalizations {
       'sister': 'Kardeş',
       'friend': 'Arkadaş',
       'family': 'Aile',
+      'other_specify': 'Diğer (lütfen belirtin)',
     }
   };
 
@@ -334,6 +338,7 @@ class AppLocalizations {
   String get sister => _t('sister');
   String get friend => _t('friend');
   String get family => _t('family');
+  String get otherSpecify => _t('other_specify');
   String get emergencyTip => _t('emergency_tip');
   String get profilePicture => _t('profile_picture');
   String get nameLabel => _t('name_label');
@@ -346,6 +351,7 @@ class AppLocalizations {
   String get weightKg => _t('weight_kg');
   String get disabilityStatus => _t('disability_status');
   String get noneOption => _t('none_option');
+  String get presentOption => _t('present_option');
   String get goToProfileChangePp => _t('go_to_profile_change_pp');
   String get yourSafetyStatus => _t('your_safety_status');
   String get letOthersKnow => _t('let_others_know');
