@@ -230,12 +230,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           decoration: InputDecoration(
             filled: true,
             fillColor: Theme.of(context).inputDecorationTheme.fillColor,
-            border: OutlineInputBorder(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+            enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
         ),
       ],
@@ -292,8 +296,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade700
-                : Colors.grey.shade200),
+                ? Colors.grey.shade600
+                : Colors.grey.shade400, width: 1.2),
       ),
       child: Row(
         children: [
@@ -339,12 +343,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade700
-                : Colors.grey.shade200),
+                ? Colors.grey.shade600
+                : Colors.grey.shade400, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 12,
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 14,
             offset: const Offset(0, 6),
           ),
         ],

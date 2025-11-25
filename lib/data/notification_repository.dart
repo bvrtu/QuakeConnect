@@ -12,13 +12,14 @@ class NotificationRepository {
   int get unreadCount => _items.where((n) => !n.isRead).length;
 
   void markReadAndRemove(String id) {
+    // Legacy method name kept for compatibility; no longer removes.
+    // Now it only marks as read, preserving the item in the list.
     for (final n in _items) {
       if (n.id == id) {
         n.isRead = true;
         break;
       }
     }
-    _items.removeWhere((n) => n.id == id);
   }
 
   void markRead(String id) {
@@ -37,6 +38,10 @@ class NotificationRepository {
         break;
       }
     }
+  }
+
+  void remove(String id) {
+    _items.removeWhere((n) => n.id == id);
   }
 }
 

@@ -3,6 +3,7 @@ import '../models/earthquake.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/earthquake_card.dart';
 import 'notifications_screen.dart';
+import '../data/notification_repository.dart';
 import 'map_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -156,21 +157,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         onOpenOnMap: widget.onOpenOnMap,
                       ),
                     ),
-                  );
+                  ).then((_) => setState(() {}));
                 },
               ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
+              if (NotificationRepository.instance.unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ],
@@ -200,7 +202,21 @@ class _HomeScreenState extends State<HomeScreen> {
               });
             },
           ),
-          // Use theme InputDecoration (light/dark friendly)
+          // Stronger outline for visibility in light/dark
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade600
+                  : Colors.grey.shade400,
+              width: 1.2,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+          ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
         onChanged: (value) {
@@ -252,8 +268,8 @@ class _HomeScreenState extends State<HomeScreen> {
           side: BorderSide(
             color: isSelected
                 ? cs.primary
-                : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
-            width: 1,
+                : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+            width: 1.2,
           ),
         ),
       ),

@@ -48,6 +48,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _seedInitialPosts();
     _postScrollController.addListener(_onPostScroll);
   }
+  Widget _buildPostsSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Posts', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            ...posts.map((post) => CommunityPostCard(
+                  post: post,
+                  onUpdated: () => setState(() {}),
+                  showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
+                    _showTopBanner(msg, background: background, icon: icon);
+                  },
+                )),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Center(
+                child: _isLoadingMore
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const SizedBox.shrink(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -159,48 +198,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SliverToBoxAdapter(child: const SizedBox(height: 8)),
             SliverToBoxAdapter(child: _buildHeaderCard()),
             SliverToBoxAdapter(child: const SizedBox(height: 16)),
-            SliverToBoxAdapter(child: _buildCountsRow()),
-            SliverToBoxAdapter(child: const Divider(height: 32)),
-            SliverToBoxAdapter(child: _buildEmergencyHeader()),
-            SliverToBoxAdapter(child: _buildEmergencyList()),
+            SliverToBoxAdapter(child: _buildCountsSection()),
             SliverToBoxAdapter(child: const SizedBox(height: 16)),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Posts',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w600)),
-              ),
-            ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  if (index == posts.length) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Center(
-                        child: _isLoadingMore
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    );
-                  }
-                  final post = posts[index];
-              return CommunityPostCard(
-                post: post,
-                onUpdated: () => setState(() {}),
-                showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
-                  _showTopBanner(msg, background: background, icon: icon);
-                },
-              );
-                },
-                childCount: posts.length + 1,
-              ),
-            ),
+            SliverToBoxAdapter(child: _buildEmergencySection()),
+            SliverToBoxAdapter(child: const SizedBox(height: 16)),
+            SliverToBoxAdapter(child: _buildPostsSection()),
           ],
           controller: _postScrollController,
         ),
@@ -235,15 +237,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade700
-                : Colors.grey.shade200,
+                ? Colors.grey.shade600
+                : Colors.grey.shade400,
+            width: 1.2,
           ),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 6)),
           ],
         ),
         padding: const EdgeInsets.all(20),
@@ -431,110 +430,131 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildEmergencyHeader() {
+  Widget _buildCountsSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Row(
-        children: [
-          const Icon(Icons.phone_in_talk, color: Colors.redAccent),
-          const SizedBox(width: 8),
-          Text(AppLocalizations.of(context).emergencyContacts,
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface)),
-          const Spacer(),
-          IconButton(
-            icon: Icon(Icons.add_circle_outline,
-                color: Theme.of(context).colorScheme.onSurface),
-            onPressed: _openAddContactMenu,
-          )
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 6)),
+          ],
+        ),
+        child: _buildCountsRow(),
       ),
     );
   }
 
-  Widget _buildEmergencyList() {
+  Widget _buildEmergencySection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Column(
-        children: contacts
-            .map(
-              (c) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey.shade700
-                          : Colors.grey.shade200),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: const Color(0xFFFF6B00),
-                      child: Text(_initials(c.name),
-                          style: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.phone_in_talk, color: Colors.redAccent),
+                const SizedBox(width: 8),
+                Text(AppLocalizations.of(context).emergencyContacts,
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface)),
+                const Spacer(),
+                IconButton(
+                  icon: Icon(Icons.add_circle_outline,
+                      color: Theme.of(context).colorScheme.onSurface),
+                  onPressed: _openAddContactMenu,
+                )
+              ],
+            ),
+            const SizedBox(height: 8),
+            Column(
+              children: contacts
+                  .map(
+                    (c) => Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Text(c.name,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15)),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.grey.shade800
-                                      : Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(_localizedRelation(context, c.relation),
-                                    style: const TextStyle(fontSize: 12)),
-                              ),
-                            ],
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: const Color(0xFFFF6B00),
+                            child: Text(_initials(c.name),
+                                style: const TextStyle(
+                                    color: Colors.white, fontWeight: FontWeight.bold)),
                           ),
-                          const SizedBox(height: 4),
-                          Text(c.phone,
-                              style: TextStyle(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.grey.shade300
-                                      : Colors.grey.shade700,
-                                  fontSize: 14)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(c.name,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 15)),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(_localizedRelation(context, c.relation), style: const TextStyle(fontSize: 12)),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(c.phone,
+                                    style: TextStyle(
+                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade700,
+                                        fontSize: 14)),
+                              ],
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {},
+                            style: TextButton.styleFrom(
+                              backgroundColor: const Color(0xFF1DB954),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text(AppLocalizations.of(context).call),
+                          ),
                         ],
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {},
-                      style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFF1DB954),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 10),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: Text(AppLocalizations.of(context).call),
-                    ),
-                  ],
-                ),
-              ),
-            )
-            .toList(),
+                  )
+                  .toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1392,17 +1412,96 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
           ),
           _section(
             '${AppLocalizations.of(context).nameLabel} *',
-            TextField(controller: fullNameCtrl, onChanged: (_) => setState(() {})),
+            TextField(
+              controller: fullNameCtrl,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
+                    width: 1.2,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              ),
+            ),
           ),
           _section(
             '${AppLocalizations.of(context).usernameLabel} *',
             Row(children: [
               const Text('@  ', style: TextStyle(color: Colors.grey)),
-              Expanded(child: TextField(controller: usernameCtrl, onChanged: (_) => setState(() {}))),
+              Expanded(
+                child: TextField(
+                  controller: usernameCtrl,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  ),
+                ),
+              ),
             ]),
           ),
-          _section(AppLocalizations.of(context).locationLabel, TextField(controller: locationCtrl, onChanged: (_) => setState(() {}))),
-          _section('${AppLocalizations.of(context).emailLabel} *', TextField(controller: emailCtrl, onChanged: (_) => setState(() {}))),
+          _section(
+            AppLocalizations.of(context).locationLabel,
+            TextField(
+              controller: locationCtrl,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              ),
+            ),
+          ),
+          _section(
+            '${AppLocalizations.of(context).emailLabel} *',
+            TextField(
+              controller: emailCtrl,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              ),
+            ),
+          ),
           _section(
             AppLocalizations.of(context).personalInfo,
             Column(
@@ -1414,6 +1513,15 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                   decoration: InputDecoration(
                     labelText: '${AppLocalizations.of(context).ageYears} *',
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    ),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1424,6 +1532,15 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                   decoration: InputDecoration(
                     labelText: '${AppLocalizations.of(context).heightCm} *',
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    ),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1434,6 +1551,15 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                   decoration: InputDecoration(
                     labelText: '${AppLocalizations.of(context).weightKg} *',
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    ),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1543,8 +1669,9 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade700
-                : Colors.grey.shade200),
+                ? Colors.grey.shade600
+                : Colors.grey.shade400,
+            width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1617,48 +1744,65 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                   color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade700
-                      : Colors.grey.shade200),
+                      ? Colors.grey.shade600
+                      : Colors.grey.shade400,
+                  width: 1.4),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        shape: BoxShape.circle,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF2B1313)
+                        : const Color(0xFFFDECEA),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFD32F2F), width: 1.4),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFFCDD2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.phone_in_talk, color: Color(0xFFD32F2F)),
                       ),
-                      child: const Icon(Icons.phone_in_talk, color: Colors.redAccent),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            AppLocalizations.of(context).addEmergencyContact,
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Theme.of(context).colorScheme.onSurface),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            AppLocalizations.of(context).emergencyTip,
-                            style: TextStyle(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.grey.shade400
-                                    : Colors.grey.shade600),
-                          ),
-                        ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppLocalizations.of(context).addEmergencyContact,
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context).colorScheme.onSurface),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              AppLocalizations.of(context).emergencyTip,
+                              style: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey.shade300
+                                      : Colors.red.shade700),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -1669,7 +1813,18 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     filled: true,
                     fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
+                        width: 1.2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    ),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1682,7 +1837,18 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     filled: true,
                     fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
+                        width: 1.2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    ),
                   ),
                   keyboardType: TextInputType.phone,
                   onChanged: (_) => setState(() {}),
@@ -1696,7 +1862,18 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     filled: true,
                     fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
+                        width: 1.2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    ),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1710,8 +1887,9 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                         color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF2A3E59)
-                            : const Color(0xFFD0E4FF)),
+                            ? const Color(0xFF8AB4F8)
+                            : const Color(0xFF1E88E5),
+                        width: 1.4),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1726,10 +1904,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                           AppLocalizations.of(context).emergencyTip,
                           style: TextStyle(
                               height: 1.3,
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.grey.shade200
-                                  : null),
+                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.blue.shade900),
                         ),
                       ),
                     ],

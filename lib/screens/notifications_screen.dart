@@ -23,7 +23,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _handleTap(NotificationModel n) {
     setState(() {
-      repo.markReadAndRemove(n.id);
+      repo.markRead(n.id);
     });
 
     // Navigate to relevant place (earthquake notifications use same flow as home cards)
@@ -64,7 +64,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 onTap: () {
                   Navigator.pop(context);
                   setState(() {
-                    repo.markReadAndRemove(n.id);
+                    repo.markRead(n.id);
                   });
                 },
               ),
@@ -156,6 +156,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           notification: n,
                           onTap: () => _handleTap(n),
                           onLongPress: () => _showItemMenu(n),
+                          onDelete: () {
+                            setState(() {
+                              repo.remove(n.id);
+                            });
+                          },
                         );
                       },
                     ),

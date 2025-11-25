@@ -248,17 +248,17 @@ class _SafetyScreenState extends State<SafetyScreen> {
         : surface;
     final borderColor = _hasMarkedSafe
         ? const Color(0xFF2E7D32)
-        : (isDark ? Colors.grey.shade700 : Colors.grey.shade200);
+        : (isDark ? Colors.grey.shade600 : Colors.grey.shade400);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor),
+        border: Border.all(color: borderColor, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 12,
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 14,
             offset: const Offset(0, 6),
           ),
         ],
@@ -349,7 +349,10 @@ class _SafetyScreenState extends State<SafetyScreen> {
       decoration: BoxDecoration(
         color: surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
+        border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 6)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -367,6 +370,15 @@ class _SafetyScreenState extends State<SafetyScreen> {
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
               hintText: AppLocalizations.of(context).shareLocalInfo,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -412,47 +424,59 @@ class _SafetyScreenState extends State<SafetyScreen> {
 
   Widget _buildCommunityUpdatesSection() {
     final topPosts = _communityPosts.take(3).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              AppLocalizations.of(context).communityUpdatesTitle,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: _navigateToAllUpdates,
-              child: Text(AppLocalizations.of(context).viewAll),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (topPosts.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(AppLocalizations.of(context).noUpdatesYet),
-          )
-        else
-          Column(
-            children: topPosts
-                .map(
-                  (post) => CommunityPostCard(
-                    post: post,
-                    onUpdated: () => setState(() {}),
-                    showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
-                      _showTopBanner(msg, background: background, icon: icon);
-                    },
-                  ),
-                )
-                .toList(),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 6)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                AppLocalizations.of(context).communityUpdatesTitle,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: _navigateToAllUpdates,
+                child: Text(AppLocalizations.of(context).viewAll),
+              ),
+            ],
           ),
-      ],
+          const SizedBox(height: 8),
+          if (topPosts.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(AppLocalizations.of(context).noUpdatesYet),
+            )
+          else
+            Column(
+              children: topPosts
+                  .map(
+                    (post) => CommunityPostCard(
+                      post: post,
+                      onUpdated: () => setState(() {}),
+                      showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
+                        _showTopBanner(msg, background: background, icon: icon);
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
     );
   }
 

@@ -93,13 +93,19 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final borderColor = isDark ? Colors.grey.shade600 : Colors.grey.shade400;
+    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.06);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
+        border: Border.all(color: borderColor, width: 1.2),
+        boxShadow: [
+          BoxShadow(color: shadowColor, blurRadius: 14, offset: const Offset(0, 6)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
