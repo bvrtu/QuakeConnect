@@ -89,12 +89,21 @@ class AppLocalizations {
       'safety_status_sent': 'Safety status sent to emergency contacts',
       'safety_status_cleared': 'Safety status cleared',
       'post_shared': 'Your update has been shared with the community',
+      'comment_sent': 'Comment sent',
+      'repost_added': 'Repost added to your updates',
+      'post_shared_external': 'Post shared',
       'no_updates_yet': 'No updates yet. Be the first to share!',
       'cancel': 'Cancel',
       'confirm': 'Confirm',
 
       'profile_title': 'Profile',
       'edit_profile': 'Edit Profile',
+      'profile_updated': 'Profile updated',
+      'profile_photo_updated': 'Profile photo updated',
+      'avatar_color_updated': 'Avatar color updated',
+      'no_image_selected': 'No image selected',
+      'save_changes_title': 'Save changes?',
+      'save_changes_prompt': 'Your profile information will be updated. Do you want to continue?',
       'emergency_contacts': 'Emergency Contacts',
       'call': 'Call',
       'notifications_title': 'Notifications',
@@ -205,12 +214,21 @@ class AppLocalizations {
       'safety_status_sent': 'Güvenlik durumu acil kişilere iletildi',
       'safety_status_cleared': 'Güvenlik durumu kaldırıldı',
       'post_shared': 'Güncellemen toplulukla paylaşıldı',
+      'comment_sent': 'Yorum gönderildi',
+      'repost_added': 'Repost eklendi',
+      'post_shared_external': 'Gönderi paylaşıldı',
       'no_updates_yet': 'Henüz güncelleme yok. İlk paylaşımı yap!',
       'cancel': 'İptal',
       'confirm': 'Onayla',
 
       'profile_title': 'Profil',
       'edit_profile': 'Profili Düzenle',
+      'profile_updated': 'Profil güncellendi',
+      'profile_photo_updated': 'Profil fotoğrafı güncellendi',
+      'avatar_color_updated': 'Avatar rengi güncellendi',
+      'no_image_selected': 'Herhangi bir görsel seçilmedi',
+      'save_changes_title': 'Değişiklikleri kaydet?',
+      'save_changes_prompt': 'Profil bilgilerin güncellenecek. Devam etmek istiyor musun?',
       'emergency_contacts': 'Acil Durum Kişileri',
       'call': 'Ara',
       'notifications_title': 'Bildirimler',
@@ -308,12 +326,21 @@ class AppLocalizations {
   String get safetyStatusSent => _t('safety_status_sent');
   String get safetyStatusCleared => _t('safety_status_cleared');
   String get postShared => _t('post_shared');
+  String get commentSent => _t('comment_sent');
+  String get repostAdded => _t('repost_added');
+  String get postSharedExternal => _t('post_shared_external');
   String get noUpdatesYet => _t('no_updates_yet');
   String get cancel => _t('cancel');
   String get confirm => _t('confirm');
 
   String get profileTitle => _t('profile_title');
   String get editProfile => _t('edit_profile');
+  String get profileUpdated => _t('profile_updated');
+  String get profilePhotoUpdated => _t('profile_photo_updated');
+  String get avatarColorUpdated => _t('avatar_color_updated');
+  String get noImageSelected => _t('no_image_selected');
+  String get saveChangesTitle => _t('save_changes_title');
+  String get saveChangesPrompt => _t('save_changes_prompt');
   String get emergencyContacts => _t('emergency_contacts');
   String get call => _t('call');
   String get notificationsTitle => _t('notifications_title');

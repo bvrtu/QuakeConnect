@@ -40,6 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final List<CommunityPost> posts = <CommunityPost>[];
   final ScrollController _postScrollController = ScrollController();
   bool _isLoadingMore = false;
+  OverlayEntry? _bannerEntry;
 
   @override
   void initState() {
@@ -51,7 +52,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     _postScrollController.dispose();
+    _removeBanner();
     super.dispose();
+  }
+  void _removeBanner() {
+    _bannerEntry?.remove();
+    _bannerEntry = null;
+  }
+
+  void _showTopBanner(
+    String message, {
+    Color background = Colors.black87,
+    IconData icon = Icons.check_circle,
+  }) {
+    _removeBanner();
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (context) {
+        final topPadding = MediaQuery.of(context).padding.top;
+        return Positioned(
+          top: topPadding + 16,
+          left: 16,
+          right: 16,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: -80, end: 0),
+            duration: const Duration(milliseconds: 250),
+            builder: (context, value, child) => Transform.translate(offset: Offset(0, value), child: child),
+            child: Material(
+              color: Colors.transparent,
+              elevation: 6,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(16)),
+                child: Row(children: [
+                  Icon(icon, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    overlay.insert(entry);
+    _bannerEntry = entry;
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) _removeBanner();
+    });
   }
 
   void _seedInitialPosts() {
@@ -136,10 +190,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   }
                   final post = posts[index];
-                  return CommunityPostCard(
-                    post: post,
-                    onUpdated: () => setState(() {}),
-                  );
+              return CommunityPostCard(
+                post: post,
+                onUpdated: () => setState(() {}),
+                showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
+                  _showTopBanner(msg, background: background, icon: icon);
+                },
+              );
                 },
                 childCount: posts.length + 1,
               ),
@@ -642,7 +699,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           disabilities = (value['disabilities'] as List<String>? ?? disabilities);
           disabilityOther = value['disabilityOther'] as String? ?? disabilityOther;
         });
-        _showSnack('Profile updated');
+        _showTopBanner(AppLocalizations.of(context).profileUpdated, background: const Color(0xFF2E7D32), icon: Icons.check_circle);
       }
     });
   }
@@ -917,10 +974,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 if (tab == 1) {
                                   setState(() => gradientIndex = tempGradientIndex);
                                   Navigator.pop(context);
-                                  _showSnack('Avatar color updated');
+                                  _showTopBanner(AppLocalizations.of(context).avatarColorUpdated, background: Colors.black87, icon: Icons.brush);
                                 } else {
                                   Navigator.pop(context);
-                                  _showSnack(pickedImagePath == null ? 'No image selected' : 'Profile photo updated');
+                                  _showTopBanner(
+                                    pickedImagePath == null
+                                        ? AppLocalizations.of(context).noImageSelected
+                                        : AppLocalizations.of(context).profilePhotoUpdated,
+                                    background: Colors.black87,
+                                    icon: Icons.photo_camera_outlined,
+                                  );
                                 }
                               },
                               style: ElevatedButton.styleFrom(
@@ -1022,7 +1085,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () {
                       setState(() => contacts.add(c));
                       Navigator.pop(context);
-                      _showSnack(AppLocalizations.of(context).contactAdded);
+                      _showTopBanner(AppLocalizations.of(context).contactAdded, background: const Color(0xFF1E88E5), icon: Icons.person_add_alt);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
@@ -1045,7 +1108,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         .then((value) {
       if (value is _EmergencyContact) {
         setState(() => contacts.add(value));
-        _showSnack('Contact added');
+        _showTopBanner(AppLocalizations.of(context).contactAdded, background: const Color(0xFF1E88E5), icon: Icons.person_add_alt);
       }
     });
   }
@@ -1250,6 +1313,38 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
     super.dispose();
   }
 
+  bool get _hasChanges {
+    if (fullNameCtrl.text.trim() != widget.fullName) return true;
+    if (('@' + usernameCtrl.text.trim()) != widget.username) return true;
+    if (locationCtrl.text.trim() != widget.location) return true;
+    if (emailCtrl.text.trim() != widget.email) return true;
+    if ((int.tryParse(ageCtrl.text.trim()) ?? widget.age) != widget.age) return true;
+    if ((int.tryParse(heightCtrl.text.trim()) ?? widget.heightCm) != widget.heightCm) return true;
+    if ((int.tryParse(weightCtrl.text.trim()) ?? widget.weightKg) != widget.weightKg) return true;
+    final currentDis = hasDisability ? selectedDisabilityKeys : <String>{};
+    if (currentDis.length != widget.disabilities.length || !currentDis.containsAll(widget.disabilities)) return true;
+    final other = hasDisability && selectedDisabilityKeys.contains('other') ? otherCtrl.text.trim() : null;
+    if ((other ?? '') != (widget.disabilityOther ?? '')) return true;
+    return false;
+  }
+
+  Future<void> _confirmAndSave() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context).saveChangesTitle),
+        content: Text(AppLocalizations.of(context).saveChangesPrompt),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context).cancel)),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context).confirm)),
+        ],
+      ),
+    );
+    if (ok == true) {
+      _save();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1259,7 +1354,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.save_outlined),
-            onPressed: _save,
+            onPressed: _hasChanges ? _confirmAndSave : null,
           )
         ],
       ),
@@ -1297,17 +1392,17 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
           ),
           _section(
             '${AppLocalizations.of(context).nameLabel} *',
-            TextField(controller: fullNameCtrl),
+            TextField(controller: fullNameCtrl, onChanged: (_) => setState(() {})),
           ),
           _section(
             '${AppLocalizations.of(context).usernameLabel} *',
             Row(children: [
               const Text('@  ', style: TextStyle(color: Colors.grey)),
-              Expanded(child: TextField(controller: usernameCtrl)),
+              Expanded(child: TextField(controller: usernameCtrl, onChanged: (_) => setState(() {}))),
             ]),
           ),
-          _section(AppLocalizations.of(context).locationLabel, TextField(controller: locationCtrl)),
-          _section('${AppLocalizations.of(context).emailLabel} *', TextField(controller: emailCtrl)),
+          _section(AppLocalizations.of(context).locationLabel, TextField(controller: locationCtrl, onChanged: (_) => setState(() {}))),
+          _section('${AppLocalizations.of(context).emailLabel} *', TextField(controller: emailCtrl, onChanged: (_) => setState(() {}))),
           _section(
             AppLocalizations.of(context).personalInfo,
             Column(
@@ -1320,6 +1415,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                     labelText: '${AppLocalizations.of(context).ageYears} *',
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                   ),
+                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -1329,6 +1425,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                     labelText: '${AppLocalizations.of(context).heightCm} *',
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                   ),
+                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -1338,6 +1435,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                     labelText: '${AppLocalizations.of(context).weightKg} *',
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                   ),
+                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
                 _disabilitySelector(),
@@ -1428,6 +1526,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                   borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
                 ),
               ),
+              onChanged: (_) => setState(() {}),
             ),
           ],
         ]
@@ -1505,21 +1604,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
         title: Text(AppLocalizations.of(context).emergencyContacts),
         elevation: 0.5,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: ElevatedButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.save_outlined, size: 18),
-              label: Text(AppLocalizations.of(context).signOut.replaceAll('Sign Out', 'Save')),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
-              ),
-            ),
-          ),
+          IconButton(onPressed: _isValid ? _save : null, icon: const Icon(Icons.add)),
         ],
       ),
       body: ListView(
@@ -1586,6 +1671,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   ),
+                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -1599,6 +1685,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   ),
                   keyboardType: TextInputType.phone,
+                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -1611,6 +1698,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   ),
+                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 16),
                 Container(
@@ -1655,9 +1743,13 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
     );
   }
 
+  bool get _isValid =>
+      nameCtrl.text.trim().isNotEmpty &&
+      phoneCtrl.text.trim().isNotEmpty &&
+      relationCtrl.text.trim().isNotEmpty;
+
   void _save() {
-    if (nameCtrl.text.trim().isEmpty || phoneCtrl.text.trim().isEmpty || relationCtrl.text.trim().isEmpty) {
-      Navigator.pop(context);
+    if (!_isValid) {
       return;
     }
     Navigator.pop(

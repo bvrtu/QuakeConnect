@@ -37,7 +37,7 @@ class _MapScreenState extends State<MapScreen> {
       );
       _pendingInitialAnimation = true;
     } else {
-      _selectedEarthquake = _earthquakes.first;
+    _selectedEarthquake = _earthquakes.first;
     }
   }
 

@@ -445,6 +445,9 @@ class _SafetyScreenState extends State<SafetyScreen> {
                   (post) => CommunityPostCard(
                     post: post,
                     onUpdated: () => setState(() {}),
+                    showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
+                      _showTopBanner(msg, background: background, icon: icon);
+                    },
                   ),
                 )
                 .toList(),

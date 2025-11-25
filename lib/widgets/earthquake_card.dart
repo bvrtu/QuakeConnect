@@ -111,8 +111,8 @@ class EarthquakeCard extends StatelessWidget {
             ),
           ],
         ),
+        ),
       ),
-    ),
     );
   }
 }

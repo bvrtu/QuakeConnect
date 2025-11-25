@@ -45,8 +45,9 @@ class Comment {
 class CommunityPostCard extends StatefulWidget {
   final CommunityPost post;
   final VoidCallback? onUpdated;
+  final void Function(String message, {Color background, IconData icon})? showBanner;
 
-  const CommunityPostCard({super.key, required this.post, this.onUpdated});
+  const CommunityPostCard({super.key, required this.post, this.onUpdated, this.showBanner});
 
   @override
   State<CommunityPostCard> createState() => _CommunityPostCardState();
@@ -70,7 +71,12 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
     });
     widget.onUpdated?.call();
     if (widget.post.isReposted) {
-      _showSnackBar('Post added to your updates');
+      final t = AppLocalizations.of(context);
+      widget.showBanner?.call(
+        t.repostAdded,
+        background: const Color(0xFF1E88E5),
+        icon: Icons.repeat,
+      );
     }
   }
 
@@ -287,6 +293,12 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
               widget.post.shares += 1;
             });
             widget.onUpdated?.call();
+            final t = AppLocalizations.of(context);
+            widget.showBanner?.call(
+              t.postSharedExternal,
+              background: Colors.black87,
+              icon: Icons.share,
+            );
           },
         ),
       ],
@@ -382,8 +394,26 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                       FocusScope.of(context)
                                           .requestFocus(focusNode);
                                     }),
-                                _buildActionButton(icon: Icons.repeat, activeIcon: Icons.repeat, label: c.retweets, isActive: c.retweeted, activeColor: const Color(0xFF1E88E5), onTap: () { modalSetState(() { c.retweeted = !c.retweeted; c.retweets += c.retweeted ? 1 : -1; }); }),
-                                _buildActionButton(icon: Icons.share_outlined, activeIcon: Icons.share, label: 0, showLabel: false, onTap: () async { await Share.share(c.text, subject: 'QuakeConnect Reply'); }),
+                                _buildActionButton(icon: Icons.repeat, activeIcon: Icons.repeat, label: c.retweets, isActive: c.retweeted, activeColor: const Color(0xFF1E88E5), onTap: () {
+                                  modalSetState(() { c.retweeted = !c.retweeted; c.retweets += c.retweeted ? 1 : -1; });
+                                  if (c.retweeted) {
+                                    final t = AppLocalizations.of(context);
+                                    widget.showBanner?.call(
+                                      t.repostAdded,
+                                      background: const Color(0xFF1E88E5),
+                                      icon: Icons.repeat,
+                                    );
+                                  }
+                                }),
+                                _buildActionButton(icon: Icons.share_outlined, activeIcon: Icons.share, label: 0, showLabel: false, onTap: () async {
+                                  await Share.share(c.text, subject: 'QuakeConnect Reply');
+                                  final t = AppLocalizations.of(context);
+                                  widget.showBanner?.call(
+                                    t.postSharedExternal,
+                                    background: Colors.black87,
+                                    icon: Icons.share,
+                                  );
+                                }),
                               ]),
                             ],
                           ),
@@ -467,6 +497,12 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                               setState(() { widget.post.comments += 1; });
                               widget.onUpdated?.call();
                               controller.clear();
+                              final t = AppLocalizations.of(context);
+                              widget.showBanner?.call(
+                                t.commentSent,
+                                background: const Color(0xFF424242),
+                                icon: Icons.mode_comment,
+                              );
                             },
                           ),
                         ),
@@ -486,6 +522,12 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                             setState(() { widget.post.comments += 1; });
                             widget.onUpdated?.call();
                             controller.clear();
+                            final t = AppLocalizations.of(context);
+                            widget.showBanner?.call(
+                              t.commentSent,
+                              background: const Color(0xFF424242),
+                              icon: Icons.mode_comment,
+                            );
                           },
                           style: ElevatedButton.styleFrom(shape: const CircleBorder(), padding: const EdgeInsets.all(12), backgroundColor: Colors.black, foregroundColor: Colors.white),
                           child: const Icon(Icons.send, size: 18),
