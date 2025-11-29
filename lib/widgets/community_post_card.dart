@@ -446,12 +446,12 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
               },
               behavior: HitTestBehavior.opaque,
               child: Padding(
-                padding: EdgeInsets.only(bottom: viewInsets.bottom),
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.75,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+              padding: EdgeInsets.only(bottom: viewInsets.bottom),
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.75,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Row(children: [
@@ -559,20 +559,20 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                             final isDark = Theme.of(context).brightness == Brightness.dark;
                             return ElevatedButton(
                               onPressed: hasText ? () {
-                                final text = controller.text.trim();
-                                if (text.isEmpty) return;
+                            final text = controller.text.trim();
+                            if (text.isEmpty) return;
                                 HapticFeedback.selectionClick();
-                                modalSetState(() {
-                                  if (replyingTo == null) {
-                                    _comments.insert(0, Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
-                                  } else {
-                                    replyingTo!.replies.add(Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
-                                    replyingTo = null;
-                                  }
-                                });
-                                setState(() { widget.post.comments += 1; });
-                                widget.onUpdated?.call();
-                                controller.clear();
+                            modalSetState(() {
+                              if (replyingTo == null) {
+                                _comments.insert(0, Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
+                              } else {
+                                replyingTo!.replies.add(Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
+                                replyingTo = null;
+                              }
+                            });
+                            setState(() { widget.post.comments += 1; });
+                            widget.onUpdated?.call();
+                            controller.clear();
                                 final t = AppLocalizations.of(context);
                                 widget.showBanner?.call(
                                   t.commentSent,
@@ -602,8 +602,8 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                     ),
                   ],
                 ),
+                ),
               ),
-            ),
             );
           },
         );

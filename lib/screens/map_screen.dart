@@ -4,6 +4,7 @@ import '../models/earthquake.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/formatters.dart';
+import '../services/earthquake_api_service.dart';
 
 class MapScreen extends StatefulWidget {
   final Earthquake? initialSelection;
@@ -15,13 +16,14 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
-  final List<Earthquake> _earthquakes = Earthquake.getSampleData();
+  List<Earthquake> _earthquakes = [];
   Earthquake? _selectedEarthquake;
   final LatLng _turkeyCenter = const LatLng(39.0, 35.0);
   final double _zoomLevel = 6.0;
   MapType _currentMapType = MapType.normal;
   bool _appliedDark = false;
   bool _pendingInitialAnimation = false;
+  bool _isLoading = true;
 
   // Minimal dark map style for better night readability
   static const String _darkMapStyle = '[{"elementType":"geometry","stylers":[{"color":"#242f3e"}]},{"elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"elementType":"labels.text.stroke","stylers":[{"color":"#242f3e"}]},{"featureType":"administrative","elementType":"geometry","stylers":[{"color":"#757575"}]},{"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#d6d6d6"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#263c3f"}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#38414e"}]},{"featureType":"road","elementType":"geometry.stroke","stylers":[{"color":"#212a37"}]},{"featureType":"transit","elementType":"geometry","stylers":[{"color":"#2f3948"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#17263c"}]}]';
@@ -29,22 +31,97 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialSelection != null) {
-      // Find the matching instance in local list by coordinates (fallback to first)
-      _selectedEarthquake = _earthquakes.firstWhere(
-        (e) => e.latitude == widget.initialSelection!.latitude && e.longitude == widget.initialSelection!.longitude,
-        orElse: () => widget.initialSelection!,
-      );
-      _pendingInitialAnimation = true;
-    } else {
+    _loadEarthquakes();
+  }
+
+  Future<void> _loadEarthquakes() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final earthquakes = await EarthquakeApiService.fetchRecentEarthquakes(limit: 100);
+      setState(() {
+        _earthquakes = earthquakes;
+        _isLoading = false;
+        
+        if (widget.initialSelection != null) {
+          // Try to find matching earthquake by earthquakeId first, then by coordinates
+          Earthquake? matched;
+          if (widget.initialSelection!.earthquakeId != null) {
+            try {
+              matched = _earthquakes.firstWhere(
+                (e) => e.earthquakeId == widget.initialSelection!.earthquakeId,
+              );
+            } catch (e) {
+              // If not found by ID, try coordinates
+              try {
+                matched = _earthquakes.firstWhere(
+                  (e) => (e.latitude - widget.initialSelection!.latitude).abs() < 0.001 &&
+                         (e.longitude - widget.initialSelection!.longitude).abs() < 0.001,
+                );
+              } catch (e2) {
+                // If still not found, use the initialSelection itself
+                matched = widget.initialSelection;
+              }
+            }
+          } else {
+            // Fallback to coordinate matching if no ID
+            try {
+              matched = _earthquakes.firstWhere(
+                (e) => (e.latitude - widget.initialSelection!.latitude).abs() < 0.001 &&
+                       (e.longitude - widget.initialSelection!.longitude).abs() < 0.001,
+              );
+            } catch (e) {
+              // If not found, use the initialSelection itself
+              matched = widget.initialSelection;
+            }
+          }
+          _selectedEarthquake = matched;
+          _pendingInitialAnimation = true;
+        } else if (_earthquakes.isNotEmpty) {
     _selectedEarthquake = _earthquakes.first;
+        }
+        
+        // If map is already created and we have a pending animation, trigger it
+        if (_mapController != null && _pendingInitialAnimation && _selectedEarthquake != null) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted && _mapController != null && _selectedEarthquake != null) {
+              setState(() {}); // Update markers
+              _animateToEarthquake(_selectedEarthquake!);
+              _pendingInitialAnimation = false;
+            }
+          });
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _earthquakes = [];
+        
+        // Show error state but don't use sample data
+        // The map will show empty state
+        if (widget.initialSelection != null) {
+          // If we have an initial selection, show it even if API fails
+          _selectedEarthquake = widget.initialSelection;
+        }
+      });
     }
   }
 
   Set<Marker> _createMarkers() {
     return _earthquakes.map((earthquake) {
+      // Use earthquakeId for unique marker ID, fallback to location if ID is null
+      final markerId = earthquake.earthquakeId ?? 
+                      '${earthquake.latitude}_${earthquake.longitude}_${earthquake.dateTime.millisecondsSinceEpoch}';
+      final isSelected = _selectedEarthquake != null && 
+                        (_selectedEarthquake!.earthquakeId != null 
+                          ? _selectedEarthquake!.earthquakeId == earthquake.earthquakeId
+                          : _selectedEarthquake!.latitude == earthquake.latitude && 
+                            _selectedEarthquake!.longitude == earthquake.longitude);
+      
       return Marker(
-        markerId: MarkerId(earthquake.location),
+        markerId: MarkerId(markerId),
         position: LatLng(earthquake.latitude, earthquake.longitude),
         onTap: () {
           setState(() {
@@ -52,9 +129,12 @@ class _MapScreenState extends State<MapScreen> {
           });
           _animateToEarthquake(earthquake);
         },
-        icon: BitmapDescriptor.defaultMarkerWithHue(
+        icon: isSelected
+            ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet) // Purple for selected
+            : BitmapDescriptor.defaultMarkerWithHue(
           _getMagnitudeHue(earthquake.magnitude),
         ),
+        anchor: Offset(0.5, isSelected ? 1.2 : 1.0), // Selected marker slightly higher
         infoWindow: InfoWindow(
           title: 'M${earthquake.magnitude.toStringAsFixed(1)}',
           snippet: earthquake.location,
@@ -74,10 +154,23 @@ class _MapScreenState extends State<MapScreen> {
     if (_mapController != null) {
       // Smooth zoom-in effect: center, slight zoom, then closer
       final target = LatLng(earthquake.latitude, earthquake.longitude);
-      _mapController!.animateCamera(CameraUpdate.newLatLngZoom(target, 7.5));
-      Future.delayed(const Duration(milliseconds: 250), () {
-        if (_mapController != null) {
-          _mapController!.animateCamera(CameraUpdate.newLatLngZoom(target, 10.5));
+      // First, move to location with medium zoom
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(target, 8.0),
+      );
+      // Then zoom in much closer after a short delay
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (_mapController != null && mounted) {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(target, 15.0), // Much closer zoom for detailed view
+          );
+        }
+      });
+    } else {
+      // If controller is not ready, wait a bit and try again
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (_mapController != null && mounted) {
+          _animateToEarthquake(earthquake);
         }
       });
     }
@@ -182,18 +275,25 @@ class _MapScreenState extends State<MapScreen> {
                       target: _turkeyCenter,
                       zoom: _zoomLevel,
                     ),
-                    onMapCreated: (GoogleMapController controller) {
+                    onMapCreated: (GoogleMapController controller) async {
                       _mapController = controller;
                     _applyMapStyle();
-                    // Run initial selection animation after map is ready
-                    if (_pendingInitialAnimation && _selectedEarthquake != null) {
-                      Future.delayed(const Duration(milliseconds: 150), () {
+                      // Wait for map to be fully ready
+                      await Future.delayed(const Duration(milliseconds: 300));
+                      
+                      // Run initial selection animation after map is ready
+                      if (_pendingInitialAnimation && _selectedEarthquake != null && mounted) {
+                        // Update markers first to show selected state
+                        setState(() {});
+                        
+                        // Wait a bit more to ensure markers are rendered
+                        await Future.delayed(const Duration(milliseconds: 200));
+                        
                         if (mounted && _mapController != null && _selectedEarthquake != null) {
                           _animateToEarthquake(_selectedEarthquake!);
                           _pendingInitialAnimation = false;
                         }
-                      });
-                    }
+                      }
                     },
                     markers: _createMarkers(),
                     mapType: _currentMapType,
@@ -202,8 +302,41 @@ class _MapScreenState extends State<MapScreen> {
                     mapToolbarEnabled: false,
                   ),
 
+                  // Loading Overlay
+                  if (_isLoading)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+
+                  // Error State Overlay
+                  if (!_isLoading && _earthquakes.isEmpty)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error_outline, size: 64, color: Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Failed to load earthquakes',
+                              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: _loadEarthquakes,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ),
+
                   // Earthquake Info Card Overlay
-                  if (_selectedEarthquake != null)
+                  if (_selectedEarthquake != null && !_isLoading && _earthquakes.isNotEmpty)
                     Positioned(
                       top: 16,
                       left: 16,
@@ -224,13 +357,34 @@ class _MapScreenState extends State<MapScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(AppLocalizations.of(context).mapTitle,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               )),
+              if (!_isLoading && _earthquakes.isNotEmpty)
+                Text(
+                  '${_earthquakes.length} earthquakes',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade400
+                        : Colors.grey.shade600,
+                  ),
+                ),
+            ],
+          ),
           const Spacer(),
+          // Refresh button
+          IconButton(
+            icon: Icon(Icons.refresh, size: 24, color: Theme.of(context).colorScheme.onSurface),
+            onPressed: _isLoading ? null : _loadEarthquakes,
+            tooltip: 'Refresh',
+          ),
           // Layers button
           IconButton(
             icon: Icon(Icons.layers, size: 24, color: Theme.of(context).colorScheme.onSurface),

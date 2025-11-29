@@ -213,38 +213,38 @@ class _SafetyScreenState extends State<SafetyScreen> {
         _postFocusNode.unfocus();
       },
       child: Scaffold(
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppLocalizations.of(context).safetyTitle,
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppLocalizations.of(context).safetyTitle,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  AppLocalizations.of(context).safetySubtitle,
-                  style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey.shade300
-                        : Colors.grey.shade600,
-                    fontSize: 15,
-                  ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                AppLocalizations.of(context).safetySubtitle,
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade600,
+                  fontSize: 15,
                 ),
-                const SizedBox(height: 24),
-                _buildSafetyStatusCard(),
-                const SizedBox(height: 24),
-                _buildShareInformationCard(),
-                const SizedBox(height: 24),
-                _buildCommunityUpdatesSection(),
-              ],
+              ),
+              const SizedBox(height: 24),
+              _buildSafetyStatusCard(),
+              const SizedBox(height: 24),
+              _buildShareInformationCard(),
+              const SizedBox(height: 24),
+              _buildCommunityUpdatesSection(),
+            ],
             ),
           ),
         ),
@@ -574,33 +574,33 @@ class _SafetyScreenState extends State<SafetyScreen> {
       // Unselected state: OutlinedButton
       final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
       final textColor = isDark ? Colors.grey.shade300 : Colors.grey.shade700;
-      final labelStyle = TextStyle(
-        color: textColor,
-        fontWeight: FontWeight.w600,
-        fontSize: compact ? 12.0 : 13.5,
-      );
-      
-      return OutlinedButton.icon(
-        onPressed: () {
-          setState(() {
-            _selectedCategory = category;
-          });
-        },
-        icon: Icon(icon, size: iconSize, color: textColor),
-        label: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(label, style: labelStyle, maxLines: 1),
-        ),
-        style: OutlinedButton.styleFrom(
+    final labelStyle = TextStyle(
+      color: textColor,
+      fontWeight: FontWeight.w600,
+      fontSize: compact ? 12.0 : 13.5,
+    );
+
+    return OutlinedButton.icon(
+      onPressed: () {
+        setState(() {
+          _selectedCategory = category;
+        });
+      },
+      icon: Icon(icon, size: iconSize, color: textColor),
+      label: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(label, style: labelStyle, maxLines: 1),
+      ),
+      style: OutlinedButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.surface,
           side: BorderSide(color: borderColor, width: 1.2),
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: verticalPadding,
-          ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: verticalPadding,
         ),
-      );
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
     }
   }
 }

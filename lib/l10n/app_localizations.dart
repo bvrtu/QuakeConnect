@@ -109,6 +109,10 @@ class AppLocalizations {
       'notifications_title': 'Notifications',
       'no_notifications_title': 'No notifications',
       'no_notifications_subtitle': "You're all caught up. We'll keep you posted.",
+      'major_earthquake_alert': 'Major Earthquake Alert',
+      'earthquake_detected': 'Earthquake Detected',
+      'from_your_location': 'from your location',
+      'earthquake_in': 'earthquake in',
       'away_suffix': 'away',
       'deep_suffix': 'deep',
       'thread': 'Thread',
@@ -234,6 +238,10 @@ class AppLocalizations {
       'notifications_title': 'Bildirimler',
       'no_notifications_title': 'Bildirim yok',
       'no_notifications_subtitle': 'Şimdilik yeni bir bildirim yok. Gelişmeleri sana bildireceğiz.',
+      'major_earthquake_alert': 'Büyük Deprem Uyarısı',
+      'earthquake_detected': 'Deprem Tespit Edildi',
+      'from_your_location': 'konumunuzdan',
+      'earthquake_in': 'deprem',
       'away_suffix': 'uzakta',
       'deep_suffix': 'derinlik',
       'thread': 'Sohbet',
@@ -346,6 +354,10 @@ class AppLocalizations {
   String get notificationsTitle => _t('notifications_title');
   String get noNotificationsTitle => _t('no_notifications_title');
   String get noNotificationsSubtitle => _t('no_notifications_subtitle');
+  String get majorEarthquakeAlert => _t('major_earthquake_alert');
+  String get earthquakeDetected => _t('earthquake_detected');
+  String get fromYourLocation => _t('from_your_location');
+  String get earthquakeIn => _t('earthquake_in');
   String get awaySuffix => _t('away_suffix');
   String get deepSuffix => _t('deep_suffix');
   String get thread => _t('thread');

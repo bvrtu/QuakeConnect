@@ -6,6 +6,7 @@ import '../widgets/earthquake_card.dart';
 import 'notifications_screen.dart';
 import '../data/notification_repository.dart';
 import 'map_screen.dart';
+import '../services/earthquake_api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final void Function(Earthquake earthquake)? onOpenOnMap;
@@ -19,16 +20,47 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedFilterIndex = 0;
-  final List<Earthquake> _allEarthquakes = Earthquake.getSampleData();
+  List<Earthquake> _allEarthquakes = [];
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   int _filterChangeKey = 0; // Used to trigger animations when filter changes
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEarthquakes();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadEarthquakes() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final earthquakes = await EarthquakeApiService.fetchRecentEarthquakes(limit: 100);
+      setState(() {
+        _allEarthquakes = earthquakes;
+        _isLoading = false;
+        _filterChangeKey++; // Trigger animation
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+        // Fallback to sample data on error
+        _allEarthquakes = Earthquake.getSampleData();
+      });
+    }
   }
 
   // Get filtered earthquakes based on current filter
@@ -69,32 +101,63 @@ class _HomeScreenState extends State<HomeScreen> {
         _searchFocusNode.unfocus();
       },
       child: Scaffold(
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              // Header
-              _buildHeader(),
-              
-              // Search Bar
-              _buildSearchBar(),
-              
-              // Filter Buttons
-              _buildFilterButtons(),
-              
-              // Earthquake List
-              Expanded(
-                child: ListView.builder(
-                  key: ValueKey<int>(_filterChangeKey), // Trigger rebuild on filter change
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: _filteredEarthquakes.length,
-                  itemBuilder: (context, index) {
-                    final eq = _filteredEarthquakes[index];
-                    return _buildAnimatedCard(eq, index);
-                  },
-                ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // Header
+            _buildHeader(),
+            
+            // Search Bar
+            _buildSearchBar(),
+            
+            // Filter Buttons
+            _buildFilterButtons(),
+            
+            // Earthquake List
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _errorMessage != null && _allEarthquakes.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.error_outline, size: 64, color: Colors.grey.shade400),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Failed to load earthquakes',
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: _loadEarthquakes,
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadEarthquakes,
+                          child: _filteredEarthquakes.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    'No earthquakes found',
+                                    style: TextStyle(color: Colors.grey.shade600),
+                                  ),
+                                )
+                              : ListView.builder(
+                                  key: ValueKey<int>(_filterChangeKey), // Trigger rebuild on filter change
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: _filteredEarthquakes.length,
+                itemBuilder: (context, index) {
+                                    final eq = _filteredEarthquakes[index];
+                                    return _buildAnimatedCard(eq, index);
+                },
+                                ),
               ),
-            ],
+            ),
+          ],
           ),
         ),
       ),

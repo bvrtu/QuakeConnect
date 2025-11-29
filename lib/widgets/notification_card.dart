@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/notification_model.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 class NotificationCard extends StatelessWidget {
   final NotificationModel notification;
@@ -16,8 +17,16 @@ class NotificationCard extends StatelessWidget {
     final surface = Theme.of(context).colorScheme.surface;
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final isRead = notification.isRead;
+    
+    // For earthquake notifications, use red color for border (not magnitude-based)
     Color highlight = notification.iconColor;
+    Color? badgeColor = notification.badgeColor;
+    
     if (notification.type == NotificationType.earthquake || notification.type == NotificationType.majorEarthquake) {
+      // Border color is always red for earthquake notifications
+      highlight = Colors.red;
+      
+      // Badge color is based on magnitude (same as earthquake cards)
       double? mag;
       if (notification.earthquake != null) {
         mag = notification.earthquake!.magnitude;
@@ -28,7 +37,7 @@ class NotificationCard extends StatelessWidget {
         }
       }
       if (mag != null) {
-        highlight = AppTheme.getMagnitudeColor(mag);
+        badgeColor = AppTheme.getMagnitudeColor(mag);
       }
     }
 
@@ -84,31 +93,36 @@ class NotificationCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        notification.title,
+                        // Localize title if it's a key, otherwise use as-is
+                        notification.title == 'major_earthquake_alert' 
+                            ? AppLocalizations.of(context).majorEarthquakeAlert
+                            : notification.title == 'earthquake_detected'
+                                ? AppLocalizations.of(context).earthquakeDetected
+                                : notification.title,
                         style: TextStyle(
                           fontSize: 15,
-                                  fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w700,
                           color: onSurface,
                         ),
                       ),
                     ),
-                            if (notification.magnitude != null && notification.badgeColor != null)
+                    if (notification.magnitude != null && badgeColor != null)
                       Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: notification.badgeColor,
+                          color: badgeColor,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           notification.magnitude!,
-                                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  notification.content,
+                  _buildLocalizedContent(context, notification),
                   style: TextStyle(
                     fontSize: 13,
                     color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
@@ -160,5 +174,29 @@ class NotificationCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _buildLocalizedContent(BuildContext context, NotificationModel notification) {
+    final loc = AppLocalizations.of(context);
+    final isTurkish = Localizations.localeOf(context).languageCode == 'tr';
+    
+    if (notification.type == NotificationType.earthquake || notification.type == NotificationType.majorEarthquake) {
+      if (notification.earthquake != null) {
+        final eq = notification.earthquake!;
+        final distanceText = eq.distance > 0 
+            ? ' - ${eq.distance.toStringAsFixed(0)}km ${loc.fromYourLocation}'
+            : '';
+        
+        if (isTurkish) {
+          // Turkish: "M2.9 deprem ILICA-SINDIRGI (BALIKESIR) - 49km konumunuzdan"
+          return 'M${eq.magnitude.toStringAsFixed(1)} ${loc.earthquakeIn} ${eq.location}$distanceText';
+        } else {
+          // English: "M2.9 earthquake in ILICA-SINDIRGI (BALIKESIR) - 49km from your location"
+          return 'M${eq.magnitude.toStringAsFixed(1)} ${loc.earthquakeIn} ${eq.location}$distanceText';
+        }
+      }
+    }
+    
+    return notification.content;
   }
 }

@@ -20,8 +20,19 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final repo = NotificationRepository.instance;
   final Set<String> _deletingIds = {}; // Track which notifications are being deleted
+  bool _isRefreshing = false;
 
   int get _unreadCount => repo.unreadCount;
+
+  Future<void> _refreshNotifications() async {
+    setState(() {
+      _isRefreshing = true;
+    });
+    await repo.refresh();
+    setState(() {
+      _isRefreshing = false;
+    });
+  }
 
   void _handleTap(NotificationModel n) {
     HapticFeedback.selectionClick();
@@ -136,6 +147,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ],
                   ),
                   const Spacer(),
+                  // Refresh button
+                  IconButton(
+                    icon: _isRefreshing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.refresh),
+                    onPressed: _isRefreshing ? null : _refreshNotifications,
+                    tooltip: 'Refresh',
+                  ),
                   // Close button
                   IconButton(
                     icon: Icon(Icons.close, size: 28, color: Theme.of(context).colorScheme.onSurface),
