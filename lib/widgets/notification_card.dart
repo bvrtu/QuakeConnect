@@ -183,9 +183,15 @@ class NotificationCard extends StatelessWidget {
     if (notification.type == NotificationType.earthquake || notification.type == NotificationType.majorEarthquake) {
       if (notification.earthquake != null) {
         final eq = notification.earthquake!;
-        final distanceText = eq.distance > 0 
-            ? ' - ${eq.distance.toStringAsFixed(0)}km ${loc.fromYourLocation}'
-            : '';
+        String distanceText = '';
+        
+        if (eq.distance > 0) {
+          distanceText = ' - ${eq.distance.toStringAsFixed(0)}km ${loc.fromYourLocation}';
+        } else {
+          // Show "?" or "Unknown" if distance cannot be calculated
+          final unknownText = isTurkish ? ' (mesafe bilinmiyor)' : ' (distance unknown)';
+          distanceText = unknownText;
+        }
         
         if (isTurkish) {
           // Turkish: "M2.9 deprem ILICA-SINDIRGI (BALIKESIR) - 49km konumunuzdan"

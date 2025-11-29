@@ -5,6 +5,9 @@ import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/formatters.dart';
 import '../services/earthquake_api_service.dart';
+import '../services/location_service.dart';
+import '../data/settings_repository.dart';
+import 'package:geolocator/geolocator.dart';
 
 class MapScreen extends StatefulWidget {
   final Earthquake? initialSelection;
@@ -18,12 +21,14 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
   List<Earthquake> _earthquakes = [];
   Earthquake? _selectedEarthquake;
+  Position? _userLocation;
   final LatLng _turkeyCenter = const LatLng(39.0, 35.0);
   final double _zoomLevel = 6.0;
   MapType _currentMapType = MapType.normal;
   bool _appliedDark = false;
   bool _pendingInitialAnimation = false;
   bool _isLoading = true;
+  bool _previousLocationServicesState = true;
 
   // Minimal dark map style for better night readability
   static const String _darkMapStyle = '[{"elementType":"geometry","stylers":[{"color":"#242f3e"}]},{"elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"elementType":"labels.text.stroke","stylers":[{"color":"#242f3e"}]},{"featureType":"administrative","elementType":"geometry","stylers":[{"color":"#757575"}]},{"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#d6d6d6"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#263c3f"}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#38414e"}]},{"featureType":"road","elementType":"geometry.stroke","stylers":[{"color":"#212a37"}]},{"featureType":"transit","elementType":"geometry","stylers":[{"color":"#2f3948"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#17263c"}]}]';
@@ -31,7 +36,51 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
+    _previousLocationServicesState = SettingsRepository.instance.locationServices;
     _loadEarthquakes();
+    _loadUserLocation();
+  }
+
+  Future<void> _loadUserLocation() async {
+    // Only load location if location services are enabled in settings
+    if (!SettingsRepository.instance.locationServices) {
+      setState(() {
+        _userLocation = null; // Clear user location when disabled
+      });
+      return;
+    }
+    
+    final location = await LocationService.getCurrentLocation();
+    if (location != null) {
+      setState(() {
+        _userLocation = location;
+      });
+    } else {
+      // Only try last known position if location services are enabled in settings
+      if (SettingsRepository.instance.locationServices) {
+        try {
+          final lastKnown = await Geolocator.getLastKnownPosition();
+          if (lastKnown != null) {
+            setState(() {
+              _userLocation = lastKnown;
+            });
+          } else {
+            setState(() {
+              _userLocation = null; // Clear if no location available
+            });
+          }
+        } catch (e) {
+          print('MapScreen: Could not get user location: $e');
+          setState(() {
+            _userLocation = null;
+          });
+        }
+      } else {
+        setState(() {
+          _userLocation = null;
+        });
+      }
+    }
   }
 
   Future<void> _loadEarthquakes() async {
@@ -110,7 +159,25 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Set<Marker> _createMarkers() {
-    return _earthquakes.map((earthquake) {
+    final markers = <Marker>{};
+    
+    // Add user location marker if available
+    if (_userLocation != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('user_location'),
+          position: LatLng(_userLocation!.latitude, _userLocation!.longitude),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure), // Blue for user location
+          infoWindow: InfoWindow(
+            title: AppLocalizations.of(context).yourLocation,
+            snippet: AppLocalizations.of(context).youAreHere,
+          ),
+        ),
+      );
+    }
+    
+    // Add earthquake markers
+    for (final earthquake in _earthquakes) {
       // Use earthquakeId for unique marker ID, fallback to location if ID is null
       final markerId = earthquake.earthquakeId ?? 
                       '${earthquake.latitude}_${earthquake.longitude}_${earthquake.dateTime.millisecondsSinceEpoch}';
@@ -120,8 +187,9 @@ class _MapScreenState extends State<MapScreen> {
                           : _selectedEarthquake!.latitude == earthquake.latitude && 
                             _selectedEarthquake!.longitude == earthquake.longitude);
       
-      return Marker(
-        markerId: MarkerId(markerId),
+      markers.add(
+        Marker(
+          markerId: MarkerId(markerId),
         position: LatLng(earthquake.latitude, earthquake.longitude),
         onTap: () {
           setState(() {
@@ -129,18 +197,21 @@ class _MapScreenState extends State<MapScreen> {
           });
           _animateToEarthquake(earthquake);
         },
-        icon: isSelected
-            ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet) // Purple for selected
-            : BitmapDescriptor.defaultMarkerWithHue(
+          icon: isSelected
+              ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet) // Purple for selected
+              : BitmapDescriptor.defaultMarkerWithHue(
           _getMagnitudeHue(earthquake.magnitude),
         ),
-        anchor: Offset(0.5, isSelected ? 1.2 : 1.0), // Selected marker slightly higher
+          anchor: Offset(0.5, isSelected ? 1.2 : 1.0), // Selected marker slightly higher
         infoWindow: InfoWindow(
           title: 'M${earthquake.magnitude.toStringAsFixed(1)}',
           snippet: earthquake.location,
+          ),
         ),
       );
-    }).toSet();
+    }
+    
+    return markers;
   }
 
   double _getMagnitudeHue(double magnitude) {
@@ -257,6 +328,19 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if location services setting changed while screen is visible
+    final currentLocationState = SettingsRepository.instance.locationServices;
+    if (currentLocationState != _previousLocationServicesState) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _previousLocationServicesState = currentLocationState;
+          });
+          _loadUserLocation(); // Reload user location
+        }
+      });
+    }
+    
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -382,7 +466,10 @@ class _MapScreenState extends State<MapScreen> {
           // Refresh button
           IconButton(
             icon: Icon(Icons.refresh, size: 24, color: Theme.of(context).colorScheme.onSurface),
-            onPressed: _isLoading ? null : _loadEarthquakes,
+            onPressed: _isLoading ? null : () {
+              _loadEarthquakes();
+              _loadUserLocation(); // Also refresh user location
+            },
             tooltip: 'Refresh',
           ),
           // Layers button

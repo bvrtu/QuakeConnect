@@ -4,6 +4,7 @@ import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
 import 'all_community_updates_screen.dart';
 import '../l10n/app_localizations.dart';
+import '../services/notification_service.dart';
 
 class SafetyScreen extends StatefulWidget {
   const SafetyScreen({super.key});
@@ -175,12 +176,15 @@ class _SafetyScreenState extends State<SafetyScreen> {
       PostCategory.safe => CommunityPostType.safe,
     };
 
+    // Save message before clearing controller
+    final messageText = _postController.text.trim();
+
     final newPost = CommunityPost(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       authorName: 'You',
       handle: '@you',
       type: type,
-      message: _postController.text.trim(),
+      message: messageText,
       location: 'Kadıköy, İstanbul',
       timestamp: DateTime.now(),
     );
@@ -192,6 +196,20 @@ class _SafetyScreenState extends State<SafetyScreen> {
     });
 
     _showTopBanner(AppLocalizations.of(context).postShared);
+    
+    // Send community update notification if enabled
+    final categoryName = switch (category) {
+      PostCategory.needHelp => 'Need Help',
+      PostCategory.info => 'Info',
+      PostCategory.safe => 'I\'m Safe',
+    };
+    final notificationBody = messageText.length > 50 
+        ? '${messageText.substring(0, 50)}...' 
+        : messageText;
+    NotificationService.instance.showCommunityUpdateNotification(
+      'New Community Update',
+      '$categoryName: $notificationBody',
+    );
   }
 
   void _navigateToAllUpdates() {

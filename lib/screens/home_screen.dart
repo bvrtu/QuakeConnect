@@ -5,8 +5,11 @@ import '../l10n/app_localizations.dart';
 import '../widgets/earthquake_card.dart';
 import 'notifications_screen.dart';
 import '../data/notification_repository.dart';
+import '../data/settings_repository.dart';
 import 'map_screen.dart';
 import '../services/earthquake_api_service.dart';
+import '../services/location_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class HomeScreen extends StatefulWidget {
   final void Function(Earthquake earthquake)? onOpenOnMap;
@@ -18,7 +21,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _selectedFilterIndex = 0;
   List<Earthquake> _allEarthquakes = [];
   final TextEditingController _searchController = TextEditingController();
@@ -26,18 +29,34 @@ class _HomeScreenState extends State<HomeScreen> {
   int _filterChangeKey = 0; // Used to trigger animations when filter changes
   bool _isLoading = true;
   String? _errorMessage;
+  bool _previousLocationServicesState = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _previousLocationServicesState = SettingsRepository.instance.locationServices;
     _loadEarthquakes();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Check if location services setting changed
+      final currentState = SettingsRepository.instance.locationServices;
+      if (currentState != _previousLocationServicesState) {
+        _previousLocationServicesState = currentState;
+        _loadEarthquakes(); // Reload to update distances
+      }
+    }
   }
 
   Future<void> _loadEarthquakes() async {
@@ -48,8 +67,71 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final earthquakes = await EarthquakeApiService.fetchRecentEarthquakes(limit: 100);
+      
+      // Get user location to calculate distances
+      // Only get location if location services are enabled in settings
+      Position? userLocation;
+      if (SettingsRepository.instance.locationServices) {
+        userLocation = await LocationService.getCurrentLocation();
+        
+        // Debug: Print location info
+        if (userLocation != null) {
+          print('HomeScreen: User location obtained: ${userLocation.latitude}, ${userLocation.longitude}');
+        } else {
+          print('HomeScreen: User location: NULL (permission denied or location services disabled)');
+          // Don't use last known position if location services are disabled in settings
+          if (SettingsRepository.instance.locationServices) {
+            print('HomeScreen: Trying to get last known position as fallback...');
+            try {
+              final lastKnown = await Geolocator.getLastKnownPosition();
+              if (lastKnown != null) {
+                print('HomeScreen: Using last known position: ${lastKnown.latitude}, ${lastKnown.longitude}');
+                userLocation = lastKnown;
+              } else {
+                print('HomeScreen: Last known position also unavailable');
+              }
+            } catch (e) {
+              print('HomeScreen: Error getting last known position: $e');
+            }
+          }
+        }
+      } else {
+        print('HomeScreen: Location services disabled in settings, not getting location');
+      }
+      
+      // Calculate distances for each earthquake
+      final earthquakesWithDistance = earthquakes.map((eq) {
+        double calculatedDistance = 0.0;
+        
+        if (userLocation != null) {
+          calculatedDistance = LocationService.calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            eq.latitude,
+            eq.longitude,
+          );
+        } else {
+          // If location not available, use API distance if available, otherwise 0
+          calculatedDistance = eq.distance > 0 ? eq.distance : 0.0;
+        }
+        
+        // Create new earthquake with calculated distance
+        return Earthquake(
+          magnitude: eq.magnitude,
+          location: eq.location,
+          timeAgo: eq.timeAgo,
+          depth: eq.depth,
+          distance: calculatedDistance,
+          latitude: eq.latitude,
+          longitude: eq.longitude,
+          earthquakeId: eq.earthquakeId,
+          provider: eq.provider,
+          dateTime: eq.dateTime,
+        );
+      }).toList();
+      
       setState(() {
-        _allEarthquakes = earthquakes;
+        _allEarthquakes = earthquakesWithDistance;
         _isLoading = false;
         _filterChangeKey++; // Trigger animation
       });
@@ -72,8 +154,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case 0: // All Quakes
         result = _allEarthquakes;
         break;
-      case 1: // Nearby (within 100 km)
-        result = _allEarthquakes.where((e) => e.distance <= 100).toList();
+      case 1: // Nearby (within 200 km)
+        result = _allEarthquakes.where((e) => e.distance <= 200).toList();
         break;
       case 2: // Major (5.0+)
         result = _allEarthquakes.where((e) => e.magnitude >= 5.0).toList();
@@ -95,6 +177,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if location services setting changed while screen is visible
+    final currentLocationState = SettingsRepository.instance.locationServices;
+    if (currentLocationState != _previousLocationServicesState) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _previousLocationServicesState = currentLocationState;
+          });
+          _loadEarthquakes(); // Reload to update distances
+        }
+      });
+    }
+    
     return GestureDetector(
       onTap: () {
         // Unfocus search bar when tapping outside

@@ -101,7 +101,9 @@ class EarthquakeCard extends StatelessWidget {
                       Icon(Icons.location_on, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
                       const SizedBox(width: 6),
                       Text(
-                        "${earthquake.distance.toStringAsFixed(0)} km ${AppLocalizations.of(context).awaySuffix}",
+                        earthquake.distance > 0
+                            ? "${earthquake.distance.toStringAsFixed(0)} km ${AppLocalizations.of(context).awaySuffix}"
+                            : AppLocalizations.of(context).distanceUnknown,
                         style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
                       ),
                     ],

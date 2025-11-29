@@ -8,8 +8,15 @@ import 'models/earthquake.dart';
 import 'theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'data/settings_repository.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Load settings from SharedPreferences
+  await SettingsRepository.instance.loadSettings();
+  // Initialize notification service
+  await NotificationService.instance.initialize();
   runApp(const QuakeConnectApp());
 }
 

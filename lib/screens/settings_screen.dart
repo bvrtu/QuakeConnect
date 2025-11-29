@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import '../data/settings_repository.dart';
+import '../services/location_service.dart';
+import '../services/notification_service.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool darkMode;
@@ -14,14 +19,34 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late String language;
+  final _settingsRepo = SettingsRepository.instance;
 
   bool pushNotifications = true;
   double minMagnitude = 4.0;
   bool nearbyAlerts = true;
   bool communityUpdates = true;
-
   bool locationServices = true;
-  bool shareSafetyStatus = true;
+  bool _previousPushNotificationsState = true;
+  bool _previousLocationServicesState = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    await _settingsRepo.loadSettings();
+    setState(() {
+      pushNotifications = _settingsRepo.pushNotifications;
+      minMagnitude = _settingsRepo.minMagnitude;
+      nearbyAlerts = _settingsRepo.nearbyAlerts;
+      communityUpdates = _settingsRepo.communityUpdates;
+      locationServices = _settingsRepo.locationServices;
+      _previousPushNotificationsState = pushNotifications;
+      _previousLocationServicesState = locationServices;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +105,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: AppLocalizations.of(context).pushNotifications,
                     subtitle: AppLocalizations.of(context).receiveAlerts,
                     value: pushNotifications,
-                    onChanged: (v) => setState(() => pushNotifications = v),
+                    onChanged: (v) async {
+                      // Always request permission when enabling (even if previously granted)
+                      // This ensures permission is requested when toggling off and on
+                      if (v) {
+                        // Request notification permission when enabling
+                        final androidPlugin = await NotificationService.instance.notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+                        if (androidPlugin != null) {
+                          final granted = await androidPlugin.requestNotificationsPermission();
+                          if (granted != true) {
+                            // Permission denied, don't enable
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(AppLocalizations.of(context).notificationPermissionDenied),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+                        }
+                        // For iOS, check if notifications are enabled
+                        final iosPlugin = await NotificationService.instance.notifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+                        if (iosPlugin != null) {
+                          final settings = await iosPlugin.requestPermissions(
+                            alert: true,
+                            badge: true,
+                            sound: true,
+                          );
+                          if (settings != true) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(AppLocalizations.of(context).notificationPermissionDenied),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+                        }
+                      }
+                      setState(() {
+                        pushNotifications = v;
+                        _previousPushNotificationsState = v;
+                      });
+                      await _settingsRepo.savePushNotifications(v);
+                    },
                   ),
                   const Divider(height: 24),
                   _minMagnitudeSlider(),
@@ -95,7 +167,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: AppLocalizations.of(context).nearbyAlerts,
                     subtitle: AppLocalizations.of(context).withinKm,
                     value: nearbyAlerts,
-                    onChanged: (v) => setState(() => nearbyAlerts = v),
+                    onChanged: (v) {
+                      setState(() => nearbyAlerts = v);
+                      _settingsRepo.saveNearbyAlerts(v);
+                    },
                   ),
                   const Divider(height: 24),
                   _switchTile(
@@ -103,7 +178,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: AppLocalizations.of(context).communityUpdates,
                     subtitle: AppLocalizations.of(context).localReports,
                     value: communityUpdates,
-                    onChanged: (v) => setState(() => communityUpdates = v),
+                    onChanged: (v) {
+                      setState(() => communityUpdates = v);
+                      _settingsRepo.saveCommunityUpdates(v);
+                    },
                   ),
                 ],
               ),
@@ -116,15 +194,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: AppLocalizations.of(context).locationServices,
                     subtitle: AppLocalizations.of(context).showNearby,
                     value: locationServices,
-                    onChanged: (v) => setState(() => locationServices = v),
-                  ),
-                  const Divider(height: 24),
-                  _switchTile(
-                    icon: Icons.shield_outlined,
-                    title: AppLocalizations.of(context).shareSafetyStatus,
-                    subtitle: AppLocalizations.of(context).letContactsSee,
-                    value: shareSafetyStatus,
-                    onChanged: (v) => setState(() => shareSafetyStatus = v),
+                    onChanged: (v) async {
+                      // Always request permission when enabling (even if previously granted)
+                      // This ensures permission is requested when toggling off and on
+                      if (v) {
+                        // Always request location permission when enabling
+                        final permission = await Permission.location.status;
+                        if (!permission.isGranted) {
+                          final result = await Permission.location.request();
+                          if (!result.isGranted) {
+                            // Permission denied, don't enable
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(AppLocalizations.of(context).locationPermissionDenied),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+                        }
+                        
+                        // Also check if location services are enabled on device
+                        final serviceEnabled = await LocationService.isLocationServiceEnabled();
+                        if (!serviceEnabled) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(AppLocalizations.of(context).locationServicesDisabled),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                          return;
+                        }
+                      } else {
+                        // When disabling location services, clear the cache
+                        LocationService.clearCache();
+                      }
+                      setState(() {
+                        locationServices = v;
+                        _previousLocationServicesState = v;
+                      });
+                      await _settingsRepo.saveLocationServices(v);
+                    },
                   ),
                 ],
               ),
@@ -279,7 +393,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   min: 2.0,
                   max: 7.0,
                   divisions: 10,
-                  onChanged: (v) => setState(() => minMagnitude = v),
+                  onChanged: (v) {
+                    setState(() => minMagnitude = v);
+                    _settingsRepo.saveMinMagnitude(v);
+                  },
                 ),
               ),
             ],

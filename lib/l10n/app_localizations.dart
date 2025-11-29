@@ -35,12 +35,15 @@ class AppLocalizations {
       'only_notify_for': 'Only notify for earthquakes of magnitude {mag} or higher',
       'min_magnitude': 'Minimum Magnitude Alert',
       'nearby_alerts': 'Nearby Earthquake Alerts',
-      'within_km': 'Within 100 km radius',
+      'within_km': 'Within 200 km radius',
       'community_updates': 'Community Updates',
       'local_reports': 'Local reports in your area',
       'location_privacy': 'Location & Privacy',
       'location_services': 'Location Services',
       'show_nearby': 'Show nearby earthquakes',
+      'notification_permission_denied': 'Notification permission is required',
+      'location_permission_denied': 'Location permission is required',
+      'location_services_disabled': 'Please enable location services on your device',
       'share_safety_status': 'Share Safety Status',
       'let_contacts_see': 'Let contacts see your status',
       'about': 'About',
@@ -115,6 +118,9 @@ class AppLocalizations {
       'earthquake_in': 'earthquake in',
       'away_suffix': 'away',
       'deep_suffix': 'deep',
+      'distance_unknown': 'Distance unknown',
+      'your_location': 'Your Location',
+      'you_are_here': 'You are here',
       'thread': 'Thread',
       'no_replies_yet': 'No replies yet. Start the conversation.',
       'reply': 'Reply...',
@@ -164,12 +170,15 @@ class AppLocalizations {
       'only_notify_for': '{mag} ve üzeri depremler için bildir',
       'min_magnitude': 'Minimum Büyüklük Uyarısı',
       'nearby_alerts': 'Yakındaki Deprem Uyarıları',
-      'within_km': '100 km yarıçap içinde',
+      'within_km': '200 km yarıçap içinde',
       'community_updates': 'Topluluk Güncellemeleri',
       'local_reports': 'Bölgenizdeki yerel paylaşımlar',
       'location_privacy': 'Konum ve Gizlilik',
       'location_services': 'Konum Servisleri',
       'show_nearby': 'Yakındaki depremleri göster',
+      'notification_permission_denied': 'Bildirim izni gerekli',
+      'location_permission_denied': 'Konum izni gerekli',
+      'location_services_disabled': 'Lütfen cihazınızda konum servislerini açın',
       'share_safety_status': 'Güvenlik Durumunu Paylaş',
       'let_contacts_see': 'Kişiler durumunu görsün',
       'about': 'Hakkında',
@@ -244,6 +253,9 @@ class AppLocalizations {
       'earthquake_in': 'deprem',
       'away_suffix': 'uzakta',
       'deep_suffix': 'derinlik',
+      'distance_unknown': 'Mesafe bilinmiyor',
+      'your_location': 'Konumunuz',
+      'you_are_here': 'Buradayasınız',
       'thread': 'Sohbet',
       'no_replies_yet': 'Henüz yanıt yok. İlk yorumu yapın.',
       'reply': 'Yanıtla...',
@@ -302,6 +314,9 @@ class AppLocalizations {
   String get locationPrivacy => _t('location_privacy');
   String get locationServices => _t('location_services');
   String get showNearby => _t('show_nearby');
+  String get notificationPermissionDenied => _t('notification_permission_denied');
+  String get locationPermissionDenied => _t('location_permission_denied');
+  String get locationServicesDisabled => _t('location_services_disabled');
   String get shareSafetyStatus => _t('share_safety_status');
   String get letContactsSee => _t('let_contacts_see');
   String get about => _t('about');
@@ -360,6 +375,9 @@ class AppLocalizations {
   String get earthquakeIn => _t('earthquake_in');
   String get awaySuffix => _t('away_suffix');
   String get deepSuffix => _t('deep_suffix');
+  String get distanceUnknown => _t('distance_unknown');
+  String get yourLocation => _t('your_location');
+  String get youAreHere => _t('you_are_here');
   String get thread => _t('thread');
   String get noRepliesYet => _t('no_replies_yet');
   String get reply => _t('reply');
