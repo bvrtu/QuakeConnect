@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
 import 'all_community_updates_screen.dart';
@@ -16,6 +17,7 @@ enum PostCategory { needHelp, info, safe }
 class _SafetyScreenState extends State<SafetyScreen> {
   bool _hasMarkedSafe = false;
   final TextEditingController _postController = TextEditingController();
+  final FocusNode _postFocusNode = FocusNode();
   PostCategory? _selectedCategory;
   late List<CommunityPost> _communityPosts;
   OverlayEntry? _bannerEntry;
@@ -30,6 +32,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
   @override
   void dispose() {
     _postController.dispose();
+    _postFocusNode.dispose();
     _removeBanner();
     super.dispose();
   }
@@ -58,12 +61,13 @@ class _SafetyScreenState extends State<SafetyScreen> {
           left: 16,
           right: 16,
           child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: -80, end: 0),
-            duration: const Duration(milliseconds: 250),
-            builder: (context, value, child) {
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            builder: (context, t, child) {
               return Transform.translate(
-                offset: Offset(0, value),
-                child: child,
+                offset: Offset(0, (1 - t) * -40),
+                child: Opacity(opacity: t, child: child),
               );
             },
             child: Material(
@@ -113,6 +117,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
   }
 
   Future<void> _handleMarkSafePressed() async {
+    HapticFeedback.lightImpact();
     if (_hasMarkedSafe) {
       setState(() {
         _hasMarkedSafe = false;
@@ -162,6 +167,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
 
   void _handlePost() {
     if (!_canPost) return;
+    HapticFeedback.lightImpact();
     final category = _selectedCategory!;
     final type = switch (category) {
       PostCategory.needHelp => CommunityPostType.needHelp,
@@ -201,39 +207,45 @@ class _SafetyScreenState extends State<SafetyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppLocalizations.of(context).safetyTitle,
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.5,
-                  color: Theme.of(context).colorScheme.onSurface,
+    return GestureDetector(
+      onTap: () {
+        // Unfocus text field when tapping outside
+        _postFocusNode.unfocus();
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppLocalizations.of(context).safetyTitle,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                AppLocalizations.of(context).safetySubtitle,
-                style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade300
-                      : Colors.grey.shade600,
-                  fontSize: 15,
+                const SizedBox(height: 4),
+                Text(
+                  AppLocalizations.of(context).safetySubtitle,
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade300
+                        : Colors.grey.shade600,
+                    fontSize: 15,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              _buildSafetyStatusCard(),
-              const SizedBox(height: 24),
-              _buildShareInformationCard(),
-              const SizedBox(height: 24),
-              _buildCommunityUpdatesSection(),
-            ],
+                const SizedBox(height: 24),
+                _buildSafetyStatusCard(),
+                const SizedBox(height: 24),
+                _buildShareInformationCard(),
+                const SizedBox(height: 24),
+                _buildCommunityUpdatesSection(),
+              ],
+            ),
           ),
         ),
       ),
@@ -315,24 +327,30 @@ class _SafetyScreenState extends State<SafetyScreen> {
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
+            child: ElevatedButton.icon(
               onPressed: _handleMarkSafePressed,
+              icon: Icon(_hasMarkedSafe ? Icons.shield : Icons.shield_outlined, size: 20),
+              label: Text(
+                _hasMarkedSafe ? AppLocalizations.of(context).imSafe : AppLocalizations.of(context).markAsSafe,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _hasMarkedSafe
                     ? const Color(0xFF2E7D32)
                     : Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
+                elevation: 4,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
-              ),
-              child: Text(
-                _hasMarkedSafe ? AppLocalizations.of(context).imSafe : AppLocalizations.of(context).markAsSafe,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                shadowColor: (_hasMarkedSafe
+                        ? const Color(0xFF2E7D32)
+                        : Theme.of(context).colorScheme.primary)
+                    .withValues(alpha: 0.3),
               ),
             ),
           ),
@@ -365,6 +383,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
           const SizedBox(height: 12),
           TextField(
             controller: _postController,
+            focusNode: _postFocusNode,
             minLines: 3,
             maxLines: 5,
             onChanged: (_) => setState(() {}),
@@ -436,46 +455,46 @@ class _SafetyScreenState extends State<SafetyScreen> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                AppLocalizations.of(context).communityUpdatesTitle,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: _navigateToAllUpdates,
-                child: Text(AppLocalizations.of(context).viewAll),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (topPosts.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              AppLocalizations.of(context).communityUpdatesTitle,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: _navigateToAllUpdates,
+              child: Text(AppLocalizations.of(context).viewAll),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (topPosts.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
                 color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(AppLocalizations.of(context).noUpdatesYet),
-            )
-          else
-            Column(
-              children: topPosts
-                  .map(
-                    (post) => CommunityPostCard(
-                      post: post,
-                      onUpdated: () => setState(() {}),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(AppLocalizations.of(context).noUpdatesYet),
+          )
+        else
+          Column(
+            children: topPosts
+                .map(
+                  (post) => CommunityPostCard(
+                    post: post,
+                    onUpdated: () => setState(() {}),
                       showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
                         _showTopBanner(msg, background: background, icon: icon);
                       },
-                    ),
-                  )
-                  .toList(),
-            ),
-        ],
+                  ),
+                )
+                .toList(),
+          ),
+      ],
       ),
     );
   }
@@ -495,6 +514,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
         shape: const CircleBorder(),
         padding: const EdgeInsets.all(12),
         minimumSize: const Size(42, 42),
+        elevation: _canPost ? 4 : 0,
+        shadowColor: _canPost ? cs.primary.withValues(alpha: 0.3) : Colors.transparent,
         side: _canPost
             ? BorderSide.none
             : BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
@@ -512,40 +533,74 @@ class _SafetyScreenState extends State<SafetyScreen> {
   }) {
     final isSelected = _selectedCategory == category;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isSelected ? activeColor : (isDark ? Colors.grey.shade700 : Colors.grey.shade300);
-    final background = isSelected
-        ? activeColor.withValues(alpha: 0.12)
-        : Theme.of(context).colorScheme.surface;
-    final textColor = isSelected ? activeColor : (isDark ? Colors.grey.shade300 : Colors.grey.shade700);
     final horizontalPadding = compact ? 10.0 : 14.0;
-    final verticalPadding = compact ? 10.0 : 12.0;
+    final verticalPadding = compact ? 12.0 : 14.0;
     final iconSize = compact ? 16.0 : 18.0;
-    final labelStyle = TextStyle(
-      color: textColor,
-      fontWeight: FontWeight.w600,
-      fontSize: compact ? 12.0 : 13.5,
-    );
-
-    return OutlinedButton.icon(
-      onPressed: () {
-        setState(() {
-          _selectedCategory = category;
-        });
-      },
-      icon: Icon(icon, size: iconSize, color: textColor),
-      label: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(label, style: labelStyle, maxLines: 1),
-      ),
-      style: OutlinedButton.styleFrom(
-        backgroundColor: background,
-        side: BorderSide(color: borderColor),
-        padding: EdgeInsets.symmetric(
-          horizontal: horizontalPadding,
-          vertical: verticalPadding,
+    
+    if (isSelected) {
+      // Selected state: ElevatedButton with theme color
+      return ElevatedButton.icon(
+        onPressed: () {
+          setState(() {
+            _selectedCategory = category;
+          });
+        },
+        icon: Icon(icon, size: iconSize, color: Colors.white),
+        label: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: compact ? 12.0 : 13.5,
+            ),
+            maxLines: 1,
+          ),
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+        style: ElevatedButton.styleFrom(
+          backgroundColor: activeColor,
+          foregroundColor: Colors.white,
+          elevation: 3,
+          shadowColor: activeColor.withValues(alpha: 0.3),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } else {
+      // Unselected state: OutlinedButton
+      final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+      final textColor = isDark ? Colors.grey.shade300 : Colors.grey.shade700;
+      final labelStyle = TextStyle(
+        color: textColor,
+        fontWeight: FontWeight.w600,
+        fontSize: compact ? 12.0 : 13.5,
+      );
+      
+      return OutlinedButton.icon(
+        onPressed: () {
+          setState(() {
+            _selectedCategory = category;
+          });
+        },
+        icon: Icon(icon, size: iconSize, color: textColor),
+        label: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, style: labelStyle, maxLines: 1),
+        ),
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          side: BorderSide(color: borderColor, width: 1.2),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
   }
 }

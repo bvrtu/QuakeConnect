@@ -22,12 +22,14 @@ class QuakeConnectApp extends StatefulWidget {
 
 class _QuakeConnectAppState extends State<QuakeConnectApp> {
   int _selectedIndex = 0;
+  int _previousIndex = 0;
   bool _isDarkMode = false;
   Locale _locale = const Locale('en');
   Earthquake? _mapSelection;
 
   void _openOnMap(Earthquake eq) {
     setState(() {
+      _previousIndex = _selectedIndex;
       _mapSelection = eq;
       _selectedIndex = 1; // Map tab
     });
@@ -35,6 +37,7 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
 
   void _openMapTab() {
     setState(() {
+      _previousIndex = _selectedIndex;
       _mapSelection = null;
       _selectedIndex = 1;
     });
@@ -42,6 +45,7 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
 
   void _openSafetyTab() {
     setState(() {
+      _previousIndex = _selectedIndex;
       _selectedIndex = 2;
     });
   }
@@ -78,12 +82,36 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
       home: Builder(builder: (context) {
         final t = AppLocalizations.of(context);
         return Scaffold(
-        body: _screens[_selectedIndex],
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            // Determine slide direction based on index change
+            final isMovingRight = _selectedIndex > _previousIndex;
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: Offset(isMovingRight ? 0.1 : -0.1, 0.0),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                )),
+                child: child,
+              ),
+            );
+          },
+          child: Container(
+            key: ValueKey<int>(_selectedIndex),
+            child: _screens[_selectedIndex],
+          ),
+        ),
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
           currentIndex: _selectedIndex,
           onTap: (index) {
             setState(() {
+              _previousIndex = _selectedIndex;
               _selectedIndex = index;
             });
           },

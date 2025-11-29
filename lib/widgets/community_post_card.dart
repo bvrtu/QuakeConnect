@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/community_post.dart';
 import '../l10n/app_localizations.dart';
@@ -57,6 +58,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
   final List<Comment> _comments = <Comment>[];
 
   void _toggleLike() {
+    HapticFeedback.selectionClick();
     setState(() {
       widget.post.isLiked = !widget.post.isLiked;
       widget.post.likes += widget.post.isLiked ? 1 : -1;
@@ -65,6 +67,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
   }
 
   void _toggleRepost() {
+    HapticFeedback.lightImpact();
     setState(() {
       widget.post.isReposted = !widget.post.isReposted;
       widget.post.reposts += widget.post.isReposted ? 1 : -1;
@@ -295,6 +298,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
             final shareMessage =
                 '${widget.post.message}\n\nLocation: ${widget.post.location}';
             await Share.share(shareMessage, subject: 'QuakeConnect Update');
+            HapticFeedback.selectionClick();
             setState(() {
               widget.post.shares += 1;
             });
@@ -434,13 +438,20 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
             }
 
             final viewInsets = MediaQuery.of(context).viewInsets;
-            return Padding(
-              padding: EdgeInsets.only(bottom: viewInsets.bottom),
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.75,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return GestureDetector(
+              onTap: () {
+                // Unfocus text field when tapping outside
+                focusNode.unfocus();
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: viewInsets.bottom),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.75,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Row(children: [
@@ -454,14 +465,21 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                     const Divider(height: 1),
                     Expanded(
                       child: _comments.isEmpty
-                          ? Center(child: Text(AppLocalizations.of(context).noRepliesYet, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600)))
+                          ? GestureDetector(
+                              onTap: () => focusNode.unfocus(),
+                              child: Center(child: Text(AppLocalizations.of(context).noRepliesYet, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600))),
+                            )
                           : ListView.separated(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               itemCount: _comments.length,
                               separatorBuilder: (_, __) => const Divider(height: 20),
                               itemBuilder: (context, index) {
                                 final c = _comments[index];
-                                return buildCommentTile(c);
+                                return GestureDetector(
+                                  onTap: () => focusNode.unfocus(),
+                                  behavior: HitTestBehavior.opaque,
+                                  child: buildCommentTile(c),
+                                );
                               },
                             ),
                     ),
@@ -482,16 +500,38 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                             focusNode: focusNode,
                             minLines: 1,
                             maxLines: 4,
+                            onChanged: (_) => modalSetState(() {}), // Update button state when text changes
                             decoration: InputDecoration(
                               hintText: replyingTo == null ? AppLocalizations.of(context).reply : '${AppLocalizations.of(context).replyingTo} @' + replyingTo!.handle.substring(1),
                               filled: true,
                               fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
+                                  width: 1.2,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
+                                  width: 1.2,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: 2,
+                                ),
+                              ),
                             ),
                             onSubmitted: (_) {
                               final text = controller.text.trim();
                               if (text.isEmpty) return;
+                              HapticFeedback.selectionClick();
                               modalSetState(() {
                                 if (replyingTo == null) {
                                   _comments.insert(0, Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
@@ -513,36 +553,57 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () {
-                            final text = controller.text.trim();
-                            if (text.isEmpty) return;
-                            modalSetState(() {
-                              if (replyingTo == null) {
-                                _comments.insert(0, Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
-                              } else {
-                                replyingTo!.replies.add(Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
-                                replyingTo = null;
-                              }
-                            });
-                            setState(() { widget.post.comments += 1; });
-                            widget.onUpdated?.call();
-                            controller.clear();
-                            final t = AppLocalizations.of(context);
-                            widget.showBanner?.call(
-                              t.commentSent,
-                              background: const Color(0xFF424242),
-                              icon: Icons.mode_comment,
+                        Builder(
+                          builder: (context) {
+                            final hasText = controller.text.trim().isNotEmpty;
+                            final isDark = Theme.of(context).brightness == Brightness.dark;
+                            return ElevatedButton(
+                              onPressed: hasText ? () {
+                                final text = controller.text.trim();
+                                if (text.isEmpty) return;
+                                HapticFeedback.selectionClick();
+                                modalSetState(() {
+                                  if (replyingTo == null) {
+                                    _comments.insert(0, Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
+                                  } else {
+                                    replyingTo!.replies.add(Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
+                                    replyingTo = null;
+                                  }
+                                });
+                                setState(() { widget.post.comments += 1; });
+                                widget.onUpdated?.call();
+                                controller.clear();
+                                final t = AppLocalizations.of(context);
+                                widget.showBanner?.call(
+                                  t.commentSent,
+                                  background: const Color(0xFF424242),
+                                  icon: Icons.mode_comment,
+                                );
+                              } : null,
+                              style: ElevatedButton.styleFrom(
+                                shape: const CircleBorder(),
+                                padding: const EdgeInsets.all(12),
+                                backgroundColor: hasText
+                                    ? Colors.black
+                                    : (isDark ? Colors.grey.shade800 : Colors.grey.shade300),
+                                foregroundColor: hasText
+                                    ? Colors.white
+                                    : (isDark ? Colors.grey.shade500 : Colors.grey.shade600),
+                                elevation: hasText ? 2 : 0,
+                                side: !hasText && isDark
+                                    ? BorderSide(color: Colors.grey.shade700, width: 1.5)
+                                    : null,
+                              ),
+                              child: const Icon(Icons.send, size: 18),
                             );
                           },
-                          style: ElevatedButton.styleFrom(shape: const CircleBorder(), padding: const EdgeInsets.all(12), backgroundColor: Colors.black, foregroundColor: Colors.white),
-                          child: const Icon(Icons.send, size: 18),
                         ),
                       ]),
                     ),
                   ],
                 ),
               ),
+            ),
             );
           },
         );

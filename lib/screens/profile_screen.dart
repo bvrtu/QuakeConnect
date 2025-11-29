@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
 import '../l10n/app_localizations.dart';
@@ -114,9 +115,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           left: 16,
           right: 16,
           child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: -80, end: 0),
-            duration: const Duration(milliseconds: 250),
-            builder: (context, value, child) => Transform.translate(offset: Offset(0, value), child: child),
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            builder: (context, t, child) => Transform.translate(offset: Offset(0, (1 - t) * -40), child: Opacity(opacity: t, child: child)),
             child: Material(
               color: Colors.transparent,
               elevation: 6,
@@ -384,15 +386,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton(
+              child: ElevatedButton.icon(
                 onPressed: _openEditProfile,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                icon: const Icon(Icons.edit_outlined, size: 20),
+                label: Text(
+                  AppLocalizations.of(context).editProfile,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                child: Text(AppLocalizations.of(context).editProfile),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                ),
               ),
             ),
           ],
@@ -467,91 +480,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              children: [
-                const Icon(Icons.phone_in_talk, color: Colors.redAccent),
-                const SizedBox(width: 8),
-                Text(AppLocalizations.of(context).emergencyContacts,
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface)),
-                const Spacer(),
-                IconButton(
-                  icon: Icon(Icons.add_circle_outline,
-                      color: Theme.of(context).colorScheme.onSurface),
-                  onPressed: _openAddContactMenu,
-                )
-              ],
-            ),
+        children: [
+          const Icon(Icons.phone_in_talk, color: Colors.redAccent),
+          const SizedBox(width: 8),
+          Text(AppLocalizations.of(context).emergencyContacts,
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface)),
+          const Spacer(),
+          IconButton(
+            icon: Icon(Icons.add_circle_outline,
+                color: Theme.of(context).colorScheme.onSurface),
+            onPressed: _openAddContactMenu,
+          )
+        ],
+      ),
             const SizedBox(height: 8),
             Column(
-              children: contacts
-                  .map(
-                    (c) => Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(14),
+        children: contacts
+            .map(
+              (c) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
                         boxShadow: [
                           BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
                         ],
-                      ),
-                      child: Row(
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: const Color(0xFFFF6B00),
+                      child: Text(_initials(c.name),
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: const Color(0xFFFF6B00),
-                            child: Text(_initials(c.name),
-                                style: const TextStyle(
-                                    color: Colors.white, fontWeight: FontWeight.bold)),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(c.name,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 15)),
-                                    const SizedBox(width: 8),
-                                    Container(
+                          Row(
+                            children: [
+                              Text(c.name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15)),
+                              const SizedBox(width: 8),
+                              Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
+                                decoration: BoxDecoration(
                                         color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade100,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(_localizedRelation(context, c.relation), style: const TextStyle(fontSize: 12)),
-                                    ),
-                                  ],
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(c.phone,
-                                    style: TextStyle(
+                                      child: Text(_localizedRelation(context, c.relation), style: const TextStyle(fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(c.phone,
+                              style: TextStyle(
                                         color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade700,
-                                        fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {},
-                            style: TextButton.styleFrom(
-                              backgroundColor: const Color(0xFF1DB954),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: Text(AppLocalizations.of(context).call),
-                          ),
+                                  fontSize: 14)),
                         ],
                       ),
                     ),
-                  )
-                  .toList(),
+                    TextButton(
+                      onPressed: () {},
+                      style: TextButton.styleFrom(
+                        backgroundColor: const Color(0xFF1DB954),
+                        foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(AppLocalizations.of(context).call),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
             ),
           ],
         ),
@@ -1103,13 +1116,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : Colors.grey.shade700)),
                   trailing: ElevatedButton(
                     onPressed: () {
+                      HapticFeedback.selectionClick();
                       setState(() => contacts.add(c));
                       Navigator.pop(context);
                       _showTopBanner(AppLocalizations.of(context).contactAdded, background: const Color(0xFF1E88E5), icon: Icons.person_add_alt);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
+                      backgroundColor: const Color(0xFF2E7D32),
                       foregroundColor: Colors.white,
+                      elevation: 2,
                     ),
                     child: Text(AppLocalizations.of(context).add),
                   ),
@@ -1372,10 +1387,41 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
         title: Text(AppLocalizations.of(context).editProfile),
         elevation: 0.5,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.save_outlined),
-            onPressed: _hasChanges ? _confirmAndSave : null,
-          )
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ElevatedButton(
+              onPressed: _hasChanges ? _confirmAndSave : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _hasChanges
+                    ? (Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.9)
+                        : Theme.of(context).colorScheme.primary)
+                    : null,
+                foregroundColor: _hasChanges ? Colors.white : null,
+                elevation: _hasChanges ? (Theme.of(context).brightness == Brightness.dark ? 4 : 2) : 0,
+                shadowColor: _hasChanges && Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)
+                    : null,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: _hasChanges && Theme.of(context).brightness == Brightness.dark
+                      ? BorderSide(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                          width: 1,
+                        )
+                      : BorderSide.none,
+                ),
+              ),
+              child: Text(
+                AppLocalizations.of(context).save,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
       body: ListView(
@@ -1587,7 +1633,10 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(AppLocalizations.of(context).disabilityStatus,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).colorScheme.onSurface)),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -1678,7 +1727,8 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
         children: [
           Text(title,
               style: TextStyle(
-                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
                   color: Theme.of(context).colorScheme.onSurface)),
           const SizedBox(height: 10),
           child,
@@ -1731,7 +1781,22 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
         title: Text(AppLocalizations.of(context).emergencyContacts),
         elevation: 0.5,
         actions: [
-          IconButton(onPressed: _isValid ? _save : null, icon: const Icon(Icons.add)),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ElevatedButton(
+              onPressed: _isValid ? _save : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isValid ? const Color(0xFF2E7D32) : null,
+                foregroundColor: Colors.white,
+                elevation: _isValid ? 2 : 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(AppLocalizations.of(context).add),
+            ),
+          ),
         ],
       ),
       body: ListView(
@@ -1757,10 +1822,10 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
+                  children: [
+                    Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
+                      decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark
                         ? const Color(0xFF2B1313)
                         : const Color(0xFFFDECEA),
@@ -1774,34 +1839,34 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                         height: 40,
                         decoration: const BoxDecoration(
                           color: Color(0xFFFFCDD2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.phone_in_talk, color: Color(0xFFD32F2F)),
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              AppLocalizations.of(context).addEmergencyContact,
-                              style: TextStyle(
+                        child: const Icon(Icons.phone_in_talk, color: Color(0xFFD32F2F)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context).addEmergencyContact,
+                            style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Theme.of(context).colorScheme.onSurface),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              AppLocalizations.of(context).emergencyTip,
-                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).colorScheme.onSurface),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            AppLocalizations.of(context).emergencyTip,
+                            style: TextStyle(
                                   color: Theme.of(context).brightness == Brightness.dark
                                       ? Colors.grey.shade300
                                       : Colors.red.shade700),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                  ],
                   ),
                 ),
                 const SizedBox(height: 12),

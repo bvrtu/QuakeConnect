@@ -182,7 +182,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
-        Switch.adaptive(value: value, onChanged: onChanged),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: Theme.of(context).colorScheme.primary,
+          activeTrackColor: isDark
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.6)
+              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+          inactiveThumbColor: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+          inactiveTrackColor: isDark
+              ? Colors.grey.shade700
+              : Colors.grey.shade300,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
       ],
     );
   }

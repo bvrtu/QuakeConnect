@@ -45,12 +45,13 @@ class _AllCommunityUpdatesScreenState extends State<AllCommunityUpdatesScreen> {
           left: 16,
           right: 16,
           child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: -80, end: 0),
-            duration: const Duration(milliseconds: 250),
-            builder: (context, value, child) {
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            builder: (context, t, child) {
               return Transform.translate(
-                offset: Offset(0, value),
-                child: child,
+                offset: Offset(0, (1 - t) * -40),
+                child: Opacity(opacity: t, child: child),
               );
             },
             child: Material(

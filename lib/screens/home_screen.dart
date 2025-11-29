@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/earthquake.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/earthquake_card.dart';
@@ -20,10 +21,13 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedFilterIndex = 0;
   final List<Earthquake> _allEarthquakes = Earthquake.getSampleData();
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  int _filterChangeKey = 0; // Used to trigger animations when filter changes
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -59,45 +63,39 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            // Header
-            _buildHeader(),
-            
-            // Search Bar
-            _buildSearchBar(),
-            
-            // Filter Buttons
-            _buildFilterButtons(),
-            
-            // Earthquake List
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.only(top: 8, bottom: 8),
-                itemCount: _filteredEarthquakes.length,
-                itemBuilder: (context, index) {
-                  final eq = _filteredEarthquakes[index];
-                  return EarthquakeCard(
-                    earthquake: eq,
-                    onTap: () {
-                      if (widget.onOpenOnMap != null) {
-                        widget.onOpenOnMap!(eq);
-                      } else {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => MapScreen(initialSelection: eq),
-                          ),
-                        );
-                      }
-                    },
-                  );
-                },
+    return GestureDetector(
+      onTap: () {
+        // Unfocus search bar when tapping outside
+        _searchFocusNode.unfocus();
+      },
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              // Header
+              _buildHeader(),
+              
+              // Search Bar
+              _buildSearchBar(),
+              
+              // Filter Buttons
+              _buildFilterButtons(),
+              
+              // Earthquake List
+              Expanded(
+                child: ListView.builder(
+                  key: ValueKey<int>(_filterChangeKey), // Trigger rebuild on filter change
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: _filteredEarthquakes.length,
+                  itemBuilder: (context, index) {
+                    final eq = _filteredEarthquakes[index];
+                    return _buildAnimatedCard(eq, index);
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -161,18 +159,34 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
               if (NotificationRepository.instance.unreadCount > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
+              Positioned(
+                right: 4,
+                top: 4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      NotificationRepository.instance.unreadCount > 99
+                          ? '99+'
+                          : '${NotificationRepository.instance.unreadCount}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
+              ),
             ],
           ),
         ],
@@ -185,6 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: TextField(
         controller: _searchController,
+        focusNode: _searchFocusNode,
         decoration: InputDecoration(
           hintText: AppLocalizations.of(context).searchHint,
           prefixIcon: Icon(Icons.search,
@@ -254,8 +269,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return ElevatedButton(
       onPressed: () {
+        HapticFeedback.lightImpact();
         setState(() {
           _selectedFilterIndex = index;
+          _filterChangeKey++; // Trigger animation
         });
       },
       style: ElevatedButton.styleFrom(
@@ -290,6 +307,43 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedCard(Earthquake eq, int index) {
+    // Delay based on index for staggered animation
+    final delay = index * 50; // 50ms delay per card
+    
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 300 + delay),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)), // Slide up from 20px below
+            child: child,
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: EarthquakeCard(
+          earthquake: eq,
+          onTap: () {
+            if (widget.onOpenOnMap != null) {
+              widget.onOpenOnMap!(eq);
+            } else {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => MapScreen(initialSelection: eq),
+                ),
+              );
+            }
+          },
         ),
       ),
     );

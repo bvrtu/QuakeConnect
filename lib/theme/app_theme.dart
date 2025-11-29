@@ -8,6 +8,14 @@ class AppTheme {
         seedColor: Colors.red,
         brightness: Brightness.light,
       ),
+      pageTransitionsTheme: const PageTransitionsTheme(builders: {
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+      }),
+      splashFactory: InkSparkle.splashFactory,
       scaffoldBackgroundColor: Colors.white,
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.white,
@@ -25,6 +33,28 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: Colors.grey, width: 0.5),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          splashFactory: InkSparkle.splashFactory,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          animationDuration: const Duration(milliseconds: 180),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          splashFactory: InkSparkle.splashFactory,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          side: BorderSide(color: Colors.grey.shade400),
+          animationDuration: const Duration(milliseconds: 180),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          splashFactory: InkSparkle.splashFactory,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -56,6 +86,14 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: baseScheme,
+      pageTransitionsTheme: const PageTransitionsTheme(builders: {
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+      }),
+      splashFactory: InkSparkle.splashFactory,
       scaffoldBackgroundColor: const Color(0xFF101114),
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFF101114),
@@ -75,6 +113,28 @@ class AppTheme {
           side: BorderSide(color: Colors.grey.shade800, width: 0.7),
         ),
         color: const Color(0xFF16171B),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          splashFactory: InkSparkle.splashFactory,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          animationDuration: const Duration(milliseconds: 180),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          splashFactory: InkSparkle.splashFactory,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          side: BorderSide(color: Colors.grey.shade700),
+          animationDuration: const Duration(milliseconds: 180),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          splashFactory: InkSparkle.splashFactory,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

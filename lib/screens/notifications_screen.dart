@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/notification_model.dart';
 import '../widgets/notification_card.dart';
 import '../l10n/app_localizations.dart';
@@ -18,10 +19,12 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final repo = NotificationRepository.instance;
+  final Set<String> _deletingIds = {}; // Track which notifications are being deleted
 
   int get _unreadCount => repo.unreadCount;
 
   void _handleTap(NotificationModel n) {
+    HapticFeedback.selectionClick();
     setState(() {
       repo.markRead(n.id);
     });
@@ -148,22 +151,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: repo.items.isEmpty
                   ? _buildEmptyState(context)
                   : ListView.builder(
-                      padding: const EdgeInsets.only(top: 8, bottom: 8),
+                padding: const EdgeInsets.only(top: 8, bottom: 8),
                       itemCount: repo.items.length,
-                      itemBuilder: (context, index) {
+                itemBuilder: (context, index) {
                         final n = repo.items[index];
-                        return NotificationCard(
-                          notification: n,
-                          onTap: () => _handleTap(n),
-                          onLongPress: () => _showItemMenu(n),
-                          onDelete: () {
-                            setState(() {
-                              repo.remove(n.id);
-                            });
-                          },
-                        );
-                      },
-                    ),
+                        final isDeleting = _deletingIds.contains(n.id);
+                        return _buildAnimatedNotificationCard(n, isDeleting);
+                },
+              ),
             ),
           ],
         ),
@@ -211,6 +206,47 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedNotificationCard(NotificationModel n, bool isDeleting) {
+    return TweenAnimationBuilder<double>(
+      key: ValueKey<String>('${n.id}_$isDeleting'), // Key changes when isDeleting changes
+      tween: Tween(begin: 1.0, end: isDeleting ? 0.0 : 1.0),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      onEnd: () {
+        if (isDeleting && mounted) {
+          // Remove from repository after animation completes
+          setState(() {
+            _deletingIds.remove(n.id);
+            repo.remove(n.id);
+          });
+        }
+      },
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.scale(
+            scale: 0.8 + (value * 0.2), // Scale from 0.8 to 1.0
+            child: Transform.translate(
+              offset: Offset(100 * (1 - value), 0), // Slide out to the right
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: NotificationCard(
+        notification: n,
+        onTap: () => _handleTap(n),
+        onLongPress: () => _showItemMenu(n),
+        onDelete: () {
+          HapticFeedback.lightImpact();
+          setState(() {
+            _deletingIds.add(n.id); // Start deletion animation
+          });
+        },
       ),
     );
   }
