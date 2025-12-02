@@ -214,14 +214,14 @@ class _SafetyScreenState extends State<SafetyScreen> {
       await _postRepo.createPost(
         post: newPost,
         userId: _currentUserId!,
-      );
+    );
 
-      setState(() {
-        _postController.clear();
-        _selectedCategory = null;
-      });
+    setState(() {
+      _postController.clear();
+      _selectedCategory = null;
+    });
 
-      _showTopBanner(AppLocalizations.of(context).postShared);
+    _showTopBanner(AppLocalizations.of(context).postShared);
       
       // Send community update notification if enabled
       final categoryName = switch (category) {
@@ -563,30 +563,30 @@ class _SafetyScreenState extends State<SafetyScreen> {
             
             if (topPosts.isEmpty) {
               return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
                   color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(AppLocalizations.of(context).noUpdatesYet),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(AppLocalizations.of(context).noUpdatesYet),
               );
             }
             
             return Column(
-              children: topPosts
-                  .map(
-                    (post) => CommunityPostCard(
-                      post: post,
+            children: topPosts
+                .map(
+                  (post) => CommunityPostCard(
+                    post: post,
                       onUpdated: null, // StreamBuilder will handle updates automatically
                       showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
                         _showTopBanner(msg, background: background, icon: icon);
                       },
-                    ),
-                  )
-                  .toList(),
+                  ),
+                )
+                .toList(),
             );
           },
-        ),
+          ),
       ],
       ),
     );

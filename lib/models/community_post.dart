@@ -4,6 +4,7 @@ enum CommunityPostType { needHelp, info, safe }
 
 class CommunityPost {
   final String id;
+  final String authorId;
   final String authorName;
   final String handle;
   final CommunityPostType type;
@@ -25,6 +26,7 @@ class CommunityPost {
     required this.message,
     required this.location,
     required this.timestamp,
+    this.authorId = '',
     this.likes = 0,
     this.comments = 0,
     this.shares = 0,
@@ -35,6 +37,7 @@ class CommunityPost {
 
   CommunityPost copyWith({
     String? id,
+    String? authorId,
     String? authorName,
     String? handle,
     CommunityPostType? type,
@@ -50,6 +53,7 @@ class CommunityPost {
   }) {
     return CommunityPost(
       id: id ?? this.id,
+      authorId: authorId ?? this.authorId,
       authorName: authorName ?? this.authorName,
       handle: handle ?? this.handle,
       type: type ?? this.type,
@@ -68,6 +72,7 @@ class CommunityPost {
   /// Convert to Firestore map
   Map<String, dynamic> toFirestore() {
     return {
+      'authorId': authorId,
       'authorName': authorName,
       'authorHandle': handle,
       'type': type.toString().split('.').last,
@@ -91,6 +96,7 @@ class CommunityPost {
     
     return CommunityPost(
       id: id,
+      authorId: map['authorId'] as String? ?? '',
       authorName: map['authorName'] as String? ?? 'Unknown',
       handle: map['authorHandle'] as String? ?? '@unknown',
       type: type,

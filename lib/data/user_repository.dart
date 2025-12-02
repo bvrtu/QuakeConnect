@@ -20,6 +20,18 @@ class UserRepository {
     return UserModel.fromMap(doc.data()!);
   }
 
+  /// Get user stream (real-time updates)
+  Stream<UserModel?> getUserStream(String userId) {
+    return _firestore
+        .collection(_collection)
+        .doc(userId)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists) return null;
+      return UserModel.fromMap(doc.data()!);
+    });
+  }
+
   /// Update user
   Future<void> updateUser(UserModel user) async {
     await _firestore.collection(_collection).doc(user.id).update(

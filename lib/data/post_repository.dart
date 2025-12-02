@@ -53,12 +53,11 @@ class PostRepository {
   }
 
   /// Get posts by user ID with like/repost status
-  /// Note: Requires Firestore composite index on (authorId, timestamp)
+  /// Uses client-side sorting to avoid Firestore composite index requirement
   Stream<List<CommunityPost>> getPostsByUserId(String userId, String? currentUserId) {
     return _firestore
         .collection(_collection)
         .where('authorId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true)
         .snapshots()
         .asyncMap((snapshot) async {
       final posts = <CommunityPost>[];
@@ -72,6 +71,8 @@ class PostRepository {
           posts.add(post);
         }
       }
+      // Sort by timestamp descending (client-side to avoid index requirement)
+      posts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return posts;
     });
   }
@@ -239,6 +240,7 @@ class PostRepository {
     
     return CommunityPost(
       id: doc.id,
+      authorId: data['authorId'] as String? ?? '',
       authorName: data['authorName'] as String? ?? 'Unknown',
       handle: data['authorHandle'] as String? ?? '@unknown',
       type: type,

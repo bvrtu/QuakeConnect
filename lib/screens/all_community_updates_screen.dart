@@ -169,13 +169,13 @@ class _AllCommunityUpdatesScreenState extends State<AllCommunityUpdatesScreen> {
             
             return ListView.builder(
               controller: _controller,
-              physics: const AlwaysScrollableScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: posts.length,
-              itemBuilder: (context, index) {
+          itemBuilder: (context, index) {
                 final post = posts[index];
-                return CommunityPostCard(
-                  post: post,
+            return CommunityPostCard(
+              post: post,
                   onUpdated: null, // StreamBuilder will handle updates automatically
                   showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
                     _showTopBanner(msg, background: background, icon: icon);

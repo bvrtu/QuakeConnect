@@ -8,6 +8,8 @@ import '../data/post_repository.dart';
 import '../data/comment_repository.dart' show Comment, CommentRepository;
 import '../services/auth_service.dart';
 import '../data/user_repository.dart';
+import '../models/user_model.dart';
+import '../screens/profile_screen.dart';
 
 class LocalComment {
   final String id;
@@ -127,12 +129,12 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
         _hasOptimisticLike = false;
         _optimisticIsLiked = previousLiked;
         _optimisticLikes = previousLikes;
-      });
+    });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
-      }
+  }
     }
   }
 
@@ -191,6 +193,33 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
     );
   }
 
+  void _navigateToProfile(String userId) {
+    final t = AppLocalizations.of(context);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          body: ProfileScreen(userId: userId),
+          bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: 3, // Profile tab
+            onTap: (index) {
+              Navigator.of(context).pop(); // Close profile screen
+            },
+            selectedItemColor: Colors.red,
+            unselectedItemColor: Colors.grey,
+            items: [
+              BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
+              BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
+              BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
+              BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
+              BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final surface = Theme.of(context).colorScheme.surface;
@@ -217,15 +246,56 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: const Color(0xFF6246EA),
+              GestureDetector(
+                onTap: () => _navigateToProfile(widget.post.authorId),
+                child: StreamBuilder<UserModel?>(
+                  stream: widget.post.authorId.isNotEmpty 
+                      ? _userRepo.getUserStream(widget.post.authorId)
+                      : null,
+                  builder: (context, snapshot) {
+                    final user = snapshot.data;
+                    final gradients = [
+                      [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
+                      [const Color(0xFF00C853), const Color(0xFF1DE9B6)],
+                      [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
+                      [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
+                      [const Color(0xFFFF4081), const Color(0xFFFFAB40)],
+                      [const Color(0xFF00BCD4), const Color(0xFF448AFF)],
+                      [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
+                      [const Color(0xFFFFA726), const Color(0xFFFF7043)],
+                      [const Color(0xFF7E57C2), const Color(0xFFAB47BC)],
+                      [const Color(0xFF66BB6A), const Color(0xFF43A047)],
+                      [const Color(0xFF42A5F5), const Color(0xFF1E88E5)],
+                      [const Color(0xFFEC407A), const Color(0xFFAB47BC)],
+                    ];
+                    final gradientIndex = user?.gradientIndex ?? 0;
+                    final colors = gradients[gradientIndex % gradients.length];
+                    
+                    return Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(colors: colors),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
                 child: Text(
-                  _buildInitials(widget.post.authorName),
+                        _buildInitials(user?.displayName ?? widget.post.authorName),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                   ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -236,6 +306,8 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                     Row(
                       children: [
                         Expanded(
+                          child: GestureDetector(
+                            onTap: () => _navigateToProfile(widget.post.authorId),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -277,6 +349,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                 ],
                               ),
                             ],
+                          ),
                           ),
                         ),
                         _buildStatusBadge(),
@@ -480,7 +553,55 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const CircleAvatar(radius: 16, child: Icon(Icons.person, size: 16)),
+                        StreamBuilder<UserModel?>(
+                          stream: c.authorId.isNotEmpty 
+                              ? _userRepo.getUserStream(c.authorId)
+                              : null,
+                          builder: (context, snapshot) {
+                            final user = snapshot.data;
+                            final gradients = [
+                              [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
+                              [const Color(0xFF00C853), const Color(0xFF1DE9B6)],
+                              [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
+                              [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
+                              [const Color(0xFFFF4081), const Color(0xFFFFAB40)],
+                              [const Color(0xFF00BCD4), const Color(0xFF448AFF)],
+                              [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
+                              [const Color(0xFFFFA726), const Color(0xFFFF7043)],
+                              [const Color(0xFF7E57C2), const Color(0xFFAB47BC)],
+                              [const Color(0xFF66BB6A), const Color(0xFF43A047)],
+                              [const Color(0xFF42A5F5), const Color(0xFF1E88E5)],
+                              [const Color(0xFFEC407A), const Color(0xFFAB47BC)],
+                            ];
+                            final gradientIndex = user?.gradientIndex ?? 0;
+                            final colors = gradients[gradientIndex % gradients.length];
+                            
+                            return Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(colors: colors),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                _buildInitials(user?.displayName ?? c.authorName),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
@@ -508,13 +629,13 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                   },
                                 ),
                                 _buildActionButton(
-                                  icon: Icons.mode_comment_outlined,
-                                  activeIcon: Icons.mode_comment,
+                                    icon: Icons.mode_comment_outlined,
+                                    activeIcon: Icons.mode_comment,
                                   label: c.repliesCount,
-                                  onTap: () {
-                                    modalSetState(() {
-                                      replyingTo = c;
-                                    });
+                                    onTap: () {
+                                      modalSetState(() {
+                                        replyingTo = c;
+                                      });
                                     FocusScope.of(context).requestFocus(focusNode);
                                   },
                                 ),
@@ -680,10 +801,10 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                           }
                           
                           return ListView.separated(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             itemCount: topLevelComments.length,
-                            separatorBuilder: (_, __) => const Divider(height: 20),
-                            itemBuilder: (context, index) {
+                              separatorBuilder: (_, __) => const Divider(height: 20),
+                              itemBuilder: (context, index) {
                               final c = topLevelComments[index];
                               final directReplies = commentsByParent[c.id] ?? [];
                               // Sort direct replies by timestamp
@@ -707,8 +828,8 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                               );
                             },
                           );
-                        },
-                      ),
+                              },
+                            ),
                     ),
                     // Composer (bottom, slightly lifted)
                     Container(
@@ -774,8 +895,8 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                 
                                 controller.clear();
                                 if (replyingTo != null) {
-                                  modalSetState(() {
-                                    replyingTo = null;
+                              modalSetState(() {
+                                  replyingTo = null;
                                   });
                                 }
                                 
@@ -802,8 +923,8 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                             final isDark = Theme.of(context).brightness == Brightness.dark;
                             return ElevatedButton(
                               onPressed: hasText && _currentUserId != null ? () async {
-                                final text = controller.text.trim();
-                                if (text.isEmpty) return;
+                            final text = controller.text.trim();
+                            if (text.isEmpty) return;
                                 HapticFeedback.selectionClick();
                                 
                                 try {
@@ -817,8 +938,8 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                   
                                   controller.clear();
                                   if (replyingTo != null) {
-                                    modalSetState(() {
-                                      replyingTo = null;
+                            modalSetState(() {
+                                replyingTo = null;
                                     });
                                   }
                                   

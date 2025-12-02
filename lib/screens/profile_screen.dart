@@ -9,7 +9,9 @@ import '../data/post_repository.dart';
 import '../models/user_model.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? userId; // If null, shows current user's profile
+  
+  const ProfileScreen({super.key, this.userId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -38,11 +40,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _postScrollController.addListener(_onPostScroll);
   }
 
+  bool get _isViewingOwnProfile => widget.userId == null || widget.userId == AuthService.instance.currentUserId;
+  
   Future<void> _loadCurrentUser() async {
+    final targetUserId = widget.userId ?? AuthService.instance.currentUserId;
     _currentUserId = AuthService.instance.currentUserId;
-    if (_currentUserId != null) {
-      final user = await _userRepo.getUser(_currentUserId!);
-      if (user == null && AuthService.instance.isLoggedIn) {
+    
+    if (targetUserId != null) {
+      final user = await _userRepo.getUser(targetUserId);
+      if (user == null && _isViewingOwnProfile && AuthService.instance.isLoggedIn) {
         // User is authenticated but document doesn't exist in Firestore
         // This shouldn't happen, but if it does, sign out
         await AuthService.instance.signOut();
@@ -58,7 +64,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
   Widget _buildPostsSection() {
-    if (_currentUserId == null) {
+    final targetUserId = widget.userId ?? _currentUserId;
+    if (targetUserId == null) {
       return const SizedBox.shrink();
     }
     
@@ -81,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text('Posts', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
             StreamBuilder<List<CommunityPost>>(
-              stream: _postRepo.getPostsByUserId(_currentUserId!, _currentUserId),
+              stream: _postRepo.getPostsByUserId(targetUserId, _currentUserId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -218,8 +225,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SliverToBoxAdapter(child: _buildHeaderCard()),
             SliverToBoxAdapter(child: const SizedBox(height: 16)),
             SliverToBoxAdapter(child: _buildCountsSection()),
+            if (_isViewingOwnProfile) ...[
             SliverToBoxAdapter(child: const SizedBox(height: 16)),
-            SliverToBoxAdapter(child: _buildEmergencySection()),
+              SliverToBoxAdapter(child: _buildEmergencySection()),
+            ],
             SliverToBoxAdapter(child: const SizedBox(height: 16)),
             SliverToBoxAdapter(child: _buildPostsSection()),
           ],
@@ -248,6 +257,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildHeaderCard() {
+    final targetUserId = widget.userId ?? _currentUserId;
+    if (targetUserId == null) {
+      return const SizedBox.shrink();
+    }
+    
+    return StreamBuilder<UserModel?>(
+      stream: _userRepo.getUserStream(targetUserId),
+      initialData: _currentUser,
+      builder: (context, snapshot) {
+        final user = snapshot.data ?? _currentUser;
+        if (user == null) {
+          return const SizedBox.shrink();
+        }
+        
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Container(
@@ -256,12 +279,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade600
-                : Colors.grey.shade400,
-            width: 1.2,
+                    ? Colors.grey.shade600
+                    : Colors.grey.shade400,
+                width: 1.2,
           ),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 6)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 6)),
           ],
         ),
         padding: const EdgeInsets.all(20),
@@ -275,6 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   clipBehavior: Clip.none,
                   children: [
                     _buildAvatar(),
+                        if (_isViewingOwnProfile)
                     Positioned(
                       bottom: -4,
                       right: -4,
@@ -300,7 +324,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_currentUser?.displayName ?? 'Unknown',
+                          Text(user.displayName,
                           style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -327,9 +351,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 size: 14, color: Color(0xFF6246EA)),
                             const SizedBox(width: 6),
                             Text(
-                              (_currentUser?.username ?? '@unknown').startsWith('@')
-                                  ? (_currentUser?.username ?? '@unknown').substring(1)
-                                  : (_currentUser?.username ?? '@unknown'),
+                                  user.username.startsWith('@')
+                                      ? user.username.substring(1)
+                                      : user.username,
                               style: TextStyle(
                                 color: Theme.of(context).brightness ==
                                         Brightness.dark
@@ -352,17 +376,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Yaş' : 'Age', '${_currentUser?.age ?? 0} ${Localizations.localeOf(context).languageCode == 'tr' ? 'yıl' : 'years'}', 0xFFE3F2FD)),
+                    Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Yaş' : 'Age', '${user.age ?? 0} ${Localizations.localeOf(context).languageCode == 'tr' ? 'yıl' : 'years'}', 0xFFE3F2FD)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Boy' : 'Height', '${_currentUser?.heightCm ?? 0} cm', 0xFFE8F5E9)),
+                    Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Boy' : 'Height', '${user.heightCm ?? 0} cm', 0xFFE8F5E9)),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Kilo' : 'Weight', '${_currentUser?.weightKg ?? 0} kg', 0xFFFFF3E0)),
+                    Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Kilo' : 'Weight', '${user.weightKg ?? 0} kg', 0xFFFFF3E0)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildInfoTile(AppLocalizations.of(context).disabilityStatus, _disabilitiesLabel(context, _currentUser?.disabilities ?? [], _currentUser?.disabilityOther), 0xFFF3E5F5)),
+                    Expanded(child: _buildInfoTile(AppLocalizations.of(context).disabilityStatus, _disabilitiesLabel(context, user.disabilities, user.disabilityOther), 0xFFF3E5F5)),
               ],
             ),
             const SizedBox(height: 16),
@@ -375,7 +399,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         : Colors.blueGrey),
                 const SizedBox(width: 6),
                 Expanded(
-                    child: Text(_currentUser?.location ?? 'Unknown',
+                        child: Text(user.location ?? 'Unknown',
                         style: TextStyle(
                             color: Theme.of(context).brightness ==
                                     Brightness.dark
@@ -391,7 +415,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     size: 18, color: Color(0xFF6246EA)),
                 const SizedBox(width: 6),
                 Expanded(
-                    child: Text(_currentUser?.email ?? 'Unknown',
+                        child: Text(user.email,
                         style: TextStyle(
                             color: Theme.of(context).brightness ==
                                     Brightness.dark
@@ -401,37 +425,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
             const SizedBox(height: 16),
+                if (_isViewingOwnProfile)
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
+                    child: ElevatedButton.icon(
                 onPressed: _openEditProfile,
-                icon: const Icon(Icons.edit_outlined, size: 20),
-                label: Text(
-                  AppLocalizations.of(context).editProfile,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  elevation: 4,
+                      icon: const Icon(Icons.edit_outlined, size: 20),
+                      label: Text(
+                        AppLocalizations.of(context).editProfile,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 4,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(14),
                   ),
-                  shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                ),
+                        shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
               ),
             ),
+                  )
+                else
+                  _buildFollowButton(),
           ],
         ),
       ),
+        );
+      },
     );
   }
 
   Widget _buildCountsRow() {
+    final targetUserId = widget.userId ?? _currentUserId;
+    if (targetUserId == null) {
+      return const SizedBox.shrink();
+    }
+    
+    return StreamBuilder<UserModel?>(
+      stream: _userRepo.getUserStream(targetUserId),
+      initialData: _currentUser,
+      builder: (context, snapshot) {
+        final user = snapshot.data ?? _currentUser;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -441,7 +480,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: const Color(0xFFF3E8FF),
               icon: Icons.groups,
               label: AppLocalizations.of(context).followers,
-              value: _currentUser?.followers ?? 0,
+                  value: user?.followers ?? 0,
               onTap: () => _openFollowList(isFollowers: true),
             ),
           ),
@@ -451,12 +490,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: const Color(0xFFE3F2FD),
               icon: Icons.person_add,
               label: AppLocalizations.of(context).following,
-              value: _currentUser?.following ?? 0,
+                  value: user?.following ?? 0,
               onTap: () => _openFollowList(isFollowers: false),
             ),
           ),
         ],
       ),
+        );
+      },
     );
   }
 
@@ -590,13 +631,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAvatar() {
+    final targetUserId = widget.userId ?? _currentUserId;
+    if (targetUserId == null) {
+      return const SizedBox.shrink();
+    }
+    
+    return StreamBuilder<UserModel?>(
+      stream: _userRepo.getUserStream(targetUserId),
+      initialData: _currentUser,
+      builder: (context, snapshot) {
+        final user = snapshot.data ?? _currentUser;
     final gradients = [
       [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
       [const Color(0xFF00C853), const Color(0xFF1DE9B6)],
       [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
       [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
+      [const Color(0xFFFF4081), const Color(0xFFFFAB40)],
+      [const Color(0xFF00BCD4), const Color(0xFF448AFF)],
+      [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
+      [const Color(0xFFFFA726), const Color(0xFFFF7043)],
+      [const Color(0xFF7E57C2), const Color(0xFFAB47BC)],
+      [const Color(0xFF66BB6A), const Color(0xFF43A047)],
+      [const Color(0xFF42A5F5), const Color(0xFF1E88E5)],
+      [const Color(0xFFEC407A), const Color(0xFFAB47BC)],
     ];
-    final colors = gradients[(_currentUser?.gradientIndex ?? 0) % gradients.length];
+        final colors = gradients[(user?.gradientIndex ?? 0) % gradients.length];
     return Container(
       width: 90,
       height: 90,
@@ -613,13 +672,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       alignment: Alignment.center,
       child: Text(
-        _initials(_currentUser?.displayName ?? 'Unknown'),
+            _initials(user?.displayName ?? 'Unknown'),
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
           fontSize: 28,
         ),
       ),
+        );
+      },
     );
   }
 
@@ -754,7 +815,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         
         try {
           await _userRepo.updateUser(updatedUser);
-          setState(() {
+        setState(() {
             _currentUser = updatedUser;
           });
           _showTopBanner(AppLocalizations.of(context).profileUpdated, background: const Color(0xFF2E7D32), icon: Icons.check_circle);
@@ -765,12 +826,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  void _openFollowList({required bool isFollowers}) {
+  Widget _buildFollowButton() {
+    final targetUserId = widget.userId ?? _currentUserId;
+    if (targetUserId == null || _currentUserId == null) {
+      return const SizedBox.shrink();
+    }
+    
+    return FutureBuilder<bool>(
+      future: _userRepo.isFollowing(_currentUserId!, targetUserId),
+      builder: (context, snapshot) {
+        final isFollowing = snapshot.data ?? false;
+        
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => _handleFollowToggle(targetUserId, isFollowing),
+            icon: Icon(isFollowing ? Icons.person_remove_outlined : Icons.person_add_outlined, size: 20),
+            label: Text(
+              isFollowing ? AppLocalizations.of(context).followingBtn : AppLocalizations.of(context).follow,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isFollowing 
+                  ? Colors.grey.shade200 
+                  : Theme.of(context).colorScheme.primary,
+              foregroundColor: isFollowing 
+                  ? Colors.black 
+                  : Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              elevation: isFollowing ? 0 : 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              shadowColor: isFollowing 
+                  ? Colors.transparent 
+                  : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleFollowToggle(String targetUserId, bool currentlyFollowing) async {
     if (_currentUserId == null) return;
+    
+    try {
+      if (currentlyFollowing) {
+        await _userRepo.unfollowUser(_currentUserId!, targetUserId);
+      } else {
+        await _userRepo.followUser(_currentUserId!, targetUserId);
+      }
+      // Reload user to update follower/following counts
+      await _loadCurrentUser();
+      _showTopBanner(
+        currentlyFollowing 
+            ? 'Unfollowed ${_currentUser?.displayName ?? 'user'}' 
+            : 'Following ${_currentUser?.displayName ?? 'user'}',
+        background: currentlyFollowing ? Colors.grey.shade700 : const Color(0xFF2E7D32),
+        icon: currentlyFollowing ? Icons.person_remove : Icons.person_add,
+      );
+    } catch (e) {
+      _showTopBanner('Error: $e', background: Colors.red);
+    }
+  }
+
+  void _openFollowList({required bool isFollowers}) {
+    final targetUserId = widget.userId ?? _currentUserId;
+    if (targetUserId == null) return;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => _FollowListScreen(
-          userId: _currentUserId!,
+          userId: targetUserId,
           isFollowers: isFollowers,
         ),
       ),
@@ -1043,14 +1173,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       setState(() {
                                         _currentUser = updatedUser;
                                       });
-                                      Navigator.pop(context);
+                                  Navigator.pop(context);
                                       _showTopBanner(AppLocalizations.of(context).avatarColorUpdated, background: Colors.black87, icon: Icons.brush);
                                     } catch (e) {
                                       Navigator.pop(context);
                                       _showTopBanner('Error updating avatar: $e', background: Colors.red);
                                     }
-                                  } else {
-                                    Navigator.pop(context);
+                                } else {
+                                  Navigator.pop(context);
                                   }
                                 } else {
                                   Navigator.pop(context);
@@ -1362,9 +1492,9 @@ class _FollowListScreenState extends State<_FollowListScreen> {
           }
           
           return ListView.separated(
-            itemCount: users.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, index) {
+        itemCount: users.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
               final user = users[index];
               final isFollowing = _currentUserId != null
                   ? _userRepo.isFollowing(_currentUserId!, user.id).then((value) => value)
@@ -1375,37 +1505,37 @@ class _FollowListScreenState extends State<_FollowListScreen> {
                 builder: (context, followSnapshot) {
                   final following = followSnapshot.data ?? false;
                   
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: const Color(0xFF6246EA),
+          return ListTile(
+            leading: CircleAvatar(
+              backgroundColor: const Color(0xFF6246EA),
                       child: Text(
                         _initials(user.displayName),
-                        style: const TextStyle(
+                  style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
+            ),
                     title: Text(user.displayName),
                     subtitle: Text(user.username),
                     trailing: _currentUserId != null && _currentUserId != user.id
                         ? OutlinedButton(
                             onPressed: () => _handleFollowToggle(user.id, following),
-                            style: OutlinedButton.styleFrom(
+              style: OutlinedButton.styleFrom(
                               backgroundColor: following ? Colors.black : Colors.white,
                               foregroundColor: following ? Colors.white : Colors.black,
                               side: BorderSide(
                                 color: following ? Colors.black : Colors.grey.shade300,
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
                             child: Text(
                               following
                                   ? AppLocalizations.of(context).followingBtn
                                   : AppLocalizations.of(context).follow,
-                            ),
+            ),
                           )
                         : null,
                   );
@@ -2207,6 +2337,12 @@ class _ColorPanel extends StatelessWidget {
       [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
       [const Color(0xFFFF4081), const Color(0xFFFFAB40)],
       [const Color(0xFF00BCD4), const Color(0xFF448AFF)],
+      [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
+      [const Color(0xFFFFA726), const Color(0xFFFF7043)],
+      [const Color(0xFF7E57C2), const Color(0xFFAB47BC)],
+      [const Color(0xFF66BB6A), const Color(0xFF43A047)],
+      [const Color(0xFF42A5F5), const Color(0xFF1E88E5)],
+      [const Color(0xFFEC407A), const Color(0xFFAB47BC)],
     ];
     return Padding(
       padding: const EdgeInsets.all(16),
