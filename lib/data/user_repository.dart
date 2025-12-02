@@ -200,5 +200,65 @@ class UserRepository {
       return users;
     });
   }
+
+  /// Search users by name or username
+  Future<List<UserModel>> searchUsers(String query, {int limit = 20}) async {
+    if (query.trim().isEmpty) return [];
+    
+    final searchTerm = query.trim().toLowerCase();
+    
+    // Firestore doesn't support case-insensitive search natively
+    // We'll fetch all users and filter client-side (for small datasets)
+    // For production, consider using Algolia or similar search service
+    final snapshot = await _firestore
+        .collection(_collection)
+        .limit(limit * 3) // Fetch more to account for filtering
+        .get();
+    
+    final users = <UserModel>[];
+    for (var doc in snapshot.docs) {
+      final user = UserModel.fromMap(doc.data());
+      final displayNameLower = user.displayName.toLowerCase();
+      final usernameLower = user.username.toLowerCase();
+      
+      if (displayNameLower.contains(searchTerm) || 
+          usernameLower.contains(searchTerm)) {
+        users.add(user);
+        if (users.length >= limit) break;
+      }
+    }
+    
+    return users;
+  }
+
+  /// Get suggested users (users with most followers, excluding current user and already followed)
+  Future<List<UserModel>> getSuggestedUsers(String currentUserId, {int limit = 10}) async {
+    // Get users that current user is already following
+    final followingSnapshot = await _firestore
+        .collection(_collection)
+        .doc(currentUserId)
+        .collection('following')
+        .get();
+    final followingIds = followingSnapshot.docs.map((doc) => doc.id).toSet();
+    followingIds.add(currentUserId); // Exclude current user
+    
+    // Get users ordered by followers count
+    final snapshot = await _firestore
+        .collection(_collection)
+        .orderBy('followers', descending: true)
+        .limit(limit * 2) // Fetch more to account for filtering
+        .get();
+    
+    final users = <UserModel>[];
+    for (var doc in snapshot.docs) {
+      if (followingIds.contains(doc.id)) continue; // Skip already followed users
+      
+      final user = UserModel.fromMap(doc.data());
+      users.add(user);
+      if (users.length >= limit) break;
+    }
+    
+    return users;
+  }
 }
 

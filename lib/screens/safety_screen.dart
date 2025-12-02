@@ -9,6 +9,7 @@ import '../data/post_repository.dart';
 import '../services/auth_service.dart';
 import '../data/user_repository.dart';
 import '../services/location_service.dart';
+import '../data/settings_repository.dart';
 import 'package:geolocator/geolocator.dart';
 
 class SafetyScreen extends StatefulWidget {
@@ -187,18 +188,20 @@ class _SafetyScreenState extends State<SafetyScreen> {
       return;
     }
 
-    // Get location
-    String location = _userLocation;
-    if (location == 'Unknown Location') {
-      try {
-        final position = await LocationService.getCurrentLocation();
-        if (position != null) {
-          location = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
-        }
-      } catch (e) {
-        // Use default location
-      }
-    }
+          // Get location (only if location services are enabled)
+          String location = _userLocation;
+          if (location == 'Unknown Location' && SettingsRepository.instance.locationServices) {
+            try {
+              final position = await LocationService.getCurrentLocation();
+              if (position != null) {
+                location = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+              }
+            } catch (e) {
+              // Use default location
+            }
+          } else if (!SettingsRepository.instance.locationServices) {
+            location = 'Location services disabled';
+          }
 
     final newPost = CommunityPost(
       id: '', // Will be set by Firebase
@@ -251,22 +254,34 @@ class _SafetyScreenState extends State<SafetyScreen> {
     );
   }
 
-  Future<void> _loadUserInfo() async {
-    _currentUserId = AuthService.instance.currentUserId;
-    if (_currentUserId != null) {
-      // Get user location
-      try {
-        final position = await LocationService.getCurrentLocation();
-        if (position != null) {
-          setState(() {
-            _userLocation = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
-          });
-        }
-      } catch (e) {
-        // Use default location
-      }
-    }
-  }
+         Future<void> _loadUserInfo() async {
+           _currentUserId = AuthService.instance.currentUserId;
+           if (_currentUserId != null) {
+             // Get user location (only if location services are enabled)
+             if (SettingsRepository.instance.locationServices) {
+               try {
+                 final position = await LocationService.getCurrentLocation();
+                 if (position != null) {
+                   setState(() {
+                     _userLocation = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+                   });
+                 } else {
+                   setState(() {
+                     _userLocation = 'Location unavailable';
+                   });
+                 }
+               } catch (e) {
+                 setState(() {
+                   _userLocation = 'Location unavailable';
+                 });
+               }
+             } else {
+               setState(() {
+                 _userLocation = 'Location services disabled';
+               });
+             }
+           }
+         }
 
   @override
   void initState() {

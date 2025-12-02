@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/safety_screen.dart';
+import 'screens/discover_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 import 'models/earthquake.dart';
@@ -93,6 +94,7 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
         HomeScreen(onOpenOnMap: _openOnMap, onOpenMapTab: _openMapTab, onOpenSafetyTab: _openSafetyTab),
         MapScreen(initialSelection: _mapSelection),
         const SafetyScreen(),
+        const DiscoverScreen(),
         const ProfileScreen(),
         SettingsScreen(
           darkMode: _isDarkMode,
@@ -159,6 +161,8 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
           currentIndex: _selectedIndex,
+          selectedFontSize: 12,
+          unselectedFontSize: 11,
           onTap: (index) {
             setState(() {
               _previousIndex = _selectedIndex;
@@ -171,6 +175,7 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
             BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
             BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
             BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
+            BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
             BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
             BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
           ],

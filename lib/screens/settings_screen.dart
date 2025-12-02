@@ -4,6 +4,7 @@ import '../data/settings_repository.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
 import '../services/auth_service.dart';
+import '../data/notification_repository.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -153,6 +154,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _previousPushNotificationsState = v;
                       });
                       await _settingsRepo.savePushNotifications(v);
+                      // Refresh notifications to apply new settings
+                      NotificationRepository.instance.refresh();
                     },
                   ),
                   const Divider(height: 24),
@@ -168,10 +171,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: AppLocalizations.of(context).nearbyAlerts,
                     subtitle: AppLocalizations.of(context).withinKm,
                     value: nearbyAlerts,
-                    onChanged: (v) {
-                      setState(() => nearbyAlerts = v);
-                      _settingsRepo.saveNearbyAlerts(v);
-                    },
+                  onChanged: (v) {
+                    setState(() => nearbyAlerts = v);
+                    _settingsRepo.saveNearbyAlerts(v);
+                    // Refresh notifications to apply new settings
+                    NotificationRepository.instance.refresh();
+                  },
                   ),
                   const Divider(height: 24),
                   _switchTile(
@@ -179,10 +184,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: AppLocalizations.of(context).communityUpdates,
                     subtitle: AppLocalizations.of(context).localReports,
                     value: communityUpdates,
-                    onChanged: (v) {
-                      setState(() => communityUpdates = v);
-                      _settingsRepo.saveCommunityUpdates(v);
-                    },
+                  onChanged: (v) {
+                    setState(() => communityUpdates = v);
+                    _settingsRepo.saveCommunityUpdates(v);
+                    // No need to refresh notifications for community updates
+                    // This only affects future notifications
+                  },
                   ),
                 ],
               ),
@@ -397,6 +404,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: (v) {
                     setState(() => minMagnitude = v);
                     _settingsRepo.saveMinMagnitude(v);
+                    // Refresh notifications to apply new settings
+                    NotificationRepository.instance.refresh();
                   },
                 ),
               ),

@@ -201,7 +201,9 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
           body: ProfileScreen(userId: userId),
           bottomNavigationBar: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
-            currentIndex: 3, // Profile tab
+            currentIndex: 4, // Profile tab (0: Home, 1: Map, 2: Safety, 3: Discover, 4: Profile, 5: Settings)
+            selectedFontSize: 12,
+            unselectedFontSize: 11,
             onTap: (index) {
               Navigator.of(context).pop(); // Close profile screen
             },
@@ -211,6 +213,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
               BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
               BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
               BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
+              BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
               BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
               BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
             ],

@@ -15,6 +15,7 @@ class AppLocalizations {
       'nav_home': 'Home',
       'nav_map': 'Map',
       'nav_safety': 'Safety',
+      'nav_discover': 'Discover',
       'nav_profile': 'Profile',
       'nav_settings': 'Settings',
 
@@ -89,6 +90,13 @@ class AppLocalizations {
       'let_others_know': "Let others know you're safe",
       'view_all': 'View All',
       'community_updates_title': 'Community Updates',
+      'discover_title': 'Discover',
+      'search_users': 'Search Users',
+      'search_users_hint': 'Search by name or username...',
+      'suggested_users': 'Suggested Users',
+      'trending_posts': 'Trending Posts',
+      'no_users_found': 'No users found',
+      'no_suggestions': 'No suggestions available',
       'safety_status_sent': 'Safety status sent to emergency contacts',
       'safety_status_cleared': 'Safety status cleared',
       'post_shared': 'Your update has been shared with the community',
@@ -174,6 +182,7 @@ class AppLocalizations {
       'nav_home': 'Ana Sayfa',
       'nav_map': 'Harita',
       'nav_safety': 'Güvenlik',
+      'nav_discover': 'Keşfet',
       'nav_profile': 'Profil',
       'nav_settings': 'Ayarlar',
 
@@ -248,6 +257,13 @@ class AppLocalizations {
       'let_others_know': 'Güvende olduğunu herkese bildir',
       'view_all': 'Tümünü Gör',
       'community_updates_title': 'Topluluk Güncellemeleri',
+      'discover_title': 'Keşfet',
+      'search_users': 'Kullanıcı Ara',
+      'search_users_hint': 'İsim veya kullanıcı adı ile ara...',
+      'suggested_users': 'Önerilen Kullanıcılar',
+      'trending_posts': 'Popüler Gönderiler',
+      'no_users_found': 'Kullanıcı bulunamadı',
+      'no_suggestions': 'Öneri bulunamadı',
       'safety_status_sent': 'Güvenlik durumu acil kişilere iletildi',
       'safety_status_cleared': 'Güvenlik durumu kaldırıldı',
       'post_shared': 'Güncellemen toplulukla paylaşıldı',
@@ -337,6 +353,7 @@ class AppLocalizations {
   String get navHome => _t('nav_home');
   String get navMap => _t('nav_map');
   String get navSafety => _t('nav_safety');
+  String get navDiscover => _t('nav_discover');
   String get navProfile => _t('nav_profile');
   String get navSettings => _t('nav_settings');
 
@@ -394,6 +411,13 @@ class AppLocalizations {
   String get markSafePrompt => _t('mark_safe_prompt');
   String get viewAll => _t('view_all');
   String get communityUpdatesTitle => _t('community_updates_title');
+  String get discoverTitle => _t('discover_title');
+  String get searchUsers => _t('search_users');
+  String get searchUsersHint => _t('search_users_hint');
+  String get suggestedUsers => _t('suggested_users');
+  String get trendingPosts => _t('trending_posts');
+  String get noUsersFound => _t('no_users_found');
+  String get noSuggestions => _t('no_suggestions');
   String get safetyStatusSent => _t('safety_status_sent');
   String get safetyStatusCleared => _t('safety_status_cleared');
   String get postShared => _t('post_shared');
