@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
 import '../l10n/app_localizations.dart';
+import '../data/post_repository.dart';
 
 class AllCommunityUpdatesScreen extends StatefulWidget {
-  final List<CommunityPost> posts;
-  final VoidCallback? onPostsUpdated;
+  final String? userId;
 
   const AllCommunityUpdatesScreen({
     super.key,
-    required this.posts,
-    this.onPostsUpdated,
+    this.userId,
   });
 
   @override
@@ -20,9 +19,8 @@ class AllCommunityUpdatesScreen extends StatefulWidget {
 
 class _AllCommunityUpdatesScreenState extends State<AllCommunityUpdatesScreen> {
   OverlayEntry? _bannerEntry;
-  late final ScrollController _controller;
-  late List<CommunityPost> _posts;
-  bool _isLoadingMore = false;
+  final ScrollController _controller = ScrollController();
+  final PostRepository _postRepo = PostRepository.instance;
 
   void _removeBanner() {
     _bannerEntry?.remove();
@@ -101,9 +99,8 @@ class _AllCommunityUpdatesScreenState extends State<AllCommunityUpdatesScreen> {
   }
 
   Future<void> _handleRefresh() async {
+    // Refresh is handled automatically by StreamBuilder
     await Future.delayed(const Duration(seconds: 1));
-    widget.onPostsUpdated?.call();
-    setState(() {});
   }
 
   @override
@@ -111,34 +108,6 @@ class _AllCommunityUpdatesScreenState extends State<AllCommunityUpdatesScreen> {
     _removeBanner();
     _controller.dispose();
     super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _posts = List<CommunityPost>.from(widget.posts);
-    _controller = ScrollController();
-    _controller.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    if (_controller.position.pixels >= _controller.position.maxScrollExtent - 120) {
-      _loadMore();
-    }
-  }
-
-  Future<void> _loadMore() async {
-    if (_isLoadingMore) return;
-    setState(() => _isLoadingMore = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-    final more = CommunityPost.sampleData().take(3).map((p) => p.copyWith(
-          id: 'more-${DateTime.now().microsecondsSinceEpoch}-${p.id}',
-          timestamp: DateTime.now(),
-        ));
-    setState(() {
-      _posts.addAll(more);
-      _isLoadingMore = false;
-    });
   }
 
   @override
@@ -156,30 +125,62 @@ class _AllCommunityUpdatesScreenState extends State<AllCommunityUpdatesScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
-        child: ListView.builder(
-          controller: _controller,
-          physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: _posts.length + 1,
-          itemBuilder: (context, index) {
-            if (index == _posts.length) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Center(
-                  child: _isLoadingMore
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const SizedBox.shrink(),
+        child: StreamBuilder<List<CommunityPost>>(
+          stream: _postRepo.getAllPosts(widget.userId),
+          builder: (context, snapshot) {
+            // Only show loading on initial load, not on subsequent updates
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            
+            if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 64, color: Colors.grey.shade400),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error: ${snapshot.error}',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ],
                 ),
               );
             }
-            final post = _posts[index];
-            return CommunityPostCard(
-              post: post,
-              onUpdated: () {
-                widget.onPostsUpdated?.call();
-                setState(() {});
-              },
-              showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
-                _showTopBanner(msg, background: background, icon: icon);
+            
+            final posts = snapshot.data ?? [];
+            
+            if (posts.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey.shade400),
+                    const SizedBox(height: 16),
+                    Text(
+                      AppLocalizations.of(context).noUpdatesYet,
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                    ),
+                  ],
+                ),
+              );
+            }
+            
+            return ListView.builder(
+              controller: _controller,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: posts.length,
+              itemBuilder: (context, index) {
+                final post = posts[index];
+                return CommunityPostCard(
+                  post: post,
+                  onUpdated: null, // StreamBuilder will handle updates automatically
+                  showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
+                    _showTopBanner(msg, background: background, icon: icon);
+                  },
+                );
               },
             );
           },

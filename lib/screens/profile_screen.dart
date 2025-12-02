@@ -3,6 +3,10 @@ import 'package:flutter/services.dart';
 import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
 import '../l10n/app_localizations.dart';
+import '../services/auth_service.dart';
+import '../data/user_repository.dart';
+import '../data/post_repository.dart';
+import '../models/user_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,23 +16,13 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // User basics
-  String fullName = 'Ahmet Yılmaz';
-  String username = '@ahmetyilmaz';
-  String location = 'İstanbul, Turkey';
-  String email = 'ahmet.yilmaz@example.com';
-  int age = 32;
-  int heightCm = 175;
-  int weightKg = 75;
-  List<String> disabilities = const <String>[];
-  String? disabilityOther;
-
-  // Avatar style
-  int gradientIndex = 0; // pick from predefined gradients
-
-  // Social counters
-  int followers = 124;
-  int following = 89;
+  final UserRepository _userRepo = UserRepository.instance;
+  final PostRepository _postRepo = PostRepository.instance;
+  String? _currentUserId;
+  UserModel? _currentUser;
+  bool _isLoadingUser = true;
+  final ScrollController _postScrollController = ScrollController();
+  OverlayEntry? _bannerEntry;
 
   // Emergency contacts
   final List<_EmergencyContact> contacts = <_EmergencyContact>[
@@ -37,19 +31,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _EmergencyContact('Zeynep Demir', '+90 534 555 8888', 'Friend'),
   ];
 
-  // Posts (use CommunityPost model for consistency)
-  final List<CommunityPost> posts = <CommunityPost>[];
-  final ScrollController _postScrollController = ScrollController();
-  bool _isLoadingMore = false;
-  OverlayEntry? _bannerEntry;
-
   @override
   void initState() {
     super.initState();
-    _seedInitialPosts();
+    _loadCurrentUser();
     _postScrollController.addListener(_onPostScroll);
   }
+
+  Future<void> _loadCurrentUser() async {
+    _currentUserId = AuthService.instance.currentUserId;
+    if (_currentUserId != null) {
+      final user = await _userRepo.getUser(_currentUserId!);
+      if (user == null && AuthService.instance.isLoggedIn) {
+        // User is authenticated but document doesn't exist in Firestore
+        // This shouldn't happen, but if it does, sign out
+        await AuthService.instance.signOut();
+      }
+      setState(() {
+        _currentUser = user;
+        _isLoadingUser = false;
+      });
+    } else {
+      setState(() {
+        _isLoadingUser = false;
+      });
+    }
+  }
   Widget _buildPostsSection() {
+    if (_currentUserId == null) {
+      return const SizedBox.shrink();
+    }
+    
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -68,20 +80,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text('Posts', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
-            ...posts.map((post) => CommunityPostCard(
-                  post: post,
-                  onUpdated: () => setState(() {}),
-                  showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
-                    _showTopBanner(msg, background: background, icon: icon);
-                  },
-                )),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Center(
-                child: _isLoadingMore
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const SizedBox.shrink(),
-              ),
+            StreamBuilder<List<CommunityPost>>(
+              stream: _postRepo.getPostsByUserId(_currentUserId!, _currentUserId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                
+                if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                }
+                
+                final posts = snapshot.data ?? [];
+                
+                if (posts.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Center(
+                      child: Text(
+                        'No posts yet',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    ),
+                  );
+                }
+                
+                return Column(
+                  children: posts.map((post) => CommunityPostCard(
+                    post: post,
+                    onUpdated: () => setState(() {}),
+                    showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
+                      _showTopBanner(msg, background: background, icon: icon);
+                    },
+                  )).toList(),
+                );
+              },
             ),
           ],
         ),
@@ -149,38 +182,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  void _seedInitialPosts() {
-    final samples = CommunityPost.sampleData()
-        .map((e) => e.copyWith(authorName: fullName, handle: username))
-        .take(2)
-        .toList();
-    posts.addAll(samples);
-  }
-
   void _onPostScroll() {
-    if (_isLoadingMore) return;
-    if (_postScrollController.position.pixels >=
-        _postScrollController.position.maxScrollExtent - 120) {
-      _loadMorePosts();
-    }
-  }
-
-  Future<void> _loadMorePosts() async {
-    setState(() => _isLoadingMore = true);
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    final more = CommunityPost.sampleData()
-        .map((e) => e.copyWith(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              authorName: fullName,
-              handle: username,
-              timestamp: DateTime.now(),
-            ))
-        .take(3)
-        .toList();
-    setState(() {
-      posts.addAll(more);
-      _isLoadingMore = false;
-    });
+    // Infinite scroll handled by StreamBuilder
   }
 
   void _showSnack(String message) {
@@ -192,6 +195,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingUser) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    if (_currentUser == null) {
+      // If user is not authenticated, main.dart will handle showing login screen
+      // If user is authenticated but document not found, we already signed out in _loadCurrentUser
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
@@ -283,7 +300,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(fullName,
+                      Text(_currentUser?.displayName ?? 'Unknown',
                           style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -310,9 +327,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 size: 14, color: Color(0xFF6246EA)),
                             const SizedBox(width: 6),
                             Text(
-                              username.startsWith('@')
-                                  ? username.substring(1)
-                                  : username,
+                              (_currentUser?.username ?? '@unknown').startsWith('@')
+                                  ? (_currentUser?.username ?? '@unknown').substring(1)
+                                  : (_currentUser?.username ?? '@unknown'),
                               style: TextStyle(
                                 color: Theme.of(context).brightness ==
                                         Brightness.dark
@@ -335,17 +352,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Yaş' : 'Age', '$age ${Localizations.localeOf(context).languageCode == 'tr' ? 'yıl' : 'years'}', 0xFFE3F2FD)),
+                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Yaş' : 'Age', '${_currentUser?.age ?? 0} ${Localizations.localeOf(context).languageCode == 'tr' ? 'yıl' : 'years'}', 0xFFE3F2FD)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Boy' : 'Height', '$heightCm cm', 0xFFE8F5E9)),
+                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Boy' : 'Height', '${_currentUser?.heightCm ?? 0} cm', 0xFFE8F5E9)),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Kilo' : 'Weight', '$weightKg kg', 0xFFFFF3E0)),
+                Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Kilo' : 'Weight', '${_currentUser?.weightKg ?? 0} kg', 0xFFFFF3E0)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildInfoTile(AppLocalizations.of(context).disabilityStatus, _disabilitiesLabel(context, disabilities, disabilityOther), 0xFFF3E5F5)),
+                Expanded(child: _buildInfoTile(AppLocalizations.of(context).disabilityStatus, _disabilitiesLabel(context, _currentUser?.disabilities ?? [], _currentUser?.disabilityOther), 0xFFF3E5F5)),
               ],
             ),
             const SizedBox(height: 16),
@@ -358,7 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         : Colors.blueGrey),
                 const SizedBox(width: 6),
                 Expanded(
-                    child: Text(location,
+                    child: Text(_currentUser?.location ?? 'Unknown',
                         style: TextStyle(
                             color: Theme.of(context).brightness ==
                                     Brightness.dark
@@ -374,7 +391,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     size: 18, color: Color(0xFF6246EA)),
                 const SizedBox(width: 6),
                 Expanded(
-                    child: Text(email,
+                    child: Text(_currentUser?.email ?? 'Unknown',
                         style: TextStyle(
                             color: Theme.of(context).brightness ==
                                     Brightness.dark
@@ -424,7 +441,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: const Color(0xFFF3E8FF),
               icon: Icons.groups,
               label: AppLocalizations.of(context).followers,
-              value: followers,
+              value: _currentUser?.followers ?? 0,
               onTap: () => _openFollowList(isFollowers: true),
             ),
           ),
@@ -434,7 +451,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: const Color(0xFFE3F2FD),
               icon: Icons.person_add,
               label: AppLocalizations.of(context).following,
-              value: following,
+              value: _currentUser?.following ?? 0,
               onTap: () => _openFollowList(isFollowers: false),
             ),
           ),
@@ -579,7 +596,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
       [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
     ];
-    final colors = gradients[gradientIndex % gradients.length];
+    final colors = gradients[(_currentUser?.gradientIndex ?? 0) % gradients.length];
     return Container(
       width: 90,
       height: 90,
@@ -596,7 +613,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       alignment: Alignment.center,
       child: Text(
-        _initials(fullName),
+        _initials(_currentUser?.displayName ?? 'Unknown'),
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
@@ -705,44 +722,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _openEditProfile() async {
+    if (_currentUser == null) return;
+    
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => _EditProfileScreen(
-          fullName: fullName,
-          username: username,
-          location: location,
-          email: email,
-          age: age,
-          heightCm: heightCm,
-          weightKg: weightKg,
-          disabilities: disabilities,
-          disabilityOther: disabilityOther,
+          fullName: _currentUser!.displayName,
+          username: _currentUser!.username,
+          location: _currentUser!.location ?? '',
+          email: _currentUser!.email,
+          age: _currentUser!.age ?? 0,
+          heightCm: _currentUser!.heightCm ?? 0,
+          weightKg: _currentUser!.weightKg ?? 0,
+          disabilities: _currentUser!.disabilities,
+          disabilityOther: _currentUser!.disabilityOther,
         ),
       ),
-    ).then((value) {
-      if (value is Map<String, dynamic>) {
-        setState(() {
-          fullName = value['fullName'] ?? fullName;
-          username = value['username'] ?? username;
-          location = value['location'] ?? location;
-          email = value['email'] ?? email;
-          age = value['age'] ?? age;
-          heightCm = value['heightCm'] ?? heightCm;
-          weightKg = value['weightKg'] ?? weightKg;
-          disabilities = (value['disabilities'] as List<String>? ?? disabilities);
-          disabilityOther = value['disabilityOther'] as String? ?? disabilityOther;
-        });
-        _showTopBanner(AppLocalizations.of(context).profileUpdated, background: const Color(0xFF2E7D32), icon: Icons.check_circle);
+    ).then((value) async {
+      if (value is Map<String, dynamic> && _currentUser != null) {
+        final updatedUser = _currentUser!.copyWith(
+          displayName: value['fullName'] as String?,
+          username: value['username'] as String?,
+          location: value['location'] as String?,
+          email: value['email'] as String?,
+          age: value['age'] as int?,
+          heightCm: value['heightCm'] as int?,
+          weightKg: value['weightKg'] as int?,
+          disabilities: value['disabilities'] as List<String>?,
+          disabilityOther: value['disabilityOther'] as String?,
+        );
+        
+        try {
+          await _userRepo.updateUser(updatedUser);
+          setState(() {
+            _currentUser = updatedUser;
+          });
+          _showTopBanner(AppLocalizations.of(context).profileUpdated, background: const Color(0xFF2E7D32), icon: Icons.check_circle);
+        } catch (e) {
+          _showTopBanner('Error updating profile: $e', background: Colors.red);
+        }
       }
     });
   }
 
   void _openFollowList({required bool isFollowers}) {
+    if (_currentUserId == null) return;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => _FollowListScreen(
-          title: isFollowers ? AppLocalizations.of(context).followers : AppLocalizations.of(context).following,
-          initial: List.generate(5, (i) => _FollowUser.sample(i)),
+          userId: _currentUserId!,
+          isFollowers: isFollowers,
         ),
       ),
     );
@@ -759,7 +788,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) {
         int tab = 0; // 0: Upload Image, 1: Choose Color
         String? pickedImagePath; // demo placeholder
-        int tempGradientIndex = gradientIndex;
+        int tempGradientIndex = _currentUser?.gradientIndex ?? 0;
 
         final gradients = [
           [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
@@ -794,7 +823,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             alignment: Alignment.center,
             child: Text(
-              _initials(fullName),
+              _initials(_currentUser?.displayName ?? 'Unknown'),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -1003,11 +1032,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () {
+                              onPressed: () async {
                                 if (tab == 1) {
-                                  setState(() => gradientIndex = tempGradientIndex);
-                                  Navigator.pop(context);
-                                  _showTopBanner(AppLocalizations.of(context).avatarColorUpdated, background: Colors.black87, icon: Icons.brush);
+                                  if (_currentUser != null) {
+                                    final updatedUser = _currentUser!.copyWith(
+                                      gradientIndex: tempGradientIndex,
+                                    );
+                                    try {
+                                      await _userRepo.updateUser(updatedUser);
+                                      setState(() {
+                                        _currentUser = updatedUser;
+                                      });
+                                      Navigator.pop(context);
+                                      _showTopBanner(AppLocalizations.of(context).avatarColorUpdated, background: Colors.black87, icon: Icons.brush);
+                                    } catch (e) {
+                                      Navigator.pop(context);
+                                      _showTopBanner('Error updating avatar: $e', background: Colors.red);
+                                    }
+                                  } else {
+                                    Navigator.pop(context);
+                                  }
                                 } else {
                                   Navigator.pop(context);
                                   _showTopBanner(
@@ -1223,62 +1267,162 @@ class _CountTile extends StatelessWidget {
 }
 
 class _FollowListScreen extends StatefulWidget {
-  final String title;
-  final List<_FollowUser> initial;
-  const _FollowListScreen({required this.title, required this.initial});
+  final String userId;
+  final bool isFollowers;
+  const _FollowListScreen({
+    required this.userId,
+    required this.isFollowers,
+  });
 
   @override
   State<_FollowListScreen> createState() => _FollowListScreenState();
 }
 
 class _FollowListScreenState extends State<_FollowListScreen> {
-  late List<_FollowUser> users;
+  final UserRepository _userRepo = UserRepository.instance;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
-    users = List<_FollowUser>.from(widget.initial);
+    _currentUserId = AuthService.instance.currentUserId;
+  }
+
+  Future<void> _handleFollowToggle(String targetUserId, bool currentlyFollowing) async {
+    if (_currentUserId == null) return;
+    
+    try {
+      if (currentlyFollowing) {
+        await _userRepo.unfollowUser(_currentUserId!, targetUserId);
+      } else {
+        await _userRepo.followUser(_currentUserId!, targetUserId);
+      }
+      setState(() {}); // Refresh to update follow status
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text(
+          widget.isFollowers
+              ? AppLocalizations.of(context).followers
+              : AppLocalizations.of(context).following,
+        ),
         elevation: 0.5,
       ),
-      body: ListView.separated(
-        itemCount: users.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final u = users[index];
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: const Color(0xFF6246EA),
-              child: Text(u.initials(),
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-            title: Text(u.name),
-            subtitle: Text(u.handle),
-            trailing: OutlinedButton(
-              onPressed: () {
-                setState(() => u.following = !u.following);
-              },
-              style: OutlinedButton.styleFrom(
-                backgroundColor: u.following ? Colors.black : Colors.white,
-                foregroundColor: u.following ? Colors.white : Colors.black,
-                side: BorderSide(color: u.following ? Colors.black : Colors.grey.shade300),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
+      body: StreamBuilder<List<UserModel>>(
+        stream: widget.isFollowers
+            ? _userRepo.getFollowers(widget.userId)
+            : _userRepo.getFollowing(widget.userId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.grey.shade400),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error: ${snapshot.error}',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ],
               ),
-              child: Text(u.following ? AppLocalizations.of(context).followingBtn : AppLocalizations.of(context).follow),
-            ),
+            );
+          }
+          
+          final users = snapshot.data ?? [];
+          
+          if (users.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
+                  const SizedBox(height: 16),
+                  Text(
+                    widget.isFollowers
+                        ? 'No followers yet'
+                        : 'Not following anyone yet',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                  ),
+                ],
+              ),
+            );
+          }
+          
+          return ListView.separated(
+            itemCount: users.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final user = users[index];
+              final isFollowing = _currentUserId != null
+                  ? _userRepo.isFollowing(_currentUserId!, user.id).then((value) => value)
+                  : Future.value(false);
+              
+              return FutureBuilder<bool>(
+                future: isFollowing,
+                builder: (context, followSnapshot) {
+                  final following = followSnapshot.data ?? false;
+                  
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: const Color(0xFF6246EA),
+                      child: Text(
+                        _initials(user.displayName),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    title: Text(user.displayName),
+                    subtitle: Text(user.username),
+                    trailing: _currentUserId != null && _currentUserId != user.id
+                        ? OutlinedButton(
+                            onPressed: () => _handleFollowToggle(user.id, following),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: following ? Colors.black : Colors.white,
+                              foregroundColor: following ? Colors.white : Colors.black,
+                              side: BorderSide(
+                                color: following ? Colors.black : Colors.grey.shade300,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: Text(
+                              following
+                                  ? AppLocalizations.of(context).followingBtn
+                                  : AppLocalizations.of(context).follow,
+                            ),
+                          )
+                        : null,
+                  );
+                },
+              );
+            },
           );
         },
       ),
     );
+  }
+
+  String _initials(String name) {
+    final parts = name.split(' ');
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 }
 

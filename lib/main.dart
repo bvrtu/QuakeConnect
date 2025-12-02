@@ -8,15 +8,27 @@ import 'models/earthquake.dart';
 import 'theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'data/settings_repository.dart';
 import 'services/notification_service.dart';
+import 'services/auth_service.dart';
+import 'screens/auth/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
   // Load settings from SharedPreferences
   await SettingsRepository.instance.loadSettings();
+  
   // Initialize notification service
   await NotificationService.instance.initialize();
+  
   runApp(const QuakeConnectApp());
 }
 
@@ -33,6 +45,26 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
   bool _isDarkMode = false;
   Locale _locale = const Locale('en');
   Earthquake? _mapSelection;
+  bool _isAuthenticated = false;
+  bool _isCheckingAuth = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to auth state changes
+    AuthService.instance.authStateChanges.listen((user) {
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = user != null;
+          _isCheckingAuth = false;
+        });
+      }
+    });
+    
+    // Check initial auth state
+    _isAuthenticated = AuthService.instance.isLoggedIn;
+    _isCheckingAuth = false;
+  }
 
   void _openOnMap(Earthquake eq) {
     setState(() {
@@ -87,6 +119,17 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
       supportedLocales: const [Locale('en'), Locale('tr')],
       locale: _locale,
       home: Builder(builder: (context) {
+        // Show login screen if not authenticated
+        if (_isCheckingAuth) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        
+        if (!_isAuthenticated) {
+          return const LoginScreen();
+        }
+        
         final t = AppLocalizations.of(context);
         return Scaffold(
         body: AnimatedSwitcher(

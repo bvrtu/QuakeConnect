@@ -125,6 +125,7 @@ class AppLocalizations {
       'no_replies_yet': 'No replies yet. Start the conversation.',
       'reply': 'Reply...',
       'replying_to': 'Replying to',
+      'show_replies': 'Show {count} replies',
       'save': 'Save',
       'followers': 'Followers',
       'following': 'Following',
@@ -145,6 +146,29 @@ class AppLocalizations {
       'friend': 'Friend',
       'family': 'Family',
       'other_specify': 'Other (please specify)',
+      // Auth
+      'login': 'Login',
+      'register': 'Register',
+      'password': 'Password',
+      'confirm_password': 'Confirm Password',
+      'forgot_password': 'Forgot Password?',
+      'welcome_back': 'Welcome back',
+      'create_account': 'Create your account',
+      'dont_have_account': "Don't have an account? ",
+      'already_have_account': 'Already have an account? ',
+      'email_required': 'Email is required',
+      'password_required': 'Password is required',
+      'confirm_password_required': 'Please confirm your password',
+      'name_required': 'Name is required',
+      'username_required': 'Username is required',
+      'invalid_email': 'Invalid email',
+      'password_too_short': 'Password must be at least 6 characters',
+      'passwords_do_not_match': 'Passwords do not match',
+      'username_must_start_with_at': 'Username must start with @',
+      'username_too_short': 'Username must be at least 4 characters',
+      'username_taken': 'Username is already taken',
+      'enter_email_for_password_reset': 'Please enter your email first',
+      'password_reset_email_sent': 'Password reset email sent',
     },
     'tr': {
       'nav_home': 'Ana Sayfa',
@@ -260,6 +284,7 @@ class AppLocalizations {
       'no_replies_yet': 'Henüz yanıt yok. İlk yorumu yapın.',
       'reply': 'Yanıtla...',
       'replying_to': 'Yanıtlanan',
+      'show_replies': '{count} yanıt göster',
       'save': 'Kaydet',
       'followers': 'Takipçiler',
       'following': 'Takip Edilen',
@@ -280,6 +305,29 @@ class AppLocalizations {
       'friend': 'Arkadaş',
       'family': 'Aile',
       'other_specify': 'Diğer (lütfen belirtin)',
+      // Auth
+      'login': 'Giriş Yap',
+      'register': 'Kayıt Ol',
+      'password': 'Şifre',
+      'confirm_password': 'Şifreyi Onayla',
+      'forgot_password': 'Şifremi Unuttum?',
+      'welcome_back': 'Tekrar hoş geldiniz',
+      'create_account': 'Hesabınızı oluşturun',
+      'dont_have_account': 'Hesabınız yok mu? ',
+      'already_have_account': 'Zaten hesabınız var mı? ',
+      'email_required': 'E-posta gereklidir',
+      'password_required': 'Şifre gereklidir',
+      'confirm_password_required': 'Lütfen şifrenizi onaylayın',
+      'name_required': 'İsim gereklidir',
+      'username_required': 'Kullanıcı adı gereklidir',
+      'invalid_email': 'Geçersiz e-posta',
+      'password_too_short': 'Şifre en az 6 karakter olmalıdır',
+      'passwords_do_not_match': 'Şifreler eşleşmiyor',
+      'username_must_start_with_at': 'Kullanıcı adı @ ile başlamalıdır',
+      'username_too_short': 'Kullanıcı adı en az 4 karakter olmalıdır',
+      'username_taken': 'Kullanıcı adı zaten alınmış',
+      'enter_email_for_password_reset': 'Lütfen önce e-postanızı girin',
+      'password_reset_email_sent': 'Şifre sıfırlama e-postası gönderildi',
     }
   };
 
@@ -382,6 +430,7 @@ class AppLocalizations {
   String get noRepliesYet => _t('no_replies_yet');
   String get reply => _t('reply');
   String get replyingTo => _t('replying_to');
+  String showReplies(int count) => _t('show_replies').replaceAll('{count}', count.toString());
   String get save => _t('save');
   String get add => _t('add');
   String get followers => _t('followers');
@@ -402,6 +451,29 @@ class AppLocalizations {
   String get friend => _t('friend');
   String get family => _t('family');
   String get otherSpecify => _t('other_specify');
+  // Auth
+  String get login => _t('login');
+  String get register => _t('register');
+  String get password => _t('password');
+  String get confirmPassword => _t('confirm_password');
+  String get forgotPassword => _t('forgot_password');
+  String get welcomeBack => _t('welcome_back');
+  String get createAccount => _t('create_account');
+  String get dontHaveAccount => _t('dont_have_account');
+  String get alreadyHaveAccount => _t('already_have_account');
+  String get emailRequired => _t('email_required');
+  String get passwordRequired => _t('password_required');
+  String get confirmPasswordRequired => _t('confirm_password_required');
+  String get nameRequired => _t('name_required');
+  String get usernameRequired => _t('username_required');
+  String get invalidEmail => _t('invalid_email');
+  String get passwordTooShort => _t('password_too_short');
+  String get passwordsDoNotMatch => _t('passwords_do_not_match');
+  String get usernameMustStartWithAt => _t('username_must_start_with_at');
+  String get usernameTooShort => _t('username_too_short');
+  String get usernameTaken => _t('username_taken');
+  String get enterEmailForPasswordReset => _t('enter_email_for_password_reset');
+  String get passwordResetEmailSent => _t('password_reset_email_sent');
   String get emergencyTip => _t('emergency_tip');
   String get profilePicture => _t('profile_picture');
   String get nameLabel => _t('name_label');

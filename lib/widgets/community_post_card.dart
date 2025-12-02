@@ -4,8 +4,12 @@ import 'package:share_plus/share_plus.dart';
 import '../models/community_post.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/formatters.dart';
+import '../data/post_repository.dart';
+import '../data/comment_repository.dart' show Comment, CommentRepository;
+import '../services/auth_service.dart';
+import '../data/user_repository.dart';
 
-class Comment {
+class LocalComment {
   final String id;
   final String authorName;
   final String handle;
@@ -17,9 +21,9 @@ class Comment {
   bool retweeted;
   int reposts;
   bool reposted;
-  final List<Comment> replies;
+  final List<LocalComment> replies;
 
-  Comment({
+  LocalComment({
     required this.id,
     required this.authorName,
     required this.handle,
@@ -31,8 +35,8 @@ class Comment {
     this.retweeted = false,
     this.reposts = 0,
     this.reposted = false,
-    List<Comment>? replies,
-  }) : replies = replies ?? <Comment>[];
+    List<LocalComment>? replies,
+  }) : replies = replies ?? <LocalComment>[];
 
   String get timeAgo {
     final d = DateTime.now().difference(timestamp);
@@ -55,31 +59,128 @@ class CommunityPostCard extends StatefulWidget {
 }
 
 class _CommunityPostCardState extends State<CommunityPostCard> {
-  final List<Comment> _comments = <Comment>[];
+  final PostRepository _postRepo = PostRepository.instance;
+  final CommentRepository _commentRepo = CommentRepository.instance;
+  final UserRepository _userRepo = UserRepository.instance;
+  String? _currentUserId;
+  
+  // Local state for optimistic updates
+  bool? _optimisticIsLiked;
+  bool? _optimisticIsReposted;
+  int? _optimisticLikes;
+  int? _optimisticReposts;
+  bool _hasOptimisticLike = false;
+  bool _hasOptimisticRepost = false;
 
-  void _toggleLike() {
-    HapticFeedback.selectionClick();
-    setState(() {
-      widget.post.isLiked = !widget.post.isLiked;
-      widget.post.likes += widget.post.isLiked ? 1 : -1;
-    });
-    widget.onUpdated?.call();
+  @override
+  void initState() {
+    super.initState();
+    _currentUserId = AuthService.instance.currentUserId;
   }
 
-  void _toggleRepost() {
-    HapticFeedback.lightImpact();
+  @override
+  void didUpdateWidget(CommunityPostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Sync optimistic state with StreamBuilder updates
+    // Only sync if we haven't made optimistic changes
+    if (!_hasOptimisticLike) {
+      _optimisticIsLiked = widget.post.isLiked;
+      _optimisticLikes = widget.post.likes;
+    }
+    if (!_hasOptimisticRepost) {
+      _optimisticIsReposted = widget.post.isReposted;
+      _optimisticReposts = widget.post.reposts;
+    }
+  }
+
+  bool get _isLiked => _optimisticIsLiked ?? widget.post.isLiked;
+  bool get _isReposted => _optimisticIsReposted ?? widget.post.isReposted;
+  int get _likes => _optimisticLikes ?? widget.post.likes;
+  int get _reposts => _optimisticReposts ?? widget.post.reposts;
+
+  Future<void> _toggleLike() async {
+    if (_currentUserId == null) return;
+    HapticFeedback.selectionClick();
+    
+    // Optimistic update
+    final previousLiked = _isLiked;
+    final previousLikes = _likes;
     setState(() {
-      widget.post.isReposted = !widget.post.isReposted;
-      widget.post.reposts += widget.post.isReposted ? 1 : -1;
+      _hasOptimisticLike = true;
+      _optimisticIsLiked = !previousLiked;
+      _optimisticLikes = previousLiked ? previousLikes - 1 : previousLikes + 1;
     });
-    widget.onUpdated?.call();
-    if (widget.post.isReposted) {
-      final t = AppLocalizations.of(context);
-      widget.showBanner?.call(
-        t.repostAdded,
-        background: const Color(0xFF1E88E5),
-        icon: Icons.repeat,
-      );
+    
+    try {
+      await _postRepo.likePost(widget.post.id, _currentUserId!);
+      // After successful update, reset flag so StreamBuilder can sync
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          setState(() {
+            _hasOptimisticLike = false;
+          });
+        }
+      });
+    } catch (e) {
+      // Revert on error
+      setState(() {
+        _hasOptimisticLike = false;
+        _optimisticIsLiked = previousLiked;
+        _optimisticLikes = previousLikes;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleRepost() async {
+    if (_currentUserId == null) return;
+    HapticFeedback.lightImpact();
+    
+    // Optimistic update
+    final previousReposted = _isReposted;
+    final previousReposts = _reposts;
+    setState(() {
+      _hasOptimisticRepost = true;
+      _optimisticIsReposted = !previousReposted;
+      _optimisticReposts = previousReposted ? previousReposts - 1 : previousReposts + 1;
+    });
+    
+    try {
+      await _postRepo.repostPost(widget.post.id, _currentUserId!);
+      // After successful update, reset flag so StreamBuilder can sync
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          setState(() {
+            _hasOptimisticRepost = false;
+          });
+        }
+      });
+      
+      // Show banner only if we're reposting (not un-reposting)
+      if (!previousReposted) {
+        final t = AppLocalizations.of(context);
+        widget.showBanner?.call(
+          t.repostAdded,
+          background: const Color(0xFF1E88E5),
+          icon: Icons.repeat,
+        );
+      }
+    } catch (e) {
+      // Revert on error
+      setState(() {
+        _hasOptimisticRepost = false;
+        _optimisticIsReposted = previousReposted;
+        _optimisticReposts = previousReposts;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
@@ -268,10 +369,10 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _buildActionButton(
-          icon: widget.post.isLiked ? Icons.favorite : Icons.favorite_border,
+          icon: _isLiked ? Icons.favorite : Icons.favorite_border,
           activeIcon: Icons.favorite,
-          label: widget.post.likes,
-          isActive: widget.post.isLiked,
+          label: _likes,
+          isActive: _isLiked,
           activeColor: const Color(0xFFE53935),
           onTap: _toggleLike,
         ),
@@ -284,8 +385,8 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
         _buildActionButton(
           icon: Icons.repeat,
           activeIcon: Icons.repeat,
-          label: widget.post.reposts,
-          isActive: widget.post.isReposted,
+          label: _reposts,
+          isActive: _isReposted,
           activeColor: const Color(0xFF1E88E5),
           onTap: _toggleRepost,
         ),
@@ -363,11 +464,14 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
         final TextEditingController controller = TextEditingController();
         final FocusNode focusNode = FocusNode();
         Comment? replyingTo;
+        // Track which comments have expanded replies (persist across rebuilds)
+        final expandedComments = <String>{};
 
         return StatefulBuilder(
           builder: (context, modalSetState) {
 
             Widget buildCommentTile(Comment c, {double indent = 0}) {
+              final isLiked = _currentUserId != null && c.likes.contains(_currentUserId!);
               return Padding(
                 padding: EdgeInsets.only(left: indent),
                 child: Column(
@@ -385,53 +489,56 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                               Row(children: [
                                 Text(c.authorName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                                 const SizedBox(width: 6),
-                                Text(formatTimeAgo(context, c.timestamp), style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                Text(c.timeAgo, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
                               ]),
                               const SizedBox(height: 4),
                               Text(c.text, style: const TextStyle(fontSize: 14)),
                               const SizedBox(height: 6),
                               Row(children: [
-                                _buildActionButton(icon: c.liked ? Icons.favorite : Icons.favorite_border, activeIcon: Icons.favorite, label: c.likes, isActive: c.liked, activeColor: const Color(0xFFE53935), onTap: () { modalSetState(() { c.liked = !c.liked; c.likes += c.liked ? 1 : -1; }); }),
                                 _buildActionButton(
-                                    icon: Icons.mode_comment_outlined,
-                                    activeIcon: Icons.mode_comment,
-                                    label: c.replies.length,
-                                    onTap: () {
-                                      modalSetState(() {
-                                        replyingTo = c;
-                                      });
-                                      // Focus composer after state set
-                                      FocusScope.of(context)
-                                          .requestFocus(focusNode);
-                                    }),
-                                _buildActionButton(icon: Icons.repeat, activeIcon: Icons.repeat, label: c.retweets, isActive: c.retweeted, activeColor: const Color(0xFF1E88E5), onTap: () {
-                                  modalSetState(() { c.retweeted = !c.retweeted; c.retweets += c.retweeted ? 1 : -1; });
-                                  if (c.retweeted) {
+                                  icon: isLiked ? Icons.favorite : Icons.favorite_border,
+                                  activeIcon: Icons.favorite,
+                                  label: c.likesCount,
+                                  isActive: isLiked,
+                                  activeColor: const Color(0xFFE53935),
+                                  onTap: () async {
+                                    if (_currentUserId != null) {
+                                      await _commentRepo.likeComment(widget.post.id, c.id, _currentUserId!);
+                                    }
+                                  },
+                                ),
+                                _buildActionButton(
+                                  icon: Icons.mode_comment_outlined,
+                                  activeIcon: Icons.mode_comment,
+                                  label: c.repliesCount,
+                                  onTap: () {
+                                    modalSetState(() {
+                                      replyingTo = c;
+                                    });
+                                    FocusScope.of(context).requestFocus(focusNode);
+                                  },
+                                ),
+                                _buildActionButton(
+                                  icon: Icons.share_outlined,
+                                  activeIcon: Icons.share,
+                                  label: 0,
+                                  showLabel: false,
+                                  onTap: () async {
+                                    await Share.share(c.text, subject: 'QuakeConnect Reply');
                                     final t = AppLocalizations.of(context);
                                     widget.showBanner?.call(
-                                      t.repostAdded,
-                                      background: const Color(0xFF1E88E5),
-                                      icon: Icons.repeat,
+                                      t.postSharedExternal,
+                                      background: Colors.black87,
+                                      icon: Icons.share,
                                     );
-                                  }
-                                }),
-                                _buildActionButton(icon: Icons.share_outlined, activeIcon: Icons.share, label: 0, showLabel: false, onTap: () async {
-                                  await Share.share(c.text, subject: 'QuakeConnect Reply');
-                                  final t = AppLocalizations.of(context);
-                                  widget.showBanner?.call(
-                                    t.postSharedExternal,
-                                    background: Colors.black87,
-                                    icon: Icons.share,
-                                  );
-                                }),
+                                  },
+                                ),
                               ]),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    if (c.replies.isNotEmpty)
-                      ...c.replies.map((r) => buildCommentTile(r, indent: indent + 24)),
                   ],
                 ),
               );
@@ -464,24 +571,144 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                     ),
                     const Divider(height: 1),
                     Expanded(
-                      child: _comments.isEmpty
-                          ? GestureDetector(
+                      child: StreamBuilder<List<Comment>>(
+                        stream: _commentRepo.getComments(widget.post.id),
+                        builder: (context, snapshot) {
+                          // Only show loading on initial load, not on subsequent updates
+                          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Text('Error: ${snapshot.error}'),
+                            );
+                          }
+                          
+                          final comments = snapshot.data ?? [];
+                          
+                          if (comments.isEmpty) {
+                            return GestureDetector(
                               onTap: () => focusNode.unfocus(),
-                              child: Center(child: Text(AppLocalizations.of(context).noRepliesYet, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600))),
-                            )
-                          : ListView.separated(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              itemCount: _comments.length,
-                              separatorBuilder: (_, __) => const Divider(height: 20),
-                              itemBuilder: (context, index) {
-                                final c = _comments[index];
-                                return GestureDetector(
-                                  onTap: () => focusNode.unfocus(),
-                                  behavior: HitTestBehavior.opaque,
-                                  child: buildCommentTile(c),
-                                );
-                              },
-                            ),
+                              child: Center(
+                                child: Text(
+                                  AppLocalizations.of(context).noRepliesYet,
+                                  style: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          
+                          // Twitter-style thread structure:
+                          // 1. Top-level comments (parentCommentId == null)
+                          // 2. Direct replies to top-level (parentCommentId == top-level id)
+                          // 3. Thread replies (replies to direct replies, shown as thread)
+                          
+                          final topLevelComments = comments.where((c) => c.parentCommentId == null).toList();
+                          
+                          // Build a map of all comments by their parent ID
+                          final commentsByParent = <String, List<Comment>>{};
+                          for (final comment in comments) {
+                            if (comment.parentCommentId != null) {
+                              commentsByParent.putIfAbsent(comment.parentCommentId!, () => []).add(comment);
+                            }
+                          }
+                          
+                          // Recursive function to build thread structure
+                          // Twitter-style: Shows top-level, direct replies, and thread replies
+                          // Depth: 1 = direct reply, 2 = thread reply, 3+ = hidden (unless expanded)
+                          Widget buildThread(Comment comment, double indent, int depth, Set<String> expandedComments) {
+                            final replies = commentsByParent[comment.id] ?? [];
+                            // Sort replies by timestamp (oldest first for thread)
+                            replies.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+                            
+                            // Check if this comment's replies are expanded
+                            final isExpanded = expandedComments.contains(comment.id);
+                            
+                            // Twitter shows max 2 levels of thread (direct reply + thread reply)
+                            // depth 1 = direct reply, depth 2 = thread reply, depth 3+ = hidden (unless expanded)
+                            final shouldShowReplies = replies.isNotEmpty && (depth < 3 || isExpanded);
+                            final hasHiddenReplies = replies.isNotEmpty && depth >= 3 && !isExpanded;
+                            
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.only(left: indent),
+                                  child: buildCommentTile(comment),
+                                ),
+                                // Show thread replies (replies to this comment)
+                                // Twitter shows thread replies with more indent
+                                if (shouldShowReplies) ...[
+                                  ...replies.map((reply) => Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: buildThread(reply, indent + 24, depth + 1, expandedComments),
+                                  )),
+                                ],
+                                // If there are hidden replies (depth >= 3), show "Show more" button
+                                if (hasHiddenReplies) ...[
+                                  Padding(
+                                    padding: EdgeInsets.only(left: indent + 24, top: 4),
+                                    child: TextButton.icon(
+                                      onPressed: () {
+                                        // Expand to show all replies
+                                        modalSetState(() {
+                                          expandedComments.add(comment.id);
+                                        });
+                                      },
+                                      icon: Icon(
+                                        Icons.more_horiz,
+                                        size: 16,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                      label: Text(
+                                        AppLocalizations.of(context).showReplies(replies.length),
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.primary,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            );
+                          }
+                          
+                          return ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            itemCount: topLevelComments.length,
+                            separatorBuilder: (_, __) => const Divider(height: 20),
+                            itemBuilder: (context, index) {
+                              final c = topLevelComments[index];
+                              final directReplies = commentsByParent[c.id] ?? [];
+                              // Sort direct replies by timestamp
+                              directReplies.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+                              
+                              return GestureDetector(
+                                onTap: () => focusNode.unfocus(),
+                                behavior: HitTestBehavior.opaque,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Top-level comment
+                                    buildCommentTile(c),
+                                    // Direct replies with thread structure
+                                    if (directReplies.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      ...directReplies.map((reply) => buildThread(reply, 24, 1, expandedComments)),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
                     ),
                     // Composer (bottom, slightly lifted)
                     Container(
@@ -500,7 +727,10 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                             focusNode: focusNode,
                             minLines: 1,
                             maxLines: 4,
-                            onChanged: (_) => modalSetState(() {}), // Update button state when text changes
+                            onChanged: (_) {
+                              // Only update button state, don't trigger StreamBuilder rebuild
+                              modalSetState(() {});
+                            },
                             decoration: InputDecoration(
                               hintText: replyingTo == null ? AppLocalizations.of(context).reply : '${AppLocalizations.of(context).replyingTo} @' + replyingTo!.handle.substring(1),
                               filled: true,
@@ -528,27 +758,40 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                 ),
                               ),
                             ),
-                            onSubmitted: (_) {
+                            onSubmitted: (_) async {
                               final text = controller.text.trim();
-                              if (text.isEmpty) return;
+                              if (text.isEmpty || _currentUserId == null) return;
                               HapticFeedback.selectionClick();
-                              modalSetState(() {
-                                if (replyingTo == null) {
-                                  _comments.insert(0, Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
-                                } else {
-                                  replyingTo!.replies.add(Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
-                                  replyingTo = null;
+                              
+                              try {
+                                final user = await _userRepo.getUser(_currentUserId!);
+                                await _commentRepo.addComment(
+                                  postId: widget.post.id,
+                                  text: text,
+                                  parentCommentId: replyingTo?.id,
+                                  user: user,
+                                );
+                                
+                                controller.clear();
+                                if (replyingTo != null) {
+                                  modalSetState(() {
+                                    replyingTo = null;
+                                  });
                                 }
-                              });
-                              setState(() { widget.post.comments += 1; });
-                              widget.onUpdated?.call();
-                              controller.clear();
-                              final t = AppLocalizations.of(context);
-                              widget.showBanner?.call(
-                                t.commentSent,
-                                background: const Color(0xFF424242),
-                                icon: Icons.mode_comment,
-                              );
+                                
+                                // StreamBuilder will automatically update the comment count
+                                
+                                final t = AppLocalizations.of(context);
+                                widget.showBanner?.call(
+                                  t.commentSent,
+                                  background: const Color(0xFF424242),
+                                  icon: Icons.mode_comment,
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
                             },
                           ),
                         ),
@@ -558,27 +801,40 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                             final hasText = controller.text.trim().isNotEmpty;
                             final isDark = Theme.of(context).brightness == Brightness.dark;
                             return ElevatedButton(
-                              onPressed: hasText ? () {
-                            final text = controller.text.trim();
-                            if (text.isEmpty) return;
+                              onPressed: hasText && _currentUserId != null ? () async {
+                                final text = controller.text.trim();
+                                if (text.isEmpty) return;
                                 HapticFeedback.selectionClick();
-                            modalSetState(() {
-                              if (replyingTo == null) {
-                                _comments.insert(0, Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
-                              } else {
-                                replyingTo!.replies.add(Comment(id: DateTime.now().millisecondsSinceEpoch.toString(), authorName: 'You', handle: '@you', text: text, timestamp: DateTime.now()));
-                                replyingTo = null;
-                              }
-                            });
-                            setState(() { widget.post.comments += 1; });
-                            widget.onUpdated?.call();
-                            controller.clear();
-                                final t = AppLocalizations.of(context);
-                                widget.showBanner?.call(
-                                  t.commentSent,
-                                  background: const Color(0xFF424242),
-                                  icon: Icons.mode_comment,
-                                );
+                                
+                                try {
+                                  final user = await _userRepo.getUser(_currentUserId!);
+                                  await _commentRepo.addComment(
+                                    postId: widget.post.id,
+                                    text: text,
+                                    parentCommentId: replyingTo?.id,
+                                    user: user,
+                                  );
+                                  
+                                  controller.clear();
+                                  if (replyingTo != null) {
+                                    modalSetState(() {
+                                      replyingTo = null;
+                                    });
+                                  }
+                                  
+                                  // StreamBuilder will automatically update the comment count
+                                  
+                                  final t = AppLocalizations.of(context);
+                                  widget.showBanner?.call(
+                                    t.commentSent,
+                                    background: const Color(0xFF424242),
+                                    icon: Icons.mode_comment,
+                                  );
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')),
+                                  );
+                                }
                               } : null,
                               style: ElevatedButton.styleFrom(
                                 shape: const CircleBorder(),
