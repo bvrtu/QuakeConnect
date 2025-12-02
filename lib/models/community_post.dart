@@ -65,6 +65,47 @@ class CommunityPost {
     );
   }
 
+  /// Convert to Firestore map
+  Map<String, dynamic> toFirestore() {
+    return {
+      'authorName': authorName,
+      'authorHandle': handle,
+      'type': type.toString().split('.').last,
+      'message': message,
+      'location': location,
+      'timestamp': timestamp.toIso8601String(),
+      'likes': likes,
+      'comments': comments,
+      'shares': shares,
+      'reposts': reposts,
+    };
+  }
+
+  /// Create from Firestore map
+  factory CommunityPost.fromFirestore(Map<String, dynamic> map, String id) {
+    final typeStr = map['type'] as String? ?? 'info';
+    final type = CommunityPostType.values.firstWhere(
+      (e) => e.toString().split('.').last == typeStr,
+      orElse: () => CommunityPostType.info,
+    );
+    
+    return CommunityPost(
+      id: id,
+      authorName: map['authorName'] as String? ?? 'Unknown',
+      handle: map['authorHandle'] as String? ?? '@unknown',
+      type: type,
+      message: map['message'] as String? ?? '',
+      location: map['location'] as String? ?? '',
+      timestamp: DateTime.parse(map['timestamp'] as String),
+      likes: (map['likes'] as int?) ?? 0,
+      comments: (map['comments'] as int?) ?? 0,
+      shares: (map['shares'] as int?) ?? 0,
+      reposts: (map['reposts'] as int?) ?? 0,
+      isLiked: false,
+      isReposted: false,
+    );
+  }
+
   String get timeAgo {
     final difference = DateTime.now().difference(timestamp);
     if (difference.inMinutes < 1) return 'Just now';

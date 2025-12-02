@@ -5,6 +5,11 @@ import '../widgets/community_post_card.dart';
 import 'all_community_updates_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../services/notification_service.dart';
+import '../data/post_repository.dart';
+import '../services/auth_service.dart';
+import '../data/user_repository.dart';
+import '../services/location_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class SafetyScreen extends StatefulWidget {
   const SafetyScreen({super.key});
@@ -20,15 +25,11 @@ class _SafetyScreenState extends State<SafetyScreen> {
   final TextEditingController _postController = TextEditingController();
   final FocusNode _postFocusNode = FocusNode();
   PostCategory? _selectedCategory;
-  late List<CommunityPost> _communityPosts;
   OverlayEntry? _bannerEntry;
-
-  @override
-  void initState() {
-    super.initState();
-    _communityPosts = List<CommunityPost>.from(CommunityPost.sampleData())
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-  }
+  final PostRepository _postRepo = PostRepository.instance;
+  final UserRepository _userRepo = UserRepository.instance;
+  String? _currentUserId;
+  String _userLocation = 'Unknown Location';
 
   @override
   void dispose() {
@@ -166,8 +167,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
     );
   }
 
-  void _handlePost() {
-    if (!_canPost) return;
+  Future<void> _handlePost() async {
+    if (!_canPost || _currentUserId == null) return;
     HapticFeedback.lightImpact();
     final category = _selectedCategory!;
     final type = switch (category) {
@@ -179,48 +180,98 @@ class _SafetyScreenState extends State<SafetyScreen> {
     // Save message before clearing controller
     final messageText = _postController.text.trim();
 
+    // Get user info
+    final user = await _userRepo.getUser(_currentUserId!);
+    if (user == null) {
+      _showTopBanner('Error: User not found', background: Colors.red);
+      return;
+    }
+
+    // Get location
+    String location = _userLocation;
+    if (location == 'Unknown Location') {
+      try {
+        final position = await LocationService.getCurrentLocation();
+        if (position != null) {
+          location = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+        }
+      } catch (e) {
+        // Use default location
+      }
+    }
+
     final newPost = CommunityPost(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      authorName: 'You',
-      handle: '@you',
+      id: '', // Will be set by Firebase
+      authorName: user.displayName,
+      handle: user.username,
       type: type,
       message: messageText,
-      location: 'Kadıköy, İstanbul',
+      location: location,
       timestamp: DateTime.now(),
     );
 
-    setState(() {
-      _communityPosts.insert(0, newPost);
-      _postController.clear();
-      _selectedCategory = null;
-    });
+    try {
+      await _postRepo.createPost(
+        post: newPost,
+        userId: _currentUserId!,
+      );
 
-    _showTopBanner(AppLocalizations.of(context).postShared);
-    
-    // Send community update notification if enabled
-    final categoryName = switch (category) {
-      PostCategory.needHelp => 'Need Help',
-      PostCategory.info => 'Info',
-      PostCategory.safe => 'I\'m Safe',
-    };
-    final notificationBody = messageText.length > 50 
-        ? '${messageText.substring(0, 50)}...' 
-        : messageText;
-    NotificationService.instance.showCommunityUpdateNotification(
-      'New Community Update',
-      '$categoryName: $notificationBody',
-    );
+      setState(() {
+        _postController.clear();
+        _selectedCategory = null;
+      });
+
+      _showTopBanner(AppLocalizations.of(context).postShared);
+      
+      // Send community update notification if enabled
+      final categoryName = switch (category) {
+        PostCategory.needHelp => 'Need Help',
+        PostCategory.info => 'Info',
+        PostCategory.safe => 'I\'m Safe',
+      };
+      final notificationBody = messageText.length > 50 
+          ? '${messageText.substring(0, 50)}...' 
+          : messageText;
+      NotificationService.instance.showCommunityUpdateNotification(
+        'New Community Update',
+        '$categoryName: $notificationBody',
+      );
+    } catch (e) {
+      _showTopBanner('Error posting: $e', background: Colors.red);
+    }
   }
 
   void _navigateToAllUpdates() {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AllCommunityUpdatesScreen(
-          posts: _communityPosts,
-          onPostsUpdated: () => setState(() {}),
+          userId: _currentUserId,
         ),
       ),
     );
+  }
+
+  Future<void> _loadUserInfo() async {
+    _currentUserId = AuthService.instance.currentUserId;
+    if (_currentUserId != null) {
+      // Get user location
+      try {
+        final position = await LocationService.getCurrentLocation();
+        if (position != null) {
+          setState(() {
+            _userLocation = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+          });
+        }
+      } catch (e) {
+        // Use default location
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
   }
 
   @override
@@ -460,7 +511,6 @@ class _SafetyScreenState extends State<SafetyScreen> {
   }
 
   Widget _buildCommunityUpdatesSection() {
-    final topPosts = _communityPosts.take(3).toList();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -489,29 +539,54 @@ class _SafetyScreenState extends State<SafetyScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        if (topPosts.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-                color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(AppLocalizations.of(context).noUpdatesYet),
-          )
-        else
-          Column(
-            children: topPosts
-                .map(
-                  (post) => CommunityPostCard(
-                    post: post,
-                    onUpdated: () => setState(() {}),
+        StreamBuilder<List<CommunityPost>>(
+          stream: _postRepo.getAllPosts(_currentUserId),
+          builder: (context, snapshot) {
+            // Only show loading on initial load, not on subsequent updates
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            
+            if (snapshot.hasError) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text('Error: ${snapshot.error}'),
+              );
+            }
+            
+            final posts = snapshot.data ?? [];
+            final topPosts = posts.take(3).toList();
+            
+            if (topPosts.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(AppLocalizations.of(context).noUpdatesYet),
+              );
+            }
+            
+            return Column(
+              children: topPosts
+                  .map(
+                    (post) => CommunityPostCard(
+                      post: post,
+                      onUpdated: null, // StreamBuilder will handle updates automatically
                       showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
                         _showTopBanner(msg, background: background, icon: icon);
                       },
-                  ),
-                )
-                .toList(),
-          ),
+                    ),
+                  )
+                  .toList(),
+            );
+          },
+        ),
       ],
       ),
     );

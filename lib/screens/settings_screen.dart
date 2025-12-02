@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import '../data/settings_repository.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
+import '../services/auth_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -450,9 +451,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: () async {
+          // Show confirmation dialog
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(AppLocalizations.of(context).signOut),
+              content: Text('Are you sure you want to sign out?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text(AppLocalizations.of(context).cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD32F2F),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(AppLocalizations.of(context).signOut),
+                ),
+              ],
+            ),
+          );
+
+          if (confirmed == true) {
+            try {
+              await AuthService.instance.signOut();
+              // Auth state change listener in main.dart will handle navigation
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error signing out: $e')),
+                );
+              }
+            }
+          }
+        },
         icon: const Icon(Icons.logout),
-        label: const Text('Sign Out'),
+        label: Text(AppLocalizations.of(context).signOut),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFD32F2F),
           foregroundColor: Colors.white,
