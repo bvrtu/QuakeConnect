@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'package:image/image.dart' as img;
 import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
 import '../l10n/app_localizations.dart';
@@ -577,7 +580,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
                     child: Center(child: CircularProgressIndicator()),
-                  )
+          )
                 else if (contacts.isEmpty)
                   _buildEmptyContactsState(isDark)
                 else
@@ -658,7 +661,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
         ],
-      ),
+                ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -804,44 +807,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
       initialData: _currentUser,
       builder: (context, snapshot) {
         final user = snapshot.data ?? _currentUser;
-    final gradients = [
-      [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
-      [const Color(0xFF00C853), const Color(0xFF1DE9B6)],
-      [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
-      [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
-      [const Color(0xFFFF4081), const Color(0xFFFFAB40)],
-      [const Color(0xFF00BCD4), const Color(0xFF448AFF)],
-      [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
-      [const Color(0xFFFFA726), const Color(0xFFFF7043)],
-      [const Color(0xFF7E57C2), const Color(0xFFAB47BC)],
-      [const Color(0xFF66BB6A), const Color(0xFF43A047)],
-      [const Color(0xFF42A5F5), const Color(0xFF1E88E5)],
-      [const Color(0xFFEC407A), const Color(0xFFAB47BC)],
-    ];
+        final gradients = [
+          [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
+          [const Color(0xFF00C853), const Color(0xFF1DE9B6)],
+          [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
+          [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
+          [const Color(0xFFFF4081), const Color(0xFFFFAB40)],
+          [const Color(0xFF00BCD4), const Color(0xFF448AFF)],
+          [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
+          [const Color(0xFFFFA726), const Color(0xFFFF7043)],
+          [const Color(0xFF7E57C2), const Color(0xFFAB47BC)],
+          [const Color(0xFF66BB6A), const Color(0xFF43A047)],
+          [const Color(0xFF42A5F5), const Color(0xFF1E88E5)],
+          [const Color(0xFFEC407A), const Color(0xFFAB47BC)],
+        ];
         final colors = gradients[(user?.gradientIndex ?? 0) % gradients.length];
-    return Container(
-      width: 90,
-      height: 90,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(colors: colors),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+        
+        // Check if photoURL is a data URI (base64)
+        final photoURL = user?.photoURL;
+        ImageProvider? imageProvider;
+        
+        if (photoURL != null && photoURL.isNotEmpty) {
+          if (photoURL.startsWith('data:image')) {
+            // Base64 data URI
+            try {
+              final base64String = photoURL.split(',')[1];
+              final imageBytes = base64Decode(base64String);
+              imageProvider = MemoryImage(imageBytes);
+            } catch (e) {
+              debugPrint('Error decoding base64 image: $e');
+            }
+          } else {
+            // Regular URL
+            imageProvider = NetworkImage(photoURL);
+          }
+        }
+        
+        return Container(
+          width: 90,
+          height: 90,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            image: imageProvider != null
+                ? DecorationImage(
+                    image: imageProvider,
+                    fit: BoxFit.cover,
+                  )
+                : null,
+            gradient: imageProvider == null ? LinearGradient(colors: colors) : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      alignment: Alignment.center,
-      child: Text(
-            _initials(user?.displayName ?? 'Unknown'),
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 28,
-        ),
-      ),
+          alignment: imageProvider == null ? Alignment.center : null,
+          child: imageProvider == null
+              ? Text(
+                  _initials(user?.displayName ?? 'Unknown'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 28,
+                  ),
+                )
+              : null,
         );
       },
     );
@@ -1078,8 +1110,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       builder: (context) {
         int tab = 0; // 0: Upload Image, 1: Choose Color
-        String? pickedImagePath; // demo placeholder
+        File? pickedImageFile;
         int tempGradientIndex = _currentUser?.gradientIndex ?? 0;
+        final int initialGradientIndex = _currentUser?.gradientIndex ?? 0;
 
         final gradients = [
           [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
@@ -1097,6 +1130,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ];
 
         Widget previewAvatar() {
+          // Show selected image if available, otherwise show gradient
+          if (pickedImageFile != null) {
+            return Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: FileImage(pickedImageFile!),
+                  fit: BoxFit.cover,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+            );
+          }
           final colors = gradients[tempGradientIndex % gradients.length];
           return Container(
             width: 120,
@@ -1122,6 +1176,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           );
+        }
+        
+        bool hasChanges() {
+          if (tab == 0) {
+            return pickedImageFile != null;
+          } else {
+            return tempGradientIndex != initialGradientIndex;
+          }
         }
 
         return StatefulBuilder(builder: (context, setSheet) {
@@ -1253,8 +1315,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   SizedBox(
                                     width: double.infinity,
                                     child: OutlinedButton.icon(
-                                      onPressed: () {
-                                        setSheet(() => pickedImagePath = 'local');
+                                      onPressed: () async {
+                                        final ImagePicker picker = ImagePicker();
+                                        try {
+                                          final XFile? image = await picker.pickImage(
+                                            source: ImageSource.gallery,
+                                            maxWidth: 1024,
+                                            maxHeight: 1024,
+                                            imageQuality: 85,
+                                          );
+                                          if (image != null) {
+                                            setSheet(() {
+                                              pickedImageFile = File(image.path);
+                                            });
+                                          }
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Error picking image: $e')),
+                                            );
+                                          }
+                                        }
                                       },
                                       icon: const Icon(Icons.file_upload_outlined),
                                       label: const Text('Choose Image'),
@@ -1263,6 +1344,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         minimumSize: const Size.fromHeight(52),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                       ),
+                                    ),
+                                  ),
+                                  if (pickedImageFile != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(
+                                        'Image selected: ${pickedImageFile!.path.split('/').last}',
+                                        style: TextStyle(color: Colors.green.shade700, fontSize: 12),
                                     ),
                                   ),
                                   const SizedBox(height: 8),
@@ -1323,8 +1412,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () async {
-                                if (tab == 1) {
+                              onPressed: hasChanges() ? () async {
+                                if (tab == 0 && pickedImageFile != null) {
+                                  // Save image as base64 in Firestore (since Storage requires billing)
+                                  try {
+                                    final userId = AuthService.instance.currentUserId;
+                                    if (userId == null) {
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                        _showTopBanner('User not logged in', background: Colors.red);
+                                      }
+                                      return;
+                                    }
+                                    
+                                    // Read and compress image
+                                    final imageBytes = await pickedImageFile!.readAsBytes();
+                                    final originalImage = img.decodeImage(imageBytes);
+                                    
+                                    if (originalImage == null) {
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                        _showTopBanner('Error processing image', background: Colors.red);
+                                      }
+                                      return;
+                                    }
+                                    
+                                    // Resize to max 400x400 to keep file size small
+                                    final resizedImage = img.copyResize(
+                                      originalImage,
+                                      width: 400,
+                                      height: 400,
+                                      maintainAspect: true,
+                                    );
+                                    
+                                    // Encode as JPEG with quality 85
+                                    final compressedBytes = img.encodeJpg(resizedImage, quality: 85);
+                                    
+                                    // Convert to base64
+                                    final base64Image = base64Encode(compressedBytes);
+                                    
+                                    // Check size (Firestore document limit is 1MB, but we'll keep it smaller)
+                                    if (base64Image.length > 500000) { // ~500KB base64 = ~375KB binary
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                        _showTopBanner('Image too large. Please choose a smaller image.', background: Colors.red);
+                                      }
+                                      return;
+                                    }
+                                    
+                                    // Update user photoURL with data URI
+                                    if (_currentUser != null) {
+                                      final dataUri = 'data:image/jpeg;base64,$base64Image';
+                                      final updatedUser = _currentUser!.copyWith(
+                                        photoURL: dataUri,
+                                      );
+                                      await _userRepo.updateUser(updatedUser);
+                                      setState(() {
+                                        _currentUser = updatedUser;
+                                      });
+                                    }
+                                    
+                                    if (context.mounted) {
+                                      Navigator.pop(context);
+                                      _showTopBanner(
+                                        AppLocalizations.of(context).profilePhotoUpdated,
+                                        background: Colors.black87,
+                                        icon: Icons.photo_camera_outlined,
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      Navigator.pop(context);
+                                      _showTopBanner('Error processing image: $e', background: Colors.red);
+                                    }
+                                  }
+                                } else if (tab == 1) {
                                   if (_currentUser != null) {
                                     final updatedUser = _currentUser!.copyWith(
                                       gradientIndex: tempGradientIndex,
@@ -1334,7 +1496,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       setState(() {
                                         _currentUser = updatedUser;
                                       });
-                                  Navigator.pop(context);
+                                      Navigator.pop(context);
                                       _showTopBanner(AppLocalizations.of(context).avatarColorUpdated, background: Colors.black87, icon: Icons.brush);
                                     } catch (e) {
                                       Navigator.pop(context);
@@ -1342,20 +1504,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     }
                                 } else {
                                   Navigator.pop(context);
-                                  }
-                                } else {
-                                  Navigator.pop(context);
-                                  _showTopBanner(
-                                    pickedImagePath == null
-                                        ? AppLocalizations.of(context).noImageSelected
-                                        : AppLocalizations.of(context).profilePhotoUpdated,
-                                    background: Colors.black87,
-                                    icon: Icons.photo_camera_outlined,
-                                  );
                                 }
-                              },
+                                }
+                              } : null,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black,
+                                backgroundColor: hasChanges() ? Colors.black : Colors.grey,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1799,35 +1952,6 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           _section(
-            AppLocalizations.of(context).profilePicture,
-            Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(colors: [Color(0xFF7B61FF), Color(0xFF36C2FF)]),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text('AY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(AppLocalizations.of(context).goToProfileChangePp,
-                      style: TextStyle(color: Colors.grey.shade600)),
-                ),
-              ],
-            ),
-          ),
-          _section(
             '${AppLocalizations.of(context).nameLabel} *',
             TextField(
               controller: fullNameCtrl,
@@ -1953,11 +2077,11 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
             Form(
               key: _formKey,
               child: Column(
-                children: [
-                  const SizedBox(height: 8),
+              children: [
+                const SizedBox(height: 8),
                   TextFormField(
-                    controller: ageCtrl,
-                    keyboardType: TextInputType.number,
+                  controller: ageCtrl,
+                  keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
                     ],
@@ -1974,9 +2098,9 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                       }
                       return null;
                     },
-                    decoration: InputDecoration(
-                      labelText: '${AppLocalizations.of(context).ageYears} *',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  decoration: InputDecoration(
+                    labelText: '${AppLocalizations.of(context).ageYears} *',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -1996,11 +2120,11 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                       ),
                     ),
                     onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 12),
+                ),
+                const SizedBox(height: 12),
                   TextFormField(
-                    controller: heightCtrl,
-                    keyboardType: TextInputType.number,
+                  controller: heightCtrl,
+                  keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
                     ],
@@ -2017,9 +2141,9 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                       }
                       return null;
                     },
-                    decoration: InputDecoration(
-                      labelText: '${AppLocalizations.of(context).heightCm} *',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  decoration: InputDecoration(
+                    labelText: '${AppLocalizations.of(context).heightCm} *',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -2038,11 +2162,11 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                       ),
                     ),
                     onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 12),
+                ),
+                const SizedBox(height: 12),
                   TextFormField(
-                    controller: weightCtrl,
-                    keyboardType: TextInputType.number,
+                  controller: weightCtrl,
+                  keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
                     ],
@@ -2059,9 +2183,9 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                       }
                       return null;
                     },
-                    decoration: InputDecoration(
-                      labelText: '${AppLocalizations.of(context).weightKg} *',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  decoration: InputDecoration(
+                    labelText: '${AppLocalizations.of(context).weightKg} *',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -2081,10 +2205,10 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                       ),
                     ),
                     onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 12),
-                  _disabilitySelector(),
-                ],
+                ),
+                const SizedBox(height: 12),
+                _disabilitySelector(),
+              ],
               ),
             ),
           ),
@@ -2528,7 +2652,7 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                         borderSide: BorderSide(
                           color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
                           width: 1.2,
-                        ),
+                  ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'dart:convert';
 import '../models/community_post.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/formatters.dart';
@@ -10,6 +11,12 @@ import '../services/auth_service.dart';
 import '../data/user_repository.dart';
 import '../models/user_model.dart';
 import '../screens/profile_screen.dart';
+import '../screens/home_screen.dart';
+import '../screens/map_screen.dart';
+import '../screens/safety_screen.dart';
+import '../screens/discover_screen.dart';
+import '../screens/settings_screen.dart';
+import '../data/settings_repository.dart';
 
 class LocalComment {
   final String id;
@@ -193,31 +200,71 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
     );
   }
 
+  Widget _getScreenForIndex(int index, AppLocalizations t) {
+    switch (index) {
+      case 0: // Home
+        return HomeScreen(
+          onOpenOnMap: (eq) {},
+          onOpenMapTab: () {},
+          onOpenSafetyTab: () {},
+        );
+      case 1: // Map
+        return const MapScreen();
+      case 2: // Safety
+        return const SafetyScreen();
+      case 3: // Discover
+        return const DiscoverScreen();
+      case 4: // Profile
+        return const ProfileScreen();
+      case 5: // Settings
+        return SettingsScreen(
+          darkMode: false,
+          onDarkModeChanged: (_) {},
+          languageCode: 'en',
+          onLanguageChanged: (_) {},
+        );
+      default:
+        return const ProfileScreen();
+    }
+  }
+
+  BottomNavigationBar _buildBottomNavBar(BuildContext context, int currentIndex, AppLocalizations t) {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: currentIndex,
+      selectedFontSize: 12,
+      unselectedFontSize: 11,
+      onTap: (index) {
+        final targetScreen = _getScreenForIndex(index, t);
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (ctx) => Scaffold(
+              body: targetScreen,
+              bottomNavigationBar: _buildBottomNavBar(ctx, index, t),
+            ),
+          ),
+        );
+      },
+      selectedItemColor: Colors.red,
+      unselectedItemColor: Colors.grey,
+      items: [
+        BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
+        BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
+        BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
+        BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
+        BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
+        BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
+      ],
+    );
+  }
+
   void _navigateToProfile(String userId) {
     final t = AppLocalizations.of(context);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => Scaffold(
           body: ProfileScreen(userId: userId),
-          bottomNavigationBar: BottomNavigationBar(
-            type: BottomNavigationBarType.fixed,
-            currentIndex: 4, // Profile tab (0: Home, 1: Map, 2: Safety, 3: Discover, 4: Profile, 5: Settings)
-            selectedFontSize: 12,
-            unselectedFontSize: 11,
-            onTap: (index) {
-              Navigator.of(context).pop(); // Close profile screen
-            },
-            selectedItemColor: Colors.red,
-            unselectedItemColor: Colors.grey,
-            items: [
-              BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
-              BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
-              BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
-              BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
-              BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
-              BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
-            ],
-          ),
+          bottomNavigationBar: _buildBottomNavBar(context, 4, t),
         ),
       ),
     );
@@ -274,12 +321,38 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                     final gradientIndex = user?.gradientIndex ?? 0;
                     final colors = gradients[gradientIndex % gradients.length];
                     
+                    // Check if photoURL is a data URI (base64) or regular URL
+                    final photoURL = user?.photoURL;
+                    ImageProvider? imageProvider;
+                    
+                    if (photoURL != null && photoURL.isNotEmpty) {
+                      if (photoURL.startsWith('data:image')) {
+                        // Base64 data URI
+                        try {
+                          final base64String = photoURL.split(',')[1];
+                          final imageBytes = base64Decode(base64String);
+                          imageProvider = MemoryImage(imageBytes);
+                        } catch (e) {
+                          debugPrint('Error decoding base64 image: $e');
+                        }
+                      } else {
+                        // Regular URL
+                        imageProvider = NetworkImage(photoURL);
+                      }
+                    }
+                    
                     return Container(
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(colors: colors),
+                        image: imageProvider != null
+                            ? DecorationImage(
+                                image: imageProvider,
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                        gradient: imageProvider == null ? LinearGradient(colors: colors) : null,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
@@ -288,15 +361,17 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                           ),
                         ],
                       ),
-                      alignment: Alignment.center,
-                child: Text(
-                        _buildInitials(user?.displayName ?? widget.post.authorName),
+                      alignment: imageProvider == null ? Alignment.center : null,
+                      child: imageProvider == null
+                          ? Text(
+                              _buildInitials(user?.displayName ?? widget.post.authorName),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                                fontSize: 16,
                   ),
+                            )
+                          : null,
                     );
                   },
                 ),
@@ -579,12 +654,38 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                             final gradientIndex = user?.gradientIndex ?? 0;
                             final colors = gradients[gradientIndex % gradients.length];
                             
+                            // Check if photoURL is a data URI (base64) or regular URL
+                            final photoURL = user?.photoURL;
+                            ImageProvider? imageProvider;
+                            
+                            if (photoURL != null && photoURL.isNotEmpty) {
+                              if (photoURL.startsWith('data:image')) {
+                                // Base64 data URI
+                                try {
+                                  final base64String = photoURL.split(',')[1];
+                                  final imageBytes = base64Decode(base64String);
+                                  imageProvider = MemoryImage(imageBytes);
+                                } catch (e) {
+                                  debugPrint('Error decoding base64 image: $e');
+                                }
+                              } else {
+                                // Regular URL
+                                imageProvider = NetworkImage(photoURL);
+                              }
+                            }
+                            
                             return Container(
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                gradient: LinearGradient(colors: colors),
+                                image: imageProvider != null
+                                    ? DecorationImage(
+                                        image: imageProvider,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                                gradient: imageProvider == null ? LinearGradient(colors: colors) : null,
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.1),
@@ -593,15 +694,17 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                   ),
                                 ],
                               ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                _buildInitials(user?.displayName ?? c.authorName),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
+                              alignment: imageProvider == null ? Alignment.center : null,
+                              child: imageProvider == null
+                                  ? Text(
+                                      _buildInitials(user?.displayName ?? c.authorName),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    )
+                                  : null,
                             );
                           },
                         ),

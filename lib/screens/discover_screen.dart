@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import '../l10n/app_localizations.dart';
 import '../data/user_repository.dart';
 import '../data/post_repository.dart';
@@ -7,6 +8,11 @@ import '../models/community_post.dart';
 import '../services/auth_service.dart';
 import '../widgets/community_post_card.dart';
 import 'profile_screen.dart';
+import 'home_screen.dart';
+import 'map_screen.dart';
+import 'safety_screen.dart';
+import 'settings_screen.dart';
+import '../data/settings_repository.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -171,31 +177,71 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     }
   }
 
+  Widget _getScreenForIndex(int index, AppLocalizations t) {
+    switch (index) {
+      case 0: // Home
+        return HomeScreen(
+          onOpenOnMap: (eq) {},
+          onOpenMapTab: () {},
+          onOpenSafetyTab: () {},
+        );
+      case 1: // Map
+        return const MapScreen();
+      case 2: // Safety
+        return const SafetyScreen();
+      case 3: // Discover
+        return const DiscoverScreen();
+      case 4: // Profile
+        return const ProfileScreen();
+      case 5: // Settings
+        return SettingsScreen(
+          darkMode: false,
+          onDarkModeChanged: (_) {},
+          languageCode: 'en',
+          onLanguageChanged: (_) {},
+        );
+      default:
+        return const ProfileScreen();
+    }
+  }
+
+  BottomNavigationBar _buildBottomNavBar(BuildContext context, int currentIndex, AppLocalizations t) {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: currentIndex,
+      selectedFontSize: 12,
+      unselectedFontSize: 11,
+      onTap: (index) {
+        final targetScreen = _getScreenForIndex(index, t);
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (ctx) => Scaffold(
+              body: targetScreen,
+              bottomNavigationBar: _buildBottomNavBar(ctx, index, t),
+            ),
+          ),
+        );
+      },
+      selectedItemColor: Colors.red,
+      unselectedItemColor: Colors.grey,
+      items: [
+        BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
+        BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
+        BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
+        BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
+        BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
+        BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
+      ],
+    );
+  }
+
   void _navigateToProfile(String userId) {
     final t = AppLocalizations.of(context);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => Scaffold(
           body: ProfileScreen(userId: userId),
-          bottomNavigationBar: BottomNavigationBar(
-            type: BottomNavigationBarType.fixed,
-            currentIndex: 4, // Profile tab (0: Home, 1: Map, 2: Safety, 3: Discover, 4: Profile, 5: Settings)
-            selectedFontSize: 12,
-            unselectedFontSize: 11,
-            onTap: (index) {
-              Navigator.of(context).pop();
-            },
-            selectedItemColor: Colors.red,
-            unselectedItemColor: Colors.grey,
-            items: [
-              BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
-              BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
-              BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
-              BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
-              BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
-              BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
-            ],
-          ),
+          bottomNavigationBar: _buildBottomNavBar(context, 4, t),
         ),
       ),
     );
@@ -255,29 +301,65 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             children: [
               GestureDetector(
                 onTap: () => _navigateToProfile(user.id),
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(colors: colors),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                child: StreamBuilder<UserModel?>(
+                  stream: _userRepo.getUserStream(user.id),
+                  initialData: user,
+                  builder: (context, snapshot) {
+                    final updatedUser = snapshot.data ?? user;
+                    
+                    // Check if photoURL is a data URI (base64) or regular URL
+                    final photoURL = updatedUser.photoURL;
+                    ImageProvider? imageProvider;
+                    
+                    if (photoURL != null && photoURL.isNotEmpty) {
+                      if (photoURL.startsWith('data:image')) {
+                        // Base64 data URI
+                        try {
+                          final base64String = photoURL.split(',')[1];
+                          final imageBytes = base64Decode(base64String);
+                          imageProvider = MemoryImage(imageBytes);
+                        } catch (e) {
+                          debugPrint('Error decoding base64 image: $e');
+                        }
+                      } else {
+                        // Regular URL
+                        imageProvider = NetworkImage(photoURL);
+                      }
+                    }
+                    
+                    return Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        image: imageProvider != null
+                            ? DecorationImage(
+                                image: imageProvider,
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                        gradient: imageProvider == null ? LinearGradient(colors: colors) : null,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    _buildInitials(user.displayName),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
+                      alignment: imageProvider == null ? Alignment.center : null,
+                      child: imageProvider == null
+                          ? Text(
+                              _buildInitials(updatedUser.displayName),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            )
+                          : null,
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 12),
