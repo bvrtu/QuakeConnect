@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
 import '../l10n/app_localizations.dart';
@@ -413,7 +416,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     size: 18, color: Color(0xFF6246EA)),
                 const SizedBox(width: 6),
                 Expanded(
-                        child: Text(user.email,
+                        child: Text(
+                          _isViewingOwnProfile 
+                              ? (AuthService.instance.currentUser?.email ?? user.email ?? 'No email')
+                              : (user.email ?? 'No email'),
                         style: TextStyle(
                             color: Theme.of(context).brightness ==
                                     Brightness.dark
@@ -948,7 +954,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           fullName: _currentUser!.displayName,
           username: _currentUser!.username,
           location: _currentUser!.location ?? '',
-          email: _currentUser!.email,
           age: _currentUser!.age ?? 0,
           heightCm: _currentUser!.heightCm ?? 0,
           weightKg: _currentUser!.weightKg ?? 0,
@@ -962,7 +967,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           displayName: value['fullName'] as String?,
           username: value['username'] as String?,
           location: value['location'] as String?,
-          email: value['email'] as String?,
           age: value['age'] as int?,
           heightCm: value['heightCm'] as int?,
           weightKg: value['weightKg'] as int?,
@@ -1657,7 +1661,6 @@ class _EditProfileScreen extends StatefulWidget {
   final String fullName;
   final String username;
   final String location;
-  final String email;
   final int age;
   final int heightCm;
   final int weightKg;
@@ -1667,7 +1670,6 @@ class _EditProfileScreen extends StatefulWidget {
     required this.fullName,
     required this.username,
     required this.location,
-    required this.email,
     required this.age,
     required this.heightCm,
     required this.weightKg,
@@ -1683,13 +1685,14 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
   late final TextEditingController fullNameCtrl;
   late final TextEditingController usernameCtrl;
   late final TextEditingController locationCtrl;
-  late final TextEditingController emailCtrl;
   late final TextEditingController ageCtrl;
   late final TextEditingController heightCtrl;
   late final TextEditingController weightCtrl;
   bool hasDisability = false;
   Set<String> selectedDisabilityKeys = <String>{};
   final TextEditingController otherCtrl = TextEditingController();
+  TextEditingController? _typeAheadController; // Store TypeAheadField's controller
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -1697,7 +1700,6 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
     fullNameCtrl = TextEditingController(text: widget.fullName);
     usernameCtrl = TextEditingController(text: widget.username.replaceAll('@', ''));
     locationCtrl = TextEditingController(text: widget.location);
-    emailCtrl = TextEditingController(text: widget.email);
     ageCtrl = TextEditingController(text: widget.age.toString());
     heightCtrl = TextEditingController(text: widget.heightCm.toString());
     weightCtrl = TextEditingController(text: widget.weightKg.toString());
@@ -1711,7 +1713,6 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
     fullNameCtrl.dispose();
     usernameCtrl.dispose();
     locationCtrl.dispose();
-    emailCtrl.dispose();
     ageCtrl.dispose();
     heightCtrl.dispose();
     weightCtrl.dispose();
@@ -1723,7 +1724,6 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
     if (fullNameCtrl.text.trim() != widget.fullName) return true;
     if (('@' + usernameCtrl.text.trim()) != widget.username) return true;
     if (locationCtrl.text.trim() != widget.location) return true;
-    if (emailCtrl.text.trim() != widget.email) return true;
     if ((int.tryParse(ageCtrl.text.trim()) ?? widget.age) != widget.age) return true;
     if ((int.tryParse(heightCtrl.text.trim()) ?? widget.heightCm) != widget.heightCm) return true;
     if ((int.tryParse(weightCtrl.text.trim()) ?? widget.weightKg) != widget.weightKg) return true;
@@ -1879,110 +1879,213 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
           ),
           _section(
             AppLocalizations.of(context).locationLabel,
-            TextField(
-              controller: locationCtrl,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Theme.of(context).inputDecorationTheme.fillColor,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            TypeAheadField<String>(
+              suggestionsCallback: (pattern) async {
+                if (pattern.length < 2) return [];
+                return await _searchTurkishLocations(pattern);
+              },
+              itemBuilder: (context, suggestion) {
+                return ListTile(
+                  leading: const Icon(Icons.location_on, size: 20),
+                  title: Text(suggestion),
+                  dense: true,
+                );
+              },
+              onSelected: (suggestion) {
+                // Update both controllers when a suggestion is selected
+                locationCtrl.text = suggestion;
+                if (_typeAheadController != null) {
+                  _typeAheadController!.text = suggestion;
+                  _typeAheadController!.selection = TextSelection.fromPosition(
+                    TextPosition(offset: suggestion.length),
+                  );
+                }
+                setState(() {});
+              },
+              builder: (context, controller, focusNode) {
+                // Store the controller reference
+                _typeAheadController = controller;
+                
+                // Initialize controller with location value if empty
+                if (controller.text.isEmpty && locationCtrl.text.isNotEmpty) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted && controller.text != locationCtrl.text) {
+                      controller.text = locationCtrl.text;
+                    }
+                  });
+                }
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  onChanged: (value) {
+                    locationCtrl.text = value;
+                    setState(() {});
+                  },
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  ),
+                );
+              },
+              emptyBuilder: (context) => const SizedBox.shrink(),
+              loadingBuilder: (context) => const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(child: CircularProgressIndicator()),
               ),
-            ),
-          ),
-          _section(
-            '${AppLocalizations.of(context).emailLabel} *',
-            TextField(
-              controller: emailCtrl,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Theme.of(context).inputDecorationTheme.fillColor,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              errorBuilder: (context, error) => Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text('Error: $error', style: TextStyle(color: Colors.red.shade700)),
               ),
             ),
           ),
           _section(
             AppLocalizations.of(context).personalInfo,
-            Column(
-              children: [
-                const SizedBox(height: 8),
-                TextField(
-                  controller: ageCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: '${AppLocalizations.of(context).ageYears} *',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+            Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: ageCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return AppLocalizations.of(context).ageYears + ' ' + (Localizations.localeOf(context).languageCode == 'tr' ? 'gerekli' : 'required');
+                      }
+                      final age = int.tryParse(value.trim());
+                      if (age == null) {
+                        return Localizations.localeOf(context).languageCode == 'tr' ? 'Geçerli bir yaş girin' : 'Enter a valid age';
+                      }
+                      if (age < 1 || age > 150) {
+                        return Localizations.localeOf(context).languageCode == 'tr' ? 'Yaş 1-150 arasında olmalı' : 'Age must be between 1-150';
+                      }
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      labelText: '${AppLocalizations.of(context).ageYears} *',
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Colors.red, width: 1.2),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                      ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                    ),
+                    onChanged: (_) => setState(() {}),
                   ),
-                  onChanged: (_) => setState(() {}),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: heightCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: '${AppLocalizations.of(context).heightCm} *',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: heightCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return AppLocalizations.of(context).heightCm + ' ' + (Localizations.localeOf(context).languageCode == 'tr' ? 'gerekli' : 'required');
+                      }
+                      final height = int.tryParse(value.trim());
+                      if (height == null) {
+                        return Localizations.localeOf(context).languageCode == 'tr' ? 'Geçerli bir boy girin' : 'Enter a valid height';
+                      }
+                      if (height < 50 || height > 300) {
+                        return Localizations.localeOf(context).languageCode == 'tr' ? 'Boy 50-300 cm arasında olmalı' : 'Height must be between 50-300 cm';
+                      }
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      labelText: '${AppLocalizations.of(context).heightCm} *',
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                      ),
+                      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Colors.red, width: 1.2),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                      ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                    ),
+                    onChanged: (_) => setState(() {}),
                   ),
-                  onChanged: (_) => setState(() {}),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: weightCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: '${AppLocalizations.of(context).weightKg} *',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: weightCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return AppLocalizations.of(context).weightKg + ' ' + (Localizations.localeOf(context).languageCode == 'tr' ? 'gerekli' : 'required');
+                      }
+                      final weight = int.tryParse(value.trim());
+                      if (weight == null) {
+                        return Localizations.localeOf(context).languageCode == 'tr' ? 'Geçerli bir kilo girin' : 'Enter a valid weight';
+                      }
+                      if (weight < 10 || weight > 500) {
+                        return Localizations.localeOf(context).languageCode == 'tr' ? 'Kilo 10-500 kg arasında olmalı' : 'Weight must be between 10-500 kg';
+                      }
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      labelText: '${AppLocalizations.of(context).weightKg} *',
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Colors.red, width: 1.2),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                      ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                    ),
+                    onChanged: (_) => setState(() {}),
                   ),
-                  onChanged: (_) => setState(() {}),
-                ),
-                const SizedBox(height: 12),
-                _disabilitySelector(),
-              ],
+                  const SizedBox(height: 12),
+                  _disabilitySelector(),
+                ],
+              ),
             ),
           ),
         ],
@@ -2108,12 +2211,104 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
     );
   }
 
+  Future<List<String>> _searchTurkishLocations(String query) async {
+    try {
+      // Google Places API Autocomplete - Türkiye için şehir ve ilçe araması
+      // Using the same API key from AndroidManifest (Google Maps API key)
+      // Make sure Places API is enabled in Google Cloud Console
+      const apiKey = 'AIzaSyClgydmQ7UOYcLEHdvSBkMJM2kwJvTapGo';
+
+      final encodedQuery = Uri.encodeComponent('$query, Turkey');
+      final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json?'
+        'input=$encodedQuery&'
+        'components=country:tr&'
+        'types=geocode&'
+        'language=tr&'
+        'key=$apiKey'
+      );
+
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        
+        if (data['status'] != 'OK' && data['status'] != 'ZERO_RESULTS') {
+          debugPrint('Google Places API error: ${data['status']}');
+          return [];
+        }
+
+        final List<dynamic> predictions = data['predictions'] ?? [];
+        final List<String> locations = [];
+
+        for (var prediction in predictions) {
+          final description = prediction['description'] as String?;
+          final structuredFormatting = prediction['structured_formatting'] as Map<String, dynamic>?;
+          
+          if (description == null) continue;
+
+          String locationName = '';
+          
+          // Use structured_formatting if available (usually cleaner and more accurate)
+          if (structuredFormatting != null) {
+            final mainText = structuredFormatting['main_text'] as String?;
+            final secondaryText = structuredFormatting['secondary_text'] as String?;
+            
+            if (mainText != null) {
+              // Remove country from secondary text
+              String secondary = '';
+              if (secondaryText != null) {
+                secondary = secondaryText
+                    .replaceAll(RegExp(r',\s*Türkiye$', caseSensitive: false), '')
+                    .replaceAll(RegExp(r',\s*Turkey$', caseSensitive: false), '')
+                    .trim();
+              }
+              
+              // Format: "İlçe, Şehir" or just "Şehir"
+              if (secondary.isNotEmpty && secondary != mainText && !secondary.contains('Türkiye') && !secondary.contains('Turkey')) {
+                locationName = '$mainText, $secondary';
+              } else {
+                locationName = mainText;
+              }
+            }
+          }
+          
+          // Fallback to description if structured_formatting didn't work
+          if (locationName.isEmpty) {
+            locationName = description
+                .replaceAll(RegExp(r',\s*Türkiye$', caseSensitive: false), '')
+                .replaceAll(RegExp(r',\s*Turkey$', caseSensitive: false), '')
+                .trim();
+          }
+
+          // Filter out results that are too generic or not relevant
+          if (locationName.isNotEmpty && 
+              !locationName.toLowerCase().contains('türkiye') &&
+              !locationName.toLowerCase().contains('turkey') &&
+              !locations.contains(locationName)) {
+            locations.add(locationName);
+          }
+        }
+
+        return locations;
+      }
+    } catch (e) {
+      // Hata durumunda boş liste döndür
+      debugPrint('Location search error: $e');
+    }
+    return [];
+  }
+
   void _save() {
+    // Validate form before saving
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    
     Navigator.pop(context, {
       'fullName': fullNameCtrl.text.trim(),
       'username': '@' + usernameCtrl.text.trim(),
       'location': locationCtrl.text.trim(),
-      'email': emailCtrl.text.trim(),
       'age': int.tryParse(ageCtrl.text.trim()) ?? widget.age,
       'heightCm': int.tryParse(heightCtrl.text.trim()) ?? widget.heightCm,
       'weightKg': int.tryParse(weightCtrl.text.trim()) ?? widget.weightKg,
