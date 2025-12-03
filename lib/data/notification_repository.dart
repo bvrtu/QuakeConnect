@@ -62,23 +62,22 @@ class NotificationRepository {
           calculatedDistance = eq.distance > 0 ? eq.distance : null;
         }
         
-        // Apply filters based on settings
+        // Show all earthquakes in the notifications list
+        // Filters are only applied for push notifications, not for the list display
         bool shouldNotify = false;
         
-        // Check minimum magnitude filter
+        // Check minimum magnitude filter (for push notifications only)
         if (eq.magnitude >= settings.minMagnitude) {
           shouldNotify = true;
         }
         
-        // Check nearby alerts filter (within 200km)
+        // Check nearby alerts filter (for push notifications only)
         if (settings.nearbyAlerts && calculatedDistance != null && calculatedDistance <= 200) {
           shouldNotify = true;
         }
         
-        // If neither filter matches, skip this earthquake
-        if (!shouldNotify) {
-          continue;
-        }
+        // Always add to notifications list, regardless of filters
+        // Filters only affect push notifications (checked later)
         
         final notificationType = eq.magnitude >= 5.0 
             ? NotificationType.majorEarthquake 
@@ -112,8 +111,8 @@ class NotificationRepository {
           ),
         );
         
-        // Show phone notification if push notifications are enabled and this is a new notification
-        if (settings.pushNotifications && !_shownNotificationIds.contains(notificationId)) {
+        // Show phone notification if push notifications are enabled, filters match, and this is a new notification
+        if (settings.pushNotifications && shouldNotify && !_shownNotificationIds.contains(notificationId)) {
           _shownNotificationIds.add(notificationId);
           // Show notification on phone (this will be handled by NotificationService)
           // We'll call this after a small delay to avoid showing too many at once
@@ -176,6 +175,15 @@ class NotificationRepository {
   void remove(String id) {
     _items.removeWhere((n) => n.id == id);
     _deletedIds.add(id); // Mark as deleted so it won't come back on refresh
+  }
+
+  void clearAll() {
+    // Mark all notification IDs as deleted so they won't come back on refresh
+    for (final n in _items) {
+      _deletedIds.add(n.id);
+    }
+    // Clear all items from the list
+    _items.clear();
   }
 }
 

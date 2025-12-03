@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/community_post.dart';
@@ -10,7 +12,11 @@ import '../services/auth_service.dart';
 import '../data/user_repository.dart';
 import '../services/location_service.dart';
 import '../data/settings_repository.dart';
+import '../data/emergency_contact_repository.dart';
+import '../models/emergency_contact.dart';
+import 'profile_screen.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SafetyScreen extends StatefulWidget {
   const SafetyScreen({super.key});
@@ -29,14 +35,18 @@ class _SafetyScreenState extends State<SafetyScreen> {
   OverlayEntry? _bannerEntry;
   final PostRepository _postRepo = PostRepository.instance;
   final UserRepository _userRepo = UserRepository.instance;
+  final EmergencyContactRepository _contactRepo = EmergencyContactRepository.instance;
   String? _currentUserId;
   String _userLocation = 'Unknown Location';
+  StreamSubscription<List<EmergencyContact>>? _contactsSub;
+  List<EmergencyContact> _emergencyContacts = [];
 
   @override
   void dispose() {
     _postController.dispose();
     _postFocusNode.dispose();
     _removeBanner();
+    _contactsSub?.cancel();
     super.dispose();
   }
 
@@ -121,15 +131,27 @@ class _SafetyScreenState extends State<SafetyScreen> {
 
   Future<void> _handleMarkSafePressed() async {
     HapticFeedback.lightImpact();
+    final t = AppLocalizations.of(context);
+
     if (_hasMarkedSafe) {
       setState(() {
         _hasMarkedSafe = false;
       });
       _showTopBanner(
-        AppLocalizations.of(context).safetyStatusCleared,
+        t.safetyStatusCleared,
         background: Colors.black87,
         icon: Icons.info_outline,
       );
+      return;
+    }
+
+    if (_currentUserId == null) {
+      _showTopBanner('Please sign in again', background: Colors.red);
+      return;
+    }
+
+    if (_emergencyContacts.isEmpty) {
+      await _promptToAddContacts();
       return;
     }
 
@@ -137,16 +159,16 @@ class _SafetyScreenState extends State<SafetyScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(AppLocalizations.of(context).markSafeTitle),
-          content: Text(AppLocalizations.of(context).markSafePrompt),
+          title: Text(t.markSafeTitle),
+          content: Text(t.markSafePrompt(_emergencyContacts.length)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: Text(AppLocalizations.of(context).cancel),
+              child: Text(t.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: Text(AppLocalizations.of(context).confirm),
+              child: Text(t.confirm),
             ),
           ],
         );
@@ -162,10 +184,229 @@ class _SafetyScreenState extends State<SafetyScreen> {
     });
 
     _showTopBanner(
-      AppLocalizations.of(context).safetyStatusSent,
+      t.safetyStatusSent,
       background: const Color(0xFF2E7D32),
       icon: Icons.check_circle,
     );
+    await _openSafetyShareSheet();
+  }
+
+  Future<void> _promptToAddContacts() async {
+    final t = AppLocalizations.of(context);
+    final goToProfile = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t.emergencyContacts),
+        content: Text(t.noEmergencyContacts),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(t.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(t.manageContacts),
+          ),
+        ],
+      ),
+    );
+
+    if (goToProfile == true) {
+      _navigateToProfileForContacts();
+    }
+  }
+
+  void _navigateToProfileForContacts() {
+    final t = AppLocalizations.of(context);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          body: const ProfileScreen(),
+          bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: 4,
+            selectedFontSize: 12,
+            unselectedFontSize: 11,
+            onTap: (_) => Navigator.of(context).pop(),
+            selectedItemColor: Colors.red,
+            unselectedItemColor: Colors.grey,
+            items: [
+              BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
+              BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
+              BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
+              BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
+              BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
+              BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSafetyShareSheet() async {
+    if (!mounted || _emergencyContacts.isEmpty) return;
+    final t = AppLocalizations.of(context);
+    final message = _buildSafetyStatusMessage();
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      isScrollControlled: true,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 48,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  t.shareSafetyStatus,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  t.contactsWillBeNotified(_emergencyContacts.length),
+                  style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                ),
+                const SizedBox(height: 16),
+                ..._emergencyContacts
+                    .map((contact) => _buildShareContactTile(contact, message, isDark))
+                    .toList(),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildShareContactTile(EmergencyContact contact, String message, bool isDark) {
+    final t = AppLocalizations.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: const Color(0xFFFF6B00),
+                child: Text(
+                  _initials(contact.name),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      contact.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      contact.phone,
+                      style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _callNumber(contact.phone),
+                  icon: const Icon(Icons.call, size: 18),
+                  label: Text(t.call),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _sendSafetySms(contact.phone, message),
+                  icon: const Icon(Icons.sms_outlined, size: 18),
+                  label: Text(t.sendSms),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _callNumber(String phone) async {
+    final t = AppLocalizations.of(context);
+    final uri = Uri(scheme: 'tel', path: _sanitizePhone(phone));
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      _showTopBanner(t.callUnavailable, background: Colors.red);
+    }
+  }
+
+  Future<void> _sendSafetySms(String phone, String message) async {
+    final t = AppLocalizations.of(context);
+    final uri = Uri.parse('sms:${_sanitizePhone(phone)}?body=${Uri.encodeComponent(message)}');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      _showTopBanner(t.smsUnavailable, background: Colors.red);
+    }
+  }
+
+  String _sanitizePhone(String phone) {
+    final cleaned = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    return cleaned.isEmpty ? phone : cleaned;
+  }
+
+  String _buildSafetyStatusMessage() {
+    final t = AppLocalizations.of(context);
+    final timestamp = _formatTimestamp(DateTime.now());
+    return t.safetyStatusMessage(_userLocation, timestamp);
+  }
+
+  String _formatTimestamp(DateTime time) {
+    final day = time.day.toString().padLeft(2, '0');
+    final month = time.month.toString().padLeft(2, '0');
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$day.$month.${time.year} $hour:$minute';
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\\s+'));
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts.first[0] + parts[1][0]).toUpperCase();
   }
 
   Future<void> _handlePost() async {
@@ -280,8 +521,21 @@ class _SafetyScreenState extends State<SafetyScreen> {
                  _userLocation = 'Location services disabled';
                });
              }
+      _listenEmergencyContacts();
            }
          }
+
+  void _listenEmergencyContacts() {
+    final userId = _currentUserId;
+    if (userId == null) return;
+    _contactsSub?.cancel();
+    _contactsSub = _contactRepo.watchContacts(userId).listen((contacts) {
+      if (!mounted) return;
+      setState(() {
+        _emergencyContacts = contacts;
+      });
+    });
+  }
 
   @override
   void initState() {
@@ -337,11 +591,16 @@ class _SafetyScreenState extends State<SafetyScreen> {
   }
 
   Widget _buildSafetyStatusCard() {
+    final t = AppLocalizations.of(context);
     final surface = Theme.of(context).colorScheme.surface;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final background = _hasMarkedSafe
         ? (isDark ? const Color(0xFF15361B) : const Color(0xFFE8F5E9))
         : surface;
+    final subtitle = _hasMarkedSafe
+        ? t.emergencyTip
+        : (_emergencyContacts.isEmpty ? t.addContactTip : t.contactsWillBeNotified(_emergencyContacts.length));
+
     final borderColor = _hasMarkedSafe
         ? const Color(0xFF2E7D32)
         : (isDark ? Colors.grey.shade600 : Colors.grey.shade400);
@@ -384,9 +643,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _hasMarkedSafe
-                          ? AppLocalizations.of(context).imSafe
-                          : AppLocalizations.of(context).yourSafetyStatus,
+                      _hasMarkedSafe ? t.imSafe : t.yourSafetyStatus,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -395,9 +652,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      _hasMarkedSafe
-                          ? AppLocalizations.of(context).emergencyTip
-                          : AppLocalizations.of(context).letOthersKnow,
+                      subtitle,
                       style: TextStyle(
                         fontSize: 14,
                         color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,

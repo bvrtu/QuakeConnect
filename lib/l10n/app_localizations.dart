@@ -63,6 +63,11 @@ class AppLocalizations {
       'none_option': 'None',
       'present_option': 'Present',
       'emergency_tip': 'Emergency contacts will be notified when you mark yourself as safe or when you need help.',
+      'add_contact_tip': 'Add at least one emergency contact so you can reach them instantly.',
+      'contacts_will_be_notified': '{count} emergency contacts will be notified',
+      'no_emergency_contacts': 'Add at least one emergency contact to use this feature.',
+      'no_contacts_saved': 'No emergency contacts yet',
+      'tap_to_add_contact': 'Save trusted people you can reach instantly.',
       'go_to_profile_change_pp': 'Go to your profile to change your profile picture',
 
       'home_subtitle': 'Real-time updates from Turkey',
@@ -85,7 +90,7 @@ class AppLocalizations {
       'im_safe': "I'm Safe",
       'mark_as_safe': 'Mark as Safe',
       'mark_safe_title': 'Mark as Safe?',
-      'mark_safe_prompt': 'We will notify your emergency contacts that you are safe. Do you want to continue?',
+      'mark_safe_prompt': 'We will notify {count} emergency contacts that you are safe. Do you want to continue?',
       'your_safety_status': 'Your Safety Status',
       'let_others_know': "Let others know you're safe",
       'view_all': 'View All',
@@ -117,9 +122,19 @@ class AppLocalizations {
       'save_changes_prompt': 'Your profile information will be updated. Do you want to continue?',
       'emergency_contacts': 'Emergency Contacts',
       'call': 'Call',
+      'send_sms': 'Send SMS',
+      'delete_contact': 'Delete Contact',
+      'manage_contacts': 'Manage Contacts',
+      'contact_deleted': 'Contact removed',
+      'sms_unavailable': 'Unable to open messaging app',
+      'call_unavailable': 'Unable to open dialer',
+      'safety_status_message': "Hi, I just marked myself safe on QuakeConnect. My current location: {location}. Time: {time}.",
       'notifications_title': 'Notifications',
       'no_notifications_title': 'No notifications',
       'no_notifications_subtitle': "You're all caught up. We'll keep you posted.",
+      'clear_all': 'Clear All',
+      'clear_all_notifications': 'Clear all notifications?',
+      'clear_all_notifications_prompt': 'This will delete all notifications. This action cannot be undone.',
       'major_earthquake_alert': 'Major Earthquake Alert',
       'earthquake_detected': 'Earthquake Detected',
       'from_your_location': 'from your location',
@@ -144,6 +159,11 @@ class AppLocalizations {
       'add': 'Add',
       'contact_added': 'Contact added',
       'add_emergency_contact': 'Add Emergency Contact',
+      'edit_contact': 'Edit Contact',
+      'relation_required': 'Please specify the relation',
+      'invalid_phone_number': 'Enter a valid phone number',
+      'contacts_permission_denied': 'Contacts permission is required to pick from your phone.',
+      'contact_missing_phone': 'Selected contact does not have a phone number',
       'full_name': 'Full Name',
       'phone_number': 'Phone Number',
       'relation': 'Relation',
@@ -230,6 +250,11 @@ class AppLocalizations {
       'none_option': 'Yok',
       'present_option': 'Var',
       'emergency_tip': 'Güvenli olduğunuzu işaretlediğinizde veya yardıma ihtiyacınız olduğunda acil durum kişileri bilgilendirilir.',
+      'add_contact_tip': 'Hemen ulaşabileceğiniz en az bir acil durum kişisi ekleyin.',
+      'contacts_will_be_notified': '{count} acil durum kişisine haber verilecek.',
+      'no_emergency_contacts': 'Bu özelliği kullanmak için en az bir acil durum kişisi ekleyin.',
+      'no_contacts_saved': 'Henüz acil durum kişisi yok',
+      'tap_to_add_contact': 'Hemen ulaşmak için güvendiğiniz kişileri kaydedin.',
       'go_to_profile_change_pp': 'Profil fotoğrafını değiştirmek için profil sayfana git',
 
       'home_subtitle': 'Türkiye’den anlık güncellemeler',
@@ -252,7 +277,7 @@ class AppLocalizations {
       'im_safe': 'Güvendeyim',
       'mark_as_safe': 'Güvenli Olarak İşaretle',
       'mark_safe_title': 'Güvenli Olarak İşaretle?',
-      'mark_safe_prompt': 'Güvende olduğunuzu acil durum kişilerinize bildireceğiz. Devam etmek istiyor musunuz?',
+      'mark_safe_prompt': '{count} acil durum kişisine güvende olduğunuzu bildireceğiz. Devam etmek istiyor musunuz?',
       'your_safety_status': 'Güvenlik Durumun',
       'let_others_know': 'Güvende olduğunu herkese bildir',
       'view_all': 'Tümünü Gör',
@@ -284,9 +309,19 @@ class AppLocalizations {
       'save_changes_prompt': 'Profil bilgilerin güncellenecek. Devam etmek istiyor musun?',
       'emergency_contacts': 'Acil Durum Kişileri',
       'call': 'Ara',
+      'send_sms': 'SMS Gönder',
+      'delete_contact': 'Kişiyi Sil',
+      'manage_contacts': 'Kişileri Yönet',
+      'contact_deleted': 'Kişi silindi',
+      'sms_unavailable': 'Mesaj uygulaması açılamadı',
+      'call_unavailable': 'Telefon uygulaması açılamadı',
+      'safety_status_message': 'Merhaba, QuakeConnect üzerinden kendimi güvende olarak işaretledim. Konumum: {location}. Zaman: {time}.',
       'notifications_title': 'Bildirimler',
       'no_notifications_title': 'Bildirim yok',
       'no_notifications_subtitle': 'Şimdilik yeni bir bildirim yok. Gelişmeleri sana bildireceğiz.',
+      'clear_all': 'Tümünü Temizle',
+      'clear_all_notifications': 'Tüm bildirimleri temizle?',
+      'clear_all_notifications_prompt': 'Bu işlem tüm bildirimleri silecek. Bu işlem geri alınamaz.',
       'major_earthquake_alert': 'Büyük Deprem Uyarısı',
       'earthquake_detected': 'Deprem Tespit Edildi',
       'from_your_location': 'konumunuzdan',
@@ -311,6 +346,11 @@ class AppLocalizations {
       'add': 'Ekle',
       'contact_added': 'Kişi eklendi',
       'add_emergency_contact': 'Acil Durum Kişisi Ekle',
+      'edit_contact': 'Kişiyi Düzenle',
+      'relation_required': 'Yakınlık bilgisi zorunludur',
+      'invalid_phone_number': 'Geçerli bir telefon numarası girin',
+      'contacts_permission_denied': 'Rehbere erişim izni gerekli',
+      'contact_missing_phone': 'Seçilen kişide telefon numarası yok',
       'full_name': 'Ad Soyad',
       'phone_number': 'Telefon Numarası',
       'relation': 'İlişki',
@@ -384,6 +424,12 @@ class AppLocalizations {
   String get locationServicesDisabled => _t('location_services_disabled');
   String get shareSafetyStatus => _t('share_safety_status');
   String get letContactsSee => _t('let_contacts_see');
+  String get addContactTip => _t('add_contact_tip');
+  String get noEmergencyContacts => _t('no_emergency_contacts');
+  String get noContactsSaved => _t('no_contacts_saved');
+  String get tapToAddContact => _t('tap_to_add_contact');
+  String contactsWillBeNotified(int count) =>
+      _t('contacts_will_be_notified').replaceAll('{count}', '$count');
   String get about => _t('about');
   String get version => _t('version');
   String get signOut => _t('sign_out');
@@ -408,7 +454,8 @@ class AppLocalizations {
   String get imSafe => _t('im_safe');
   String get markAsSafe => _t('mark_as_safe');
   String get markSafeTitle => _t('mark_safe_title');
-  String get markSafePrompt => _t('mark_safe_prompt');
+  String markSafePrompt(int count) =>
+      _t('mark_safe_prompt').replaceAll('{count}', '$count');
   String get viewAll => _t('view_all');
   String get communityUpdatesTitle => _t('community_updates_title');
   String get discoverTitle => _t('discover_title');
@@ -438,9 +485,25 @@ class AppLocalizations {
   String get saveChangesPrompt => _t('save_changes_prompt');
   String get emergencyContacts => _t('emergency_contacts');
   String get call => _t('call');
+  String get editContact => _t('edit_contact');
+  String get relationRequired => _t('relation_required');
+  String get invalidPhoneNumber => _t('invalid_phone_number');
+  String get contactsPermissionDenied => _t('contacts_permission_denied');
+  String get contactMissingPhone => _t('contact_missing_phone');
+  String get sendSms => _t('send_sms');
+  String get deleteContact => _t('delete_contact');
+  String get manageContacts => _t('manage_contacts');
+  String get contactDeleted => _t('contact_deleted');
+  String get smsUnavailable => _t('sms_unavailable');
+  String get callUnavailable => _t('call_unavailable');
+  String safetyStatusMessage(String location, String time) =>
+      _t('safety_status_message').replaceAll('{location}', location).replaceAll('{time}', time);
   String get notificationsTitle => _t('notifications_title');
   String get noNotificationsTitle => _t('no_notifications_title');
   String get noNotificationsSubtitle => _t('no_notifications_subtitle');
+  String get clearAll => _t('clear_all');
+  String get clearAllNotifications => _t('clear_all_notifications');
+  String get clearAllNotificationsPrompt => _t('clear_all_notifications_prompt');
   String get majorEarthquakeAlert => _t('major_earthquake_alert');
   String get earthquakeDetected => _t('earthquake_detected');
   String get fromYourLocation => _t('from_your_location');

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
 import '../l10n/app_localizations.dart';
@@ -7,6 +8,9 @@ import '../services/auth_service.dart';
 import '../data/user_repository.dart';
 import '../data/post_repository.dart';
 import '../models/user_model.dart';
+import '../data/emergency_contact_repository.dart';
+import '../models/emergency_contact.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? userId; // If null, shows current user's profile
@@ -20,18 +24,12 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserRepository _userRepo = UserRepository.instance;
   final PostRepository _postRepo = PostRepository.instance;
+  final EmergencyContactRepository _contactRepo = EmergencyContactRepository.instance;
   String? _currentUserId;
   UserModel? _currentUser;
   bool _isLoadingUser = true;
   final ScrollController _postScrollController = ScrollController();
   OverlayEntry? _bannerEntry;
-
-  // Emergency contacts
-  final List<_EmergencyContact> contacts = <_EmergencyContact>[
-    _EmergencyContact('Elif Yılmaz', '+90 532 123 4567', 'Spouse'),
-    _EmergencyContact('Ahmet Kaya', '+90 533 987 6543', 'Brother'),
-    _EmergencyContact('Zeynep Demir', '+90 534 555 8888', 'Friend'),
-  ];
 
   @override
   void initState() {
@@ -522,6 +520,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildEmergencySection() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final userId = _currentUserId;
+    if (userId == null) {
+      return const SizedBox.shrink();
+    }
+
+    final t = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
@@ -534,49 +538,134 @@ class _ProfileScreenState extends State<ProfileScreen> {
             BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 6)),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        child: StreamBuilder<List<EmergencyContact>>(
+          stream: _contactRepo.watchContacts(userId),
+          builder: (context, snapshot) {
+            final contacts = snapshot.data ?? [];
+            final isLoading = snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
         children: [
           const Icon(Icons.phone_in_talk, color: Colors.redAccent),
           const SizedBox(width: 8),
-          Text(AppLocalizations.of(context).emergencyContacts,
+                    Text(
+                      t.emergencyContacts,
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface)),
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
           const Spacer(),
           IconButton(
-            icon: Icon(Icons.add_circle_outline,
-                color: Theme.of(context).colorScheme.onSurface),
-            onPressed: _openAddContactMenu,
-          )
+                      icon: Icon(Icons.add_circle_outline, color: Theme.of(context).colorScheme.onSurface),
+                      onPressed: _openAddContactForm,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (isLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (contacts.isEmpty)
+                  _buildEmptyContactsState(isDark)
+                else
+                  Column(
+                    children: contacts
+                        .map(
+                          (c) => _buildContactCard(
+                            contact: c,
+                            isDark: isDark,
+                          ),
+                        )
+                        .toList(),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyContactsState(bool isDark) {
+    final t = AppLocalizations.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.shield_outlined, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  t.noContactsSaved,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            t.tapToAddContact,
+            style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _openAddContactForm,
+              icon: const Icon(Icons.person_add_alt),
+              label: Text(t.addEmergencyContact),
+            ),
+          ),
         ],
       ),
-            const SizedBox(height: 8),
-            Column(
-        children: contacts
-            .map(
-              (c) => Container(
+    );
+  }
+
+  Widget _buildContactCard({required EmergencyContact contact, required bool isDark}) {
+    final t = AppLocalizations.of(context);
+    return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
-                        ],
-                ),
-                child: Row(
+        border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     CircleAvatar(
                       radius: 20,
                       backgroundColor: const Color(0xFFFF6B00),
-                      child: Text(_initials(c.name),
-                          style: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold)),
+                child: Text(
+                  _initials(contact.name),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -585,49 +674,117 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Row(
                             children: [
-                              Text(c.name,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15)),
+                        Expanded(
+                          child: Text(
+                            contact.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                          ),
+                        ),
                               const SizedBox(width: 8),
                               Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade100,
+                            color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(20),
                                 ),
-                                      child: Text(_localizedRelation(context, c.relation), style: const TextStyle(fontSize: 12)),
+                          child: Text(
+                            localizedRelationStatic(context, contact.relation),
+                            style: const TextStyle(fontSize: 12),
+                          ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text(c.phone,
+                    Text(
+                      contact.phone,
                               style: TextStyle(
-                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade700,
-                                  fontSize: 14)),
+                        color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                        fontSize: 14,
+                      ),
+                    ),
                         ],
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {},
-                      style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFF1DB954),
-                        foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: Text(AppLocalizations.of(context).call),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'delete') {
+                    _confirmDeleteContact(contact);
+                  } else if (value == 'edit') {
+                    _openEditContact(contact);
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Text(t.editContact),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text(t.deleteContact),
                     ),
                   ],
                 ),
-              ),
-            )
-            .toList(),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _callContact(contact.phone),
+              icon: const Icon(Icons.call),
+              label: Text(t.call),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _sanitizePhone(String phone) {
+    final cleaned = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    return cleaned.isEmpty ? phone : cleaned;
+  }
+
+  Future<void> _callContact(String phone) async {
+    final t = AppLocalizations.of(context);
+    final uri = Uri(scheme: 'tel', path: _sanitizePhone(phone));
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      _showTopBanner(t.callUnavailable, background: Colors.red);
+    }
+  }
+
+  Future<void> _confirmDeleteContact(EmergencyContact contact) async {
+    final userId = _currentUserId;
+    if (userId == null) return;
+    final t = AppLocalizations.of(context);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t.deleteContact),
+        content: Text('${t.deleteContact}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(t.cancel)),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(t.deleteContact),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _contactRepo.deleteContact(userId: userId, contactId: contact.id);
+      _showTopBanner(t.contactDeleted, background: Colors.black87, icon: Icons.check_circle);
+    } catch (e) {
+      _showTopBanner('Error: $e', background: Colors.red);
+    }
   }
 
   Widget _buildAvatar() {
@@ -691,7 +848,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return (first + second).toUpperCase();
   }
 
-  String _localizedRelation(BuildContext context, String relation) {
+  static String localizedRelationStatic(BuildContext context, String relation) {
     final l = AppLocalizations.of(context);
     final r = relation.toLowerCase();
     if (r.contains('spouse') || r.contains('eş')) return l.spouse;
@@ -1215,109 +1372,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _openAddContactMenu() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (context) {
-        final onSurface = Theme.of(context).colorScheme.onSurface;
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.import_contacts_outlined, color: onSurface),
-                title: Text(AppLocalizations.of(context).importContacts, style: TextStyle(color: onSurface)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _openImportContacts();
-                },
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: Icon(Icons.person_add_alt, color: onSurface),
-                title: Text(AppLocalizations.of(context).addManually, style: TextStyle(color: onSurface)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _openAddContactForm();
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _openImportContacts() {
-    final samples = <_EmergencyContact>[
-      _EmergencyContact('Mehmet Arslan', '+90 532 111 2233', 'Friend'),
-      _EmergencyContact('Ayşe Koç', '+90 541 987 7788', 'Sister'),
-      _EmergencyContact('Mert Yıldız', '+90 555 333 5566', 'Friend'),
-    ];
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (context) {
-        final onSurface = Theme.of(context).colorScheme.onSurface;
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return SafeArea(
-          child: SizedBox(
-            height: 420,
-            child: ListView.separated(
-              itemCount: samples.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final c = samples[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFFFF6B00),
-                    child: Text(_initials(c.name),
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                  title: Text(c.name, style: TextStyle(color: onSurface)),
-                  subtitle: Text('${c.phone}  •  ${c.relation}',
-                      style: TextStyle(
-                          color: isDark
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade700)),
-                  trailing: ElevatedButton(
-                    onPressed: () {
-                      HapticFeedback.selectionClick();
-                      setState(() => contacts.add(c));
-                      Navigator.pop(context);
-                      _showTopBanner(AppLocalizations.of(context).contactAdded, background: const Color(0xFF1E88E5), icon: Icons.person_add_alt);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
-                      foregroundColor: Colors.white,
-                      elevation: 2,
-                    ),
-                    child: Text(AppLocalizations.of(context).add),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   void _openAddContactForm() {
     Navigator.of(context)
         .push(MaterialPageRoute(builder: (context) => const _AddEmergencyContactScreen()))
         .then((value) {
-      if (value is _EmergencyContact) {
-        setState(() => contacts.add(value));
-        _showTopBanner(AppLocalizations.of(context).contactAdded, background: const Color(0xFF1E88E5), icon: Icons.person_add_alt);
+      final userId = _currentUserId;
+      if (value is _EmergencyContactDraft && userId != null) {
+        _contactRepo
+            .addContact(
+              userId: userId,
+              name: value.name,
+              phone: value.phone,
+              relation: value.relation,
+            )
+            .then((_) {
+          _showTopBanner(AppLocalizations.of(context).contactAdded, background: const Color(0xFF1E88E5), icon: Icons.person_add_alt);
+        }).catchError((e) {
+          _showTopBanner('Error: $e', background: Colors.red);
+        });
+      }
+    });
+  }
+
+  void _openEditContact(EmergencyContact contact) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(
+            builder: (context) => _AddEmergencyContactScreen(initialContact: contact)))
+        .then((value) {
+      final userId = _currentUserId;
+      if (value is _EmergencyContactDraft && userId != null) {
+        _contactRepo
+            .updateContact(
+              userId: userId,
+              contactId: contact.id,
+              name: value.name,
+              phone: value.phone,
+              relation: value.relation,
+            )
+            .then((_) {
+          _showTopBanner(AppLocalizations.of(context).editContact,
+              background: const Color(0xFF1E88E5), icon: Icons.edit);
+        }).catchError((e) {
+          _showTopBanner('Error: $e', background: Colors.red);
+        });
       }
     });
   }
@@ -2029,7 +2126,8 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
 }
 
 class _AddEmergencyContactScreen extends StatefulWidget {
-  const _AddEmergencyContactScreen();
+  final EmergencyContact? initialContact;
+  const _AddEmergencyContactScreen({this.initialContact});
 
   @override
   State<_AddEmergencyContactScreen> createState() => _AddEmergencyContactScreenState();
@@ -2039,6 +2137,31 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
   final nameCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
   final relationCtrl = TextEditingController();
+  bool _isCustomRelation = false;
+  static const _presetRelations = [
+    'Spouse',
+    'Parent',
+    'Sibling',
+    'Child',
+    'Relative',
+    'Friend',
+    'Neighbor',
+    'Coworker',
+    'Doctor',
+  ];
+  final _formKey = GlobalKey<FormState>();
+  bool get _isEditing => widget.initialContact != null;
+  String? get _dropdownRelationValue {
+    final value = relationCtrl.text.trim();
+    if (value.isEmpty) return null;
+    if (!_presetRelations.contains(value)) return null;
+    return value;
+  }
+
+  void _setRelation(String value) {
+    _isCustomRelation = !_presetRelations.contains(value);
+    relationCtrl.text = value;
+  }
 
   @override
   void dispose() {
@@ -2049,10 +2172,22 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
   }
 
   @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialContact;
+    if (initial != null) {
+      nameCtrl.text = initial.name;
+      phoneCtrl.text = initial.phone;
+      _setRelation(initial.relation);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).emergencyContacts),
+        title: Text(_isEditing ? t.editContact : t.emergencyContacts),
         elevation: 0.5,
         actions: [
           Padding(
@@ -2068,12 +2203,15 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: Text(AppLocalizations.of(context).add),
+              child: Text(_isEditing ? t.save : t.add),
             ),
           ),
         ],
       ),
-      body: ListView(
+      body: Form(
+        key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           Container(
@@ -2083,39 +2221,39 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                   color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade600
-                      : Colors.grey.shade400,
-                  width: 1.4),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 14,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade400,
+                    width: 1.4),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                  padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF2B1313)
-                        : const Color(0xFFFDECEA),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFD32F2F), width: 1.4),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFFCDD2),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF2B1313)
+                          : const Color(0xFFFDECEA),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFD32F2F), width: 1.4),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFFCDD2),
                         shape: BoxShape.circle,
                       ),
-                        child: const Icon(Icons.phone_in_talk, color: Color(0xFFD32F2F)),
+                          child: const Icon(Icons.phone_in_talk, color: Color(0xFFD32F2F)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -2123,98 +2261,184 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            AppLocalizations.of(context).addEmergencyContact,
+                                t.addEmergencyContact,
                             style: TextStyle(
-                                  fontSize: 16,
+                                    fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: Theme.of(context).colorScheme.onSurface),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            AppLocalizations.of(context).emergencyTip,
+                                t.emergencyTip,
                             style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.grey.shade300
-                                      : Colors.red.shade700),
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey.shade300
+                                        : Colors.red.shade700),
                           ),
                         ],
                       ),
                     ),
                   ],
-                  ),
+                    ),
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                  TextFormField(
                   controller: nameCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
-                    labelText: '${AppLocalizations.of(context).fullName} *',
+                      labelText: '${t.fullName} *',
                     hintText: 'e.g., Elif Yılmaz',
                     filled: true,
                     fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
-                        width: 1.2,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
                       ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                    ),
-                  ),
-                  onChanged: (_) => setState(() {}),
+                    onChanged: (_) => setState(() {}),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return t.nameRequired;
+                      }
+                      return null;
+                    },
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                  TextFormField(
                   controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.next,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s-]')),
+                    ],
                   decoration: InputDecoration(
-                    labelText: '${AppLocalizations.of(context).phoneNumber} *',
+                      labelText: '${t.phoneNumber} *',
                     hintText: 'e.g., +90 532 123 4567',
                     filled: true,
                     fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
-                        width: 1.2,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                      ),
+                      suffixIcon: IconButton(
+                        tooltip: t.importContacts,
+                        icon: const Icon(Icons.contact_phone_outlined),
+                        onPressed: _pickFromContacts,
                       ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                    ),
-                  ),
-                  keyboardType: TextInputType.phone,
-                  onChanged: (_) => setState(() {}),
+                    onChanged: (_) => setState(() {}),
+                    validator: _validatePhoneField,
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                  DropdownButtonFormField<String>(
+                    value: _isCustomRelation ? null : _dropdownRelationValue,
+                    decoration: InputDecoration(
+                      labelText: '${t.relation} *',
+                      filled: true,
+                      fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                      ),
+                    ),
+                    hint: Text(t.relationHint),
+                    items: [
+                      ..._presetRelations.map(
+                        (relation) => DropdownMenuItem(
+                          value: relation,
+                          child: Text(
+                            _ProfileScreenState.localizedRelationStatic(context, relation),
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'other',
+                        child: Text(t.otherSpecify),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() {
+                        if (value == 'other') {
+                          _isCustomRelation = true;
+                          relationCtrl.clear();
+                        } else {
+                          _setRelation(value);
+                        }
+                      });
+                    },
+                    validator: (_) {
+                      if (relationCtrl.text.trim().isEmpty) {
+                        return t.relationRequired;
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  if (_isCustomRelation)
+                    TextFormField(
                   controller: relationCtrl,
                   decoration: InputDecoration(
-                    labelText: '${AppLocalizations.of(context).relation} *',
-                    hintText: AppLocalizations.of(context).relationHint,
+                        labelText: t.otherSpecify,
+                        hintText: t.relationHint,
                     filled: true,
                     fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
-                        width: 1.2,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade400,
+                            width: 1.2,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                        ),
                       ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                    ),
+                      validator: (value) {
+                        if (_isCustomRelation && (value == null || value.trim().isEmpty)) {
+                          return t.relationRequired;
+                        }
+                        return null;
+                      },
+                    )
+                  else if (relationCtrl.text.isNotEmpty)
+                    Text(
+                      _ProfileScreenState.localizedRelationStatic(context, relationCtrl.text),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
-                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 16),
                 Container(
@@ -2226,9 +2450,9 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                         color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF8AB4F8)
-                            : const Color(0xFF1E88E5),
-                        width: 1.4),
+                              ? const Color(0xFF8AB4F8)
+                              : const Color(0xFF1E88E5),
+                          width: 1.4),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2240,10 +2464,10 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          AppLocalizations.of(context).emergencyTip,
+                            t.emergencyTip,
                           style: TextStyle(
                               height: 1.3,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.blue.shade900),
+                                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.blue.shade900),
                         ),
                       ),
                     ],
@@ -2253,31 +2477,160 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
             ),
           ),
         ],
+        ),
       ),
     );
   }
 
   bool get _isValid =>
       nameCtrl.text.trim().isNotEmpty &&
-      phoneCtrl.text.trim().isNotEmpty &&
-      relationCtrl.text.trim().isNotEmpty;
+      relationCtrl.text.trim().isNotEmpty &&
+      _isPhoneValid(phoneCtrl.text.trim());
 
   void _save() {
-    if (!_isValid) {
+    if (!_isValid || !(_formKey.currentState?.validate() ?? false)) {
+      setState(() {});
       return;
     }
     Navigator.pop(
       context,
-      _EmergencyContact(nameCtrl.text.trim(), phoneCtrl.text.trim(), relationCtrl.text.trim()),
+      _EmergencyContactDraft(nameCtrl.text.trim(), phoneCtrl.text.trim(), relationCtrl.text.trim()),
     );
+  }
+
+  Future<void> _pickFromContacts() async {
+    final t = AppLocalizations.of(context);
+    try {
+      // Try to open the contact picker directly
+      // The native picker will handle permission requests if needed
+      final picked = await FlutterContacts.openExternalPick();
+      if (picked == null) return; // User cancelled
+
+      // If we got here, we have a contact, but we need permission to read its details
+      final granted = await FlutterContacts.requestPermission();
+      if (!granted) {
+        _showSnack(t.contactsPermissionDenied);
+        return;
+      }
+
+      final fullContact = await FlutterContacts.getContact(picked.id, withProperties: true);
+      final contact = fullContact ?? picked;
+      if (contact.phones.isEmpty) {
+        _showSnack(t.contactMissingPhone);
+        return;
+      }
+
+      setState(() {
+        if (contact.displayName.isNotEmpty) {
+          nameCtrl.text = contact.displayName;
+        }
+        phoneCtrl.text = contact.phones.first.number;
+        if (relationCtrl.text.trim().isEmpty) {
+          _setRelation('Friend');
+        }
+      });
+      _formKey.currentState?.validate();
+    } catch (e) {
+      // If openExternalPick fails, it might be a permission issue
+      // Try requesting permission and show appropriate message
+      final granted = await FlutterContacts.requestPermission();
+      if (!granted) {
+        _showSnack(t.contactsPermissionDenied);
+      } else {
+        _showSnack('Error: $e');
+      }
+    }
+  }
+
+  String? _validatePhoneField(String? value) {
+    final t = AppLocalizations.of(context);
+    final trimmed = value?.trim() ?? '';
+    if (!_isPhoneValid(trimmed)) {
+      return t.invalidPhoneNumber;
+    }
+    return null;
+  }
+
+  bool _isPhoneValid(String value) {
+    if (value.trim().isEmpty) return false;
+    
+    // Remove all non-digit characters except +
+    final digits = value.replaceAll(RegExp(r'[^0-9+]'), '');
+    
+    // Turkish phone number formats:
+    // +90 5XX XXX XX XX (mobile with country code)
+    // +90 XXX XXX XX XX (landline with country code)
+    // 0 5XX XXX XX XX (mobile with leading 0)
+    // 0 XXX XXX XX XX (landline with leading 0)
+    // 5XX XXX XX XX (mobile without leading 0 or country code)
+    // XXX XXX XX XX (landline without leading 0 or country code)
+    
+    // Check if it starts with +90
+    if (digits.startsWith('+90')) {
+      final withoutCountry = digits.substring(3); // Remove +90
+      // Mobile: 5XX XXX XX XX (10 digits starting with 5)
+      // Landline: XXX XXX XX XX (10 digits, area code 2-3 digits)
+      if (withoutCountry.length == 10) {
+        // Mobile numbers start with 5
+        if (withoutCountry.startsWith('5')) {
+          return true;
+        }
+        // Landline numbers (area codes: 212, 216, 232, etc.)
+        return true;
+      }
+      return false;
+    }
+    
+    // Check if it starts with 0
+    if (digits.startsWith('0')) {
+      final withoutLeadingZero = digits.substring(1); // Remove leading 0
+      // Mobile: 5XX XXX XX XX (10 digits starting with 5)
+      // Landline: XXX XXX XX XX (10 digits)
+      if (withoutLeadingZero.length == 10) {
+        if (withoutLeadingZero.startsWith('5')) {
+          return true; // Mobile
+        }
+        return true; // Landline
+      }
+      return false;
+    }
+    
+    // Check if it's just digits (no +90 or leading 0)
+    if (RegExp(r'^[0-9]+$').hasMatch(digits)) {
+      // Mobile: 5XX XXX XX XX (10 digits starting with 5)
+      // Landline: XXX XXX XX XX (10 digits)
+      if (digits.length == 10) {
+        if (digits.startsWith('5')) {
+          return true; // Mobile
+        }
+        return true; // Landline
+      }
+      // Also accept 11 digits (with leading 0 but user didn't type +90)
+      if (digits.length == 11 && digits.startsWith('0')) {
+        final withoutLeadingZero = digits.substring(1);
+        if (withoutLeadingZero.length == 10) {
+          return true;
+        }
+      }
+    }
+    
+    // Minimum 7 digits for international numbers or other formats
+    return digits.length >= 7;
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
-class _EmergencyContact {
+class _EmergencyContactDraft {
   final String name;
   final String phone;
   final String relation;
-  _EmergencyContact(this.name, this.phone, this.relation);
+  _EmergencyContactDraft(this.name, this.phone, this.relation);
 }
 
 class _FollowUser {

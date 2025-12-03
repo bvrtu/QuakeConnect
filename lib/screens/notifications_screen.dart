@@ -34,6 +34,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
   }
 
+  Future<void> _clearAllNotifications() async {
+    final t = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t.clearAllNotifications),
+        content: Text(t.clearAllNotificationsPrompt),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(t.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(t.clearAll),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      HapticFeedback.lightImpact();
+      setState(() {
+        repo.clearAll();
+      });
+    }
+  }
+
   void _handleTap(NotificationModel n) {
     HapticFeedback.selectionClick();
     setState(() {
@@ -147,6 +179,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ],
                   ),
                   const Spacer(),
+                  // Clear All button
+                  if (repo.items.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: _clearAllNotifications,
+                      icon: const Icon(Icons.clear_all, size: 18),
+                      label: Text(AppLocalizations.of(context).clearAll),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
                   // Refresh button
                   IconButton(
                     icon: _isRefreshing
