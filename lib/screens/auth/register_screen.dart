@@ -18,17 +18,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _displayNameController = TextEditingController();
-  final _usernameController = TextEditingController();
   final _emailFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
   final _confirmPasswordFocusNode = FocusNode();
   final _displayNameFocusNode = FocusNode();
-  final _usernameFocusNode = FocusNode();
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _isCheckingUsername = false;
-  bool _isUsernameAvailable = true;
   String? _errorMessage;
 
   @override
@@ -37,40 +33,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _displayNameController.dispose();
-    _usernameController.dispose();
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
     _confirmPasswordFocusNode.dispose();
     _displayNameFocusNode.dispose();
-    _usernameFocusNode.dispose();
     super.dispose();
   }
 
-  Future<void> _checkUsernameAvailability() async {
-    final username = _usernameController.text.trim();
-    if (username.isEmpty || !username.startsWith('@')) return;
-
+  Future<void> _handleGoogleSignIn() async {
     setState(() {
-      _isCheckingUsername = true;
-      _isUsernameAvailable = true;
+      _isLoading = true;
+      _errorMessage = null;
     });
 
     try {
-      final available = await UserRepository.instance.isUsernameAvailable(username);
-      setState(() {
-        _isCheckingUsername = false;
-        _isUsernameAvailable = available;
-      });
+      HapticFeedback.lightImpact();
+      final user = await AuthService.instance.signInWithGoogle();
+
+      if (user != null && mounted) {
+        // Navigation will be handled by auth state listener in main.dart
+        Navigator.of(context).pop(); // Close register screen
+      } else if (mounted) {
+        // User canceled
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
-        _isCheckingUsername = false;
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _isLoading = false;
       });
     }
   }
 
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_isUsernameAvailable) return;
 
     setState(() {
       _isLoading = true;
@@ -83,7 +81,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         displayName: _displayNameController.text.trim(),
-        username: _usernameController.text.trim(),
       );
 
       if (user != null && mounted) {
@@ -109,7 +106,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _passwordFocusNode.unfocus();
         _confirmPasswordFocusNode.unfocus();
         _displayNameFocusNode.unfocus();
-        _usernameFocusNode.unfocus();
       },
       child: Scaffold(
         appBar: AppBar(
@@ -150,7 +146,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _displayNameController,
                     focusNode: _displayNameFocusNode,
                     textInputAction: TextInputAction.next,
-                    onFieldSubmitted: (_) => _usernameFocusNode.requestFocus(),
+                    onFieldSubmitted: (_) => _emailFocusNode.requestFocus(),
                     decoration: InputDecoration(
                       labelText: AppLocalizations.of(context).nameLabel ?? 'Full Name',
                       hintText: 'John Doe',
@@ -162,53 +158,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return AppLocalizations.of(context).nameRequired ?? 'Name is required';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  // Username Field
-                  TextFormField(
-                    controller: _usernameController,
-                    focusNode: _usernameFocusNode,
-                    textInputAction: TextInputAction.next,
-                    onFieldSubmitted: (_) => _emailFocusNode.requestFocus(),
-                    onChanged: (_) => _checkUsernameAvailability(),
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context).usernameLabel ?? 'Username',
-                      hintText: '@username',
-                      prefixIcon: const Icon(Icons.alternate_email),
-                      suffixIcon: _isCheckingUsername
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: Padding(
-                                padding: EdgeInsets.all(12),
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            )
-                          : _usernameController.text.trim().isNotEmpty
-                              ? Icon(
-                                  _isUsernameAvailable ? Icons.check_circle : Icons.cancel,
-                                  color: _isUsernameAvailable ? Colors.green : Colors.red,
-                                )
-                              : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      errorText: _usernameController.text.trim().isNotEmpty && !_isUsernameAvailable
-                          ? AppLocalizations.of(context).usernameTaken ?? 'Username is already taken'
-                          : null,
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return AppLocalizations.of(context).usernameRequired ?? 'Username is required';
-                      }
-                      if (!value.startsWith('@')) {
-                        return AppLocalizations.of(context).usernameMustStartWithAt ?? 'Username must start with @';
-                      }
-                      if (value.length < 4) {
-                        return AppLocalizations.of(context).usernameTooShort ?? 'Username must be at least 4 characters';
                       }
                       return null;
                     },
@@ -302,6 +251,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
+                  // Divider with OR
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          AppLocalizations.of(context).or ?? 'OR',
+                          style: TextStyle(
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // Google Sign-In Button
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _handleGoogleSignIn,
+                    icon: Image.asset(
+                      'assets/google_logo.png',
+                      height: 20,
+                      width: 20,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.g_mobiledata, size: 20);
+                      },
+                    ),
+                    label: Text(
+                      AppLocalizations.of(context).continueWithGoogle ?? 'Continue with Google',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: BorderSide(
+                        color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   // Error Message
                   if (_errorMessage != null)
                     Container(
@@ -327,7 +322,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   // Register Button
                   ElevatedButton(
-                    onPressed: _isLoading || !_isUsernameAvailable ? null : _handleRegister,
+                    onPressed: _isLoading ? null : _handleRegister,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(

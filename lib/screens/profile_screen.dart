@@ -807,11 +807,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       initialData: _currentUser,
       builder: (context, snapshot) {
         final user = snapshot.data ?? _currentUser;
-        final gradients = [
-          [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
-          [const Color(0xFF00C853), const Color(0xFF1DE9B6)],
-          [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
-          [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
+    final gradients = [
+      [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
+      [const Color(0xFF00C853), const Color(0xFF1DE9B6)],
+      [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
+      [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
           [const Color(0xFFFF4081), const Color(0xFFFFAB40)],
           [const Color(0xFF00BCD4), const Color(0xFF448AFF)],
           [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
@@ -843,11 +843,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
         }
         
-        return Container(
-          width: 90,
-          height: 90,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
+    return Container(
+      width: 90,
+      height: 90,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
             image: imageProvider != null
                 ? DecorationImage(
                     image: imageProvider,
@@ -855,23 +855,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   )
                 : null,
             gradient: imageProvider == null ? LinearGradient(colors: colors) : null,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
+        ],
+      ),
           alignment: imageProvider == null ? Alignment.center : null,
           child: imageProvider == null
               ? Text(
                   _initials(user?.displayName ?? 'Unknown'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 28,
-                  ),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 28,
+        ),
                 )
               : null,
         );
@@ -1419,7 +1419,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     final userId = AuthService.instance.currentUserId;
                                     if (userId == null) {
                                       if (context.mounted) {
-                                        Navigator.pop(context);
+                                  Navigator.pop(context);
                                         _showTopBanner('User not logged in', background: Colors.red);
                                       }
                                       return;

@@ -57,8 +57,14 @@ class AppLocalizations {
       'email_label': 'Email',
       'personal_info': 'Personal Information',
       'age_years': 'Age (years)',
+      'age_required': 'Age is required',
+      'invalid_age': 'Please enter a valid age',
       'height_cm': 'Height (cm)',
+      'height_required': 'Height is required',
+      'invalid_height': 'Please enter a valid height',
       'weight_kg': 'Weight (kg)',
+      'weight_required': 'Weight is required',
+      'invalid_weight': 'Please enter a valid weight',
       'disability_status': 'Disability Status',
       'none_option': 'None',
       'present_option': 'Present',
@@ -184,6 +190,8 @@ class AppLocalizations {
       'create_account': 'Create your account',
       'dont_have_account': "Don't have an account? ",
       'already_have_account': 'Already have an account? ',
+      'continue_with_google': 'Continue with Google',
+      'or': 'OR',
       'email_required': 'Email is required',
       'password_required': 'Password is required',
       'confirm_password_required': 'Please confirm your password',
@@ -197,6 +205,14 @@ class AppLocalizations {
       'username_taken': 'Username is already taken',
       'enter_email_for_password_reset': 'Please enter your email first',
       'password_reset_email_sent': 'Password reset email sent',
+      'personal_info_title': 'Personal Information',
+      'personal_info_subtitle': 'Help us personalize your experience',
+      'profile_setup_title': 'One More Step',
+      'profile_setup_subtitle': 'Set up your profile',
+      'choose_image': 'Choose Image',
+      'choose_color': 'Choose Color',
+      'continue_': 'Continue',
+      'please_specify': 'Please specify',
     },
     'tr': {
       'nav_home': 'Ana Sayfa',
@@ -244,8 +260,14 @@ class AppLocalizations {
       'email_label': 'E-posta',
       'personal_info': 'Kişisel Bilgiler',
       'age_years': 'Yaş (yıl)',
+      'age_required': 'Yaş gereklidir',
+      'invalid_age': 'Lütfen geçerli bir yaş girin',
       'height_cm': 'Boy (cm)',
+      'height_required': 'Boy gereklidir',
+      'invalid_height': 'Lütfen geçerli bir boy girin',
       'weight_kg': 'Kilo (kg)',
+      'weight_required': 'Kilo gereklidir',
+      'invalid_weight': 'Lütfen geçerli bir kilo girin',
       'disability_status': 'Engel Durumu',
       'none_option': 'Yok',
       'present_option': 'Var',
@@ -371,6 +393,8 @@ class AppLocalizations {
       'create_account': 'Hesabınızı oluşturun',
       'dont_have_account': 'Hesabınız yok mu? ',
       'already_have_account': 'Zaten hesabınız var mı? ',
+      'continue_with_google': 'Google ile Devam Et',
+      'or': 'VEYA',
       'email_required': 'E-posta gereklidir',
       'password_required': 'Şifre gereklidir',
       'confirm_password_required': 'Lütfen şifrenizi onaylayın',
@@ -384,6 +408,14 @@ class AppLocalizations {
       'username_taken': 'Kullanıcı adı zaten alınmış',
       'enter_email_for_password_reset': 'Lütfen önce e-postanızı girin',
       'password_reset_email_sent': 'Şifre sıfırlama e-postası gönderildi',
+      'personal_info_title': 'Kişisel Bilgiler',
+      'personal_info_subtitle': 'Deneyiminizi kişiselleştirmemize yardımcı olun',
+      'profile_setup_title': 'Son Bir Adım',
+      'profile_setup_subtitle': 'Profilinizi ayarlayın',
+      'choose_image': 'Resim Seç',
+      'choose_color': 'Renk Seç',
+      'continue_': 'Devam Et',
+      'please_specify': 'Lütfen belirtin',
     }
   };
 
@@ -548,6 +580,8 @@ class AppLocalizations {
   String get createAccount => _t('create_account');
   String get dontHaveAccount => _t('dont_have_account');
   String get alreadyHaveAccount => _t('already_have_account');
+  String get continueWithGoogle => _t('continue_with_google');
+  String get or => _t('or');
   String get emailRequired => _t('email_required');
   String get passwordRequired => _t('password_required');
   String get confirmPasswordRequired => _t('confirm_password_required');
@@ -561,6 +595,14 @@ class AppLocalizations {
   String get usernameTaken => _t('username_taken');
   String get enterEmailForPasswordReset => _t('enter_email_for_password_reset');
   String get passwordResetEmailSent => _t('password_reset_email_sent');
+  String get personalInfoTitle => _t('personal_info_title');
+  String get personalInfoSubtitle => _t('personal_info_subtitle');
+  String get profileSetupTitle => _t('profile_setup_title');
+  String get profileSetupSubtitle => _t('profile_setup_subtitle');
+  String get chooseImage => _t('choose_image');
+  String get chooseColor => _t('choose_color');
+  String get continue_ => _t('continue_');
+  String get pleaseSpecify => _t('please_specify');
   String get emergencyTip => _t('emergency_tip');
   String get profilePicture => _t('profile_picture');
   String get nameLabel => _t('name_label');
@@ -569,8 +611,14 @@ class AppLocalizations {
   String get emailLabel => _t('email_label');
   String get personalInfo => _t('personal_info');
   String get ageYears => _t('age_years');
+  String get ageRequired => _t('age_required');
+  String get invalidAge => _t('invalid_age');
   String get heightCm => _t('height_cm');
+  String get heightRequired => _t('height_required');
+  String get invalidHeight => _t('invalid_height');
   String get weightKg => _t('weight_kg');
+  String get weightRequired => _t('weight_required');
+  String get invalidWeight => _t('invalid_weight');
   String get disabilityStatus => _t('disability_status');
   String get noneOption => _t('none_option');
   String get presentOption => _t('present_option');

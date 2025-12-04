@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../data/user_repository.dart';
 
@@ -7,6 +8,7 @@ class AuthService {
   AuthService._();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   UserRepository _userRepo = UserRepository.instance;
 
   // Get current user
@@ -26,7 +28,6 @@ class AuthService {
     required String email,
     required String password,
     required String displayName,
-    String? username,
   }) async {
     try {
       // Create user in Firebase Auth
@@ -43,6 +44,7 @@ class AuthService {
       await userCredential.user!.updateDisplayName(displayName);
 
       // Create user document in Firestore
+      // Username will be set during onboarding, use email-based default for now
       final defaultUsername = '@${email.split('@')[0]}';
       final userModel = UserModel.fromFirebaseAuth(
         userCredential.user!.uid,
@@ -50,7 +52,7 @@ class AuthService {
         displayName,
         userCredential.user!.photoURL,
       ).copyWith(
-        username: username ?? defaultUsername,
+        username: defaultUsername,
       );
 
       await _userRepo.createUser(userModel);
@@ -127,6 +129,66 @@ class AuthService {
     final userId = currentUserId;
     if (userId == null) return null;
     return await _userRepo.getUser(userId);
+  }
+
+  /// Sign in with Google
+  Future<UserModel?> signInWithGoogle() async {
+    try {
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        // User canceled the sign-in
+        return null;
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      if (userCredential.user == null) {
+        throw Exception('Google sign-in failed');
+      }
+
+      final user = userCredential.user!;
+      
+      // Check if user already exists in Firestore
+      UserModel? userModel = await _userRepo.getUser(user.uid);
+      
+      if (userModel == null) {
+        // New user - create user document in Firestore
+        final defaultUsername = '@${user.email?.split('@')[0] ?? 'user'}';
+        userModel = UserModel.fromFirebaseAuth(
+          user.uid,
+          user.email ?? '',
+          user.displayName ?? 'User',
+          user.photoURL,
+        ).copyWith(
+          username: defaultUsername,
+        );
+        
+        await _userRepo.createUser(userModel);
+      } else {
+        // Existing user - update photoURL if it changed
+        if (user.photoURL != null && user.photoURL != userModel.photoURL) {
+          final updatedUser = userModel.copyWith(photoURL: user.photoURL);
+          await _userRepo.updateUser(updatedUser);
+          userModel = updatedUser;
+        }
+      }
+
+      return userModel;
+    } catch (e) {
+      throw Exception('Google sign-in failed: $e');
+    }
   }
 }
 

@@ -58,6 +58,33 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      HapticFeedback.lightImpact();
+      final user = await AuthService.instance.signInWithGoogle();
+
+      if (user != null && mounted) {
+        // Navigation will be handled by auth state listener in main.dart
+        Navigator.of(context).pop(); // Close login screen
+      } else if (mounted) {
+        // User canceled
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<void> _handleForgotPassword() async {
     if (_emailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -197,6 +224,52 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: TextButton(
                       onPressed: _handleForgotPassword,
                       child: Text(AppLocalizations.of(context).forgotPassword ?? 'Forgot Password?'),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Divider with OR
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          AppLocalizations.of(context).or ?? 'OR',
+                          style: TextStyle(
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // Google Sign-In Button
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _handleGoogleSignIn,
+                    icon: Image.asset(
+                      'assets/google_logo.png',
+                      height: 20,
+                      width: 20,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.g_mobiledata, size: 20);
+                      },
+                    ),
+                    label: Text(
+                      AppLocalizations.of(context).continueWithGoogle ?? 'Continue with Google',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: BorderSide(
+                        color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),

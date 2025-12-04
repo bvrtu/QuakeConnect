@@ -15,6 +15,9 @@ import 'data/settings_repository.dart';
 import 'services/notification_service.dart';
 import 'services/auth_service.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/onboarding/personal_info_onboarding_screen.dart';
+import 'data/user_repository.dart';
+import 'models/user_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -132,8 +135,29 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
           return const LoginScreen();
         }
         
-        final t = AppLocalizations.of(context);
-        return Scaffold(
+        // Check if user needs onboarding
+        return FutureBuilder<UserModel?>(
+          future: AuthService.instance.getCurrentUserModel(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            
+            final user = snapshot.data;
+            // Check if user needs onboarding (age, height, or weight is null)
+            final needsOnboarding = user == null || 
+                user.age == null || 
+                user.heightCm == null || 
+                user.weightKg == null;
+            
+            if (needsOnboarding) {
+              return const PersonalInfoOnboardingScreen();
+            }
+            
+            final t = AppLocalizations.of(context);
+            return Scaffold(
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           transitionBuilder: (Widget child, Animation<double> animation) {
@@ -180,7 +204,10 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
             BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
           ],
         ),
-      );}),
+      );
+          },
+        );
+      }),
     );
   }
 }
