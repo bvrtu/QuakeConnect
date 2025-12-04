@@ -101,6 +101,8 @@ class AppLocalizations {
       'let_others_know': "Let others know you're safe",
       'view_all': 'View All',
       'community_updates_title': 'Community Updates',
+      'following_updates_title': 'Updates from Following',
+      'popular_posts': 'Popular Posts',
       'discover_title': 'Discover',
       'search_users': 'Search Users',
       'search_users_hint': 'Search by name or username...',
@@ -304,6 +306,8 @@ class AppLocalizations {
       'let_others_know': 'Güvende olduğunu herkese bildir',
       'view_all': 'Tümünü Gör',
       'community_updates_title': 'Topluluk Güncellemeleri',
+      'following_updates_title': 'Takip Ettiklerinizden Güncellemeler',
+      'popular_posts': 'Popüler Gönderiler',
       'discover_title': 'Keşfet',
       'search_users': 'Kullanıcı Ara',
       'search_users_hint': 'İsim veya kullanıcı adı ile ara...',
@@ -490,6 +494,8 @@ class AppLocalizations {
       _t('mark_safe_prompt').replaceAll('{count}', '$count');
   String get viewAll => _t('view_all');
   String get communityUpdatesTitle => _t('community_updates_title');
+  String get followingUpdatesTitle => _t('following_updates_title');
+  String get popularPosts => _t('popular_posts');
   String get discoverTitle => _t('discover_title');
   String get searchUsers => _t('search_users');
   String get searchUsersHint => _t('search_users_hint');

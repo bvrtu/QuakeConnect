@@ -16,7 +16,13 @@ import '../data/post_repository.dart';
 import '../models/user_model.dart';
 import '../data/emergency_contact_repository.dart';
 import '../models/emergency_contact.dart';
+import '../data/settings_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'home_screen.dart';
+import 'map_screen.dart';
+import 'safety_screen.dart';
+import 'discover_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? userId; // If null, shows current user's profile
@@ -1100,6 +1106,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _navigateToProfileFromFollowList(String userId) {
+    Navigator.of(context).pop(); // Close follow list screen first
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ProfileScreen(userId: userId),
+      ),
+    );
+  }
+
   void _openChangePicture() {
     showModalBottomSheet(
       context: context,
@@ -1689,6 +1704,139 @@ class _FollowListScreenState extends State<_FollowListScreen> {
     }
   }
 
+  void _navigateToProfile(String userId) {
+    Navigator.of(context).pop(); // Close follow list screen first
+    final t = AppLocalizations.of(context);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          body: ProfileScreen(userId: userId),
+          bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: 4, // Profile tab
+            selectedFontSize: 12,
+            unselectedFontSize: 11,
+            onTap: (index) {
+              Navigator.of(context).pop(); // Close profile screen
+              
+              // Navigate to the selected screen
+              Widget targetScreen;
+              switch (index) {
+                case 0: // Home
+                  targetScreen = HomeScreen(
+                    onOpenOnMap: (eq) {},
+                    onOpenMapTab: () {},
+                    onOpenSafetyTab: () {},
+                  );
+                  break;
+                case 1: // Map
+                  targetScreen = const MapScreen();
+                  break;
+                case 2: // Safety
+                  targetScreen = const SafetyScreen();
+                  break;
+                case 3: // Discover
+                  targetScreen = const DiscoverScreen();
+                  break;
+                case 4: // Profile
+                  targetScreen = const ProfileScreen();
+                  break;
+                case 5: // Settings
+                  targetScreen = SettingsScreen(
+                    darkMode: false,
+                    onDarkModeChanged: (_) {},
+                    languageCode: 'en',
+                    onLanguageChanged: (_) {},
+                  );
+                  break;
+                default:
+                  targetScreen = const ProfileScreen();
+              }
+              
+              // Navigate to the selected screen
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (ctx) => Scaffold(
+                    body: targetScreen,
+                    bottomNavigationBar: _buildBottomNavBar(ctx, index, t),
+                  ),
+                ),
+              );
+            },
+            selectedItemColor: Colors.red,
+            unselectedItemColor: Colors.grey,
+            items: [
+              BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
+              BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
+              BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
+              BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
+              BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
+              BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _getScreenForIndex(int index, AppLocalizations t) {
+    switch (index) {
+      case 0: // Home
+        return HomeScreen(
+          onOpenOnMap: (eq) {},
+          onOpenMapTab: () {},
+          onOpenSafetyTab: () {},
+        );
+      case 1: // Map
+        return const MapScreen();
+      case 2: // Safety
+        return const SafetyScreen();
+      case 3: // Discover
+        return const DiscoverScreen();
+      case 4: // Profile
+        return const ProfileScreen();
+      case 5: // Settings
+        return SettingsScreen(
+          darkMode: false,
+          onDarkModeChanged: (_) {},
+          languageCode: 'en',
+          onLanguageChanged: (_) {},
+        );
+      default:
+        return const ProfileScreen();
+    }
+  }
+
+  BottomNavigationBar _buildBottomNavBar(BuildContext context, int currentIndex, AppLocalizations t) {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: currentIndex,
+      selectedFontSize: 12,
+      unselectedFontSize: 11,
+      onTap: (index) {
+        final targetScreen = _getScreenForIndex(index, t);
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (ctx) => Scaffold(
+              body: targetScreen,
+              bottomNavigationBar: _buildBottomNavBar(ctx, index, t),
+            ),
+          ),
+        );
+      },
+      selectedItemColor: Colors.red,
+      unselectedItemColor: Colors.grey,
+      items: [
+        BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
+        BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
+        BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
+        BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
+        BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
+        BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1760,15 +1908,73 @@ class _FollowListScreenState extends State<_FollowListScreen> {
                   final following = followSnapshot.data ?? false;
                   
           return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: const Color(0xFF6246EA),
-                      child: Text(
-                        _initials(user.displayName),
+            onTap: () => _navigateToProfile(user.id),
+            leading: StreamBuilder<UserModel?>(
+              stream: _userRepo.getUserStream(user.id),
+              initialData: user,
+              builder: (context, userSnapshot) {
+                final updatedUser = userSnapshot.data ?? user;
+                
+                // Check if photoURL is a data URI (base64) or regular URL
+                final photoURL = updatedUser.photoURL;
+                ImageProvider? imageProvider;
+                
+                if (photoURL != null && photoURL.isNotEmpty) {
+                  if (photoURL.startsWith('data:image')) {
+                    // Base64 data URI
+                    try {
+                      final base64String = photoURL.split(',')[1];
+                      final imageBytes = base64Decode(base64String);
+                      imageProvider = MemoryImage(imageBytes);
+                    } catch (e) {
+                      debugPrint('Error decoding base64 image: $e');
+                    }
+                  } else {
+                    // Regular URL
+                    imageProvider = NetworkImage(photoURL);
+                  }
+                }
+                
+                final gradients = [
+                  [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
+                  [const Color(0xFF00C853), const Color(0xFF1DE9B6)],
+                  [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
+                  [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
+                  [const Color(0xFFFF4081), const Color(0xFFFFAB40)],
+                  [const Color(0xFF00BCD4), const Color(0xFF448AFF)],
+                  [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
+                  [const Color(0xFFFFA726), const Color(0xFFFF7043)],
+                  [const Color(0xFF7E57C2), const Color(0xFFAB47BC)],
+                  [const Color(0xFF66BB6A), const Color(0xFF43A047)],
+                  [const Color(0xFF42A5F5), const Color(0xFF1E88E5)],
+                  [const Color(0xFFEC407A), const Color(0xFFAB47BC)],
+                ];
+                final colors = gradients[updatedUser.gradientIndex % gradients.length];
+                
+                return CircleAvatar(
+                  radius: 24,
+                  backgroundImage: imageProvider,
+                  backgroundColor: imageProvider == null ? Colors.transparent : null,
+                  child: imageProvider == null
+                      ? Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(colors: colors),
+                          ),
+                          child: Center(
+                            child: Text(
+                              _initials(updatedUser.displayName),
                   style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        )
+                      : null,
+                );
+              },
             ),
                     title: Text(user.displayName),
                     subtitle: Text(user.username),

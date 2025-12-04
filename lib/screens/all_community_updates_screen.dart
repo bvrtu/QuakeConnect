@@ -3,6 +3,7 @@ import '../models/community_post.dart';
 import '../widgets/community_post_card.dart';
 import '../l10n/app_localizations.dart';
 import '../data/post_repository.dart';
+import '../services/auth_service.dart';
 
 class AllCommunityUpdatesScreen extends StatefulWidget {
   final String? userId;
@@ -115,7 +116,7 @@ class _AllCommunityUpdatesScreenState extends State<AllCommunityUpdatesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          AppLocalizations.of(context).communityUpdatesTitle,
+          AppLocalizations.of(context).followingUpdatesTitle,
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -126,7 +127,9 @@ class _AllCommunityUpdatesScreenState extends State<AllCommunityUpdatesScreen> {
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
         child: StreamBuilder<List<CommunityPost>>(
-          stream: _postRepo.getAllPosts(widget.userId),
+          stream: widget.userId != null
+              ? _postRepo.getFollowingPosts(widget.userId!, widget.userId)
+              : Stream.value(<CommunityPost>[]),
           builder: (context, snapshot) {
             // Only show loading on initial load, not on subsequent updates
             if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {

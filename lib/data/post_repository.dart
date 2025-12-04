@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/community_post.dart';
 import '../services/auth_service.dart';
+import 'user_repository.dart';
 
 class PostRepository {
   static final PostRepository instance = PostRepository._();
@@ -273,6 +274,101 @@ class PostRepository {
     }
     
     return post;
+  }
+
+  /// Get posts from users that the current user is following
+  Stream<List<CommunityPost>> getFollowingPosts(String userId, String? currentUserId) {
+    final userRepo = UserRepository.instance;
+    
+    // Get following list and create a stream that updates when posts change
+    return userRepo.getFollowing(userId).asyncExpand((followingUsers) {
+      if (followingUsers.isEmpty) {
+        return Stream.value(<CommunityPost>[]);
+      }
+      
+      final followingIds = followingUsers.map((u) => u.id).toSet();
+      
+      // Stream all posts and filter by following list
+      return _firestore
+          .collection(_collection)
+          .orderBy('timestamp', descending: true)
+          .limit(200)
+          .snapshots()
+          .asyncMap((snapshot) async {
+        final filteredPosts = <CommunityPost>[];
+        
+        for (var doc in snapshot.docs) {
+          final data = doc.data();
+          final authorId = data['authorId'] as String?;
+          if (authorId != null && followingIds.contains(authorId)) {
+            final post = _postFromDoc(doc);
+            if (currentUserId != null) {
+              final isLiked = await isPostLiked(doc.id, currentUserId);
+              final isReposted = await isPostReposted(doc.id, currentUserId);
+              filteredPosts.add(post.copyWith(isLiked: isLiked, isReposted: isReposted));
+            } else {
+              filteredPosts.add(post);
+            }
+          }
+        }
+        
+        // Already sorted by timestamp from Firestore query
+        return filteredPosts;
+      });
+    });
+  }
+
+  /// Get popular posts (Twitter-like algorithm)
+  /// Considers: likes, reposts, comments, and recency
+  Stream<List<CommunityPost>> getPopularPosts(String? userId) {
+    return _firestore
+        .collection(_collection)
+        .orderBy('timestamp', descending: true)
+        .limit(200)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      final posts = <CommunityPost>[];
+      for (var doc in snapshot.docs) {
+        final post = _postFromDoc(doc);
+        if (userId != null) {
+          final isLiked = await isPostLiked(doc.id, userId);
+          final isReposted = await isPostReposted(doc.id, userId);
+          posts.add(post.copyWith(isLiked: isLiked, isReposted: isReposted));
+        } else {
+          posts.add(post);
+        }
+      }
+      
+      // Calculate popularity score for each post
+      final now = DateTime.now();
+      final scoredPosts = posts.map((post) {
+        final hoursSincePost = now.difference(post.timestamp).inHours;
+        final recencyScore = hoursSincePost < 1 
+            ? 2.0 
+            : hoursSincePost < 24 
+                ? 1.5 
+                : hoursSincePost < 168 
+                    ? 1.0 
+                    : 0.5;
+        
+        // Weighted engagement score
+        final engagementScore = (post.likes * 1.0) + 
+                               (post.reposts * 2.0) + 
+                               (post.comments * 1.5) + 
+                               (post.shares * 0.5);
+        
+        // Popularity score = engagement * recency
+        final popularityScore = engagementScore * recencyScore;
+        
+        return (post: post, score: popularityScore);
+      }).toList();
+      
+      // Sort by popularity score (descending)
+      scoredPosts.sort((a, b) => b.score.compareTo(a.score));
+      
+      // Return top 50 most popular posts
+      return scoredPosts.take(50).map((item) => item.post).toList();
+    });
   }
 }
 

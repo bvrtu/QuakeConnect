@@ -450,6 +450,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                               background: const Color(0xFF2E7D32),
                               icon: Icons.person_add,
                             );
+                            // Remove user from both suggested users and search results when followed
+                            setState(() {
+                              _suggestedUsers.removeWhere((u) => u.id == user.id);
+                              _searchResults.removeWhere((u) => u.id == user.id);
+                            });
                           }
                           setState(() {}); // Refresh UI
                         } catch (e) {
@@ -641,7 +646,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
           child: Text(
-            t.trendingPosts,
+            t.popularPosts,
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -649,7 +654,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           ),
         ),
         StreamBuilder<List<CommunityPost>>(
-          stream: _postRepo.getAllPosts(_currentUserId),
+          stream: _postRepo.getPopularPosts(_currentUserId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
               return const Center(

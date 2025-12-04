@@ -798,7 +798,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
         Row(
           children: [
             Text(
-              AppLocalizations.of(context).communityUpdatesTitle,
+              AppLocalizations.of(context).followingUpdatesTitle,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const Spacer(),
@@ -810,7 +810,9 @@ class _SafetyScreenState extends State<SafetyScreen> {
         ),
         const SizedBox(height: 8),
         StreamBuilder<List<CommunityPost>>(
-          stream: _postRepo.getAllPosts(_currentUserId),
+          stream: _currentUserId != null 
+              ? _postRepo.getFollowingPosts(_currentUserId!, _currentUserId)
+              : Stream.value(<CommunityPost>[]),
           builder: (context, snapshot) {
             // Only show loading on initial load, not on subsequent updates
             if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
