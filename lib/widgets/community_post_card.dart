@@ -16,6 +16,7 @@ import '../screens/map_screen.dart';
 import '../screens/safety_screen.dart';
 import '../screens/discover_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/post_detail_screen.dart';
 import '../data/settings_repository.dart';
 
 class LocalComment {
@@ -60,8 +61,9 @@ class CommunityPostCard extends StatefulWidget {
   final CommunityPost post;
   final VoidCallback? onUpdated;
   final void Function(String message, {Color background, IconData icon})? showBanner;
+  final bool isDetail;
 
-  const CommunityPostCard({super.key, required this.post, this.onUpdated, this.showBanner});
+  const CommunityPostCard({super.key, required this.post, this.onUpdated, this.showBanner, this.isDetail = false});
 
   @override
   State<CommunityPostCard> createState() => _CommunityPostCardState();
@@ -277,7 +279,15 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
     final borderColor = isDark ? Colors.grey.shade600 : Colors.grey.shade400;
     final shadowColor = isDark ? Colors.black.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.06);
 
-    return Container(
+    return GestureDetector(
+      onTap: widget.isDetail ? null : () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => PostDetailScreen(post: widget.post),
+          ),
+        );
+      },
+      child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -285,7 +295,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor, width: 1.2),
         boxShadow: [
-          BoxShadow(color: shadowColor, blurRadius: 14, offset: const Offset(0, 6)),
+          BoxShadow(color: shadowColor, blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
@@ -398,18 +408,14 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                               const SizedBox(height: 2),
                               Wrap(
                                 spacing: 6,
-                                runSpacing: 4,
+                                runSpacing: 2,
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  Flexible(
-                                    child: Text(
+                                  Text(
                                     widget.post.handle,
                                     style: TextStyle(
                                       color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                       fontSize: 13,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   Container(
@@ -420,15 +426,11 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                       shape: BoxShape.circle,
                                     ),
                                   ),
-                                  Flexible(
-                                    child: Text(
+                                  Text(
                                     formatTimeAgo(context, widget.post.timestamp),
                                     style: TextStyle(
                                       color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                       fontSize: 13,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -460,14 +462,28 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                         ),
                         const SizedBox(width: 4),
                         Expanded(
-                          child: Text(
-                            widget.post.location,
+                          child: StreamBuilder<UserModel?>(
+                            stream: widget.post.authorId.isNotEmpty 
+                                ? _userRepo.getUserStream(widget.post.authorId)
+                                : null,
+                            builder: (context, snapshot) {
+                              final userLocation = snapshot.data?.location;
+                              // Use user profile location if available, otherwise fall back to post location (which might be coords)
+                              // If post location is "Location services disabled", try to show profile location
+                              final displayLocation = (userLocation != null && userLocation.isNotEmpty) 
+                                  ? userLocation 
+                                  : widget.post.location;
+                                  
+                              return Text(
+                                displayLocation,
                             style: TextStyle(
                               color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                               fontSize: 13,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              );
+                            }
                           ),
                         ),
                       ],
@@ -481,6 +497,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -505,6 +522,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
   Widget _buildStatusBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      constraints: const BoxConstraints(maxWidth: 120),
       decoration: BoxDecoration(
         color: widget.post.badgeBackground,
         borderRadius: BorderRadius.circular(12),
@@ -521,6 +539,8 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -559,7 +579,13 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
           onTap: () async {
             final shareMessage =
                 '${widget.post.message}\n\nLocation: ${widget.post.location}';
-            await Share.share(shareMessage, subject: 'QuakeConnect Update');
+            final box = context.findRenderObject() as RenderBox?;
+            
+            await Share.share(
+              shareMessage, 
+              subject: 'QuakeConnect Update',
+              sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+            );
             HapticFeedback.selectionClick();
             setState(() {
               widget.post.shares += 1;
@@ -601,11 +627,11 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  label.toString(),
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                label.toString(),
+                style: TextStyle(
+                  color: color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -734,21 +760,13 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                 runSpacing: 4,
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  Flexible(
-                                    child: Text(
-                                      c.authorName,
-                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                  Text(
+                                    c.authorName,
+                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                                   ),
-                                  Flexible(
-                                    child: Text(
-                                      c.timeAgo,
-                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                  Text(
+                                    c.timeAgo,
+                                    style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 12),
                                   ),
                                 ],
                               ),

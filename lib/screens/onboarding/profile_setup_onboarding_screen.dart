@@ -436,8 +436,11 @@ class _ProfileSetupOnboardingScreenState extends State<ProfileSetupOnboardingScr
                     if (value == null || value.isEmpty) {
                       return t.usernameRequired ?? 'Username is required';
                     }
-                    if (value.length < 3) {
-                      return t.usernameTooShort ?? 'Username must be at least 3 characters';
+                    if (value.length < 5) {
+                      return t.usernameTooShort ?? 'Username must be at least 5 characters';
+                    }
+                    if (value.length > 10) {
+                      return 'Username must be at most 10 characters';
                     }
                     if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
                       return 'Username can only contain letters, numbers, and underscores';

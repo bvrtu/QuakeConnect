@@ -14,10 +14,12 @@ import 'firebase_options.dart';
 import 'data/settings_repository.dart';
 import 'services/notification_service.dart';
 import 'services/auth_service.dart';
+import 'services/background_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/email_verification_screen.dart';
 import 'screens/onboarding/personal_info_onboarding_screen.dart';
 import 'data/user_repository.dart';
+import 'data/notification_repository.dart';
 import 'models/user_model.dart';
 
 void main() async {
@@ -34,6 +36,9 @@ void main() async {
     
     // Initialize notification service
     await NotificationService.instance.initialize();
+    
+    // Initialize background service
+    await BackgroundService.instance.initialize();
   } catch (e) {
     debugPrint('Error initializing app: $e');
     // Continue anyway - the app will show error state if needed
@@ -59,6 +64,10 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
   @override
   void initState() {
     super.initState();
+    
+    // Start monitoring for notifications
+    NotificationRepository.instance.startMonitoring();
+    
     // Listen to auth state changes
     AuthService.instance.authStateChanges.listen((user) {
       if (mounted) {
@@ -72,6 +81,12 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
     // Check initial auth state
     _isAuthenticated = AuthService.instance.isLoggedIn;
     _isCheckingAuth = false;
+  }
+
+  @override
+  void dispose() {
+    NotificationRepository.instance.stopMonitoring();
+    super.dispose();
   }
 
   void _openOnMap(Earthquake eq) {
@@ -128,6 +143,15 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
               ],
               supportedLocales: const [Locale('en'), Locale('tr')],
               locale: locale,
+              localeResolutionCallback: (locale, supportedLocales) {
+                if (locale == null) return supportedLocales.first;
+                for (var supportedLocale in supportedLocales) {
+                  if (supportedLocale.languageCode == locale.languageCode) {
+                    return supportedLocale;
+                  }
+                }
+                return supportedLocales.first;
+              },
               routes: {
                 '/': (context) => _buildAuthWrapper(context),
               },

@@ -208,14 +208,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         // Always request location permission when enabling
                         final permission = await Permission.location.status;
                         if (!permission.isGranted) {
+                          if (permission.isPermanentlyDenied) {
+                            // Open app settings if permanently denied
+                            await openAppSettings();
+                            return;
+                          }
+                          
                           final result = await Permission.location.request();
                           if (!result.isGranted) {
-                            // Permission denied, don't enable
-                            if (mounted) {
+                            if (result.isPermanentlyDenied) {
+                              // Open app settings if permanently denied after request
+                              await openAppSettings();
+                            } else if (mounted) {
+                              // Permission denied, don't enable
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(AppLocalizations.of(context).locationPermissionDenied),
                                   duration: const Duration(seconds: 2),
+                                  action: SnackBarAction(
+                                    label: AppLocalizations.of(context).settingsTitle,
+                                    onPressed: () => openAppSettings(),
+                                  ),
                                 ),
                               );
                             }

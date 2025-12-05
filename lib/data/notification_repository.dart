@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notification_model.dart';
 import '../models/earthquake.dart';
+import '../models/community_post.dart';
 import '../services/earthquake_api_service.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
 import '../data/settings_repository.dart';
+import '../data/post_repository.dart';
 import '../l10n/app_localizations.dart';
 
 class NotificationRepository {
@@ -23,7 +27,86 @@ class NotificationRepository {
   List<NotificationModel> get items => _items;
   int get unreadCount => _items.where((n) => !n.isRead).length;
 
-  Future<void> _loadNotificationsFromAPI() async {
+  Timer? _monitoringTimer;
+  DateTime _lastPostCheckTime = DateTime.now();
+  final Set<String> _shownPostIds = {};
+  StreamSubscription? _postSubscription;
+
+  void startMonitoring() {
+    if (_monitoringTimer != null) return;
+    
+    // Initial fetch
+    _loadNotificationsFromAPI();
+    
+    // Start periodic polling for earthquakes (every 1 minute)
+    _monitoringTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      _loadNotificationsFromAPI();
+    });
+    
+    // Listen for community updates
+    _startPostMonitoring();
+  }
+
+  void stopMonitoring() {
+    _monitoringTimer?.cancel();
+    _monitoringTimer = null;
+    _postSubscription?.cancel();
+    _postSubscription = null;
+  }
+
+  void _startPostMonitoring() {
+    _postSubscription?.cancel();
+    // Listen to all posts stream
+    _postSubscription = PostRepository.instance.getAllPosts(null).listen((posts) {
+      final settings = SettingsRepository.instance;
+      if (!settings.communityUpdates) return;
+
+      // Filter new posts
+      for (final post in posts) {
+        // Check if post is created after we started monitoring and we haven't shown it yet
+        if (post.timestamp.isAfter(_lastPostCheckTime) && !_shownPostIds.contains(post.id)) {
+          _shownPostIds.add(post.id);
+          
+          // Trigger notification
+          NotificationService.instance.showCommunityUpdateNotification(
+            'New Community Update',
+            '${post.authorName}: ${post.message}',
+          );
+        }
+      }
+    });
+  }
+
+  Future<void> checkUpdatesInBackground() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastCheckMillis = prefs.getInt('last_background_check') ?? DateTime.now().subtract(const Duration(minutes: 15)).millisecondsSinceEpoch;
+    final lastCheck = DateTime.fromMillisecondsSinceEpoch(lastCheckMillis);
+    
+    // Fetch earthquakes
+    await _loadNotificationsFromAPI(lastCheckTime: lastCheck);
+    
+    // Fetch posts
+    if (SettingsRepository.instance.communityUpdates) {
+      try {
+        // Use first to get current state without listening
+        final posts = await PostRepository.instance.getAllPosts(null).first;
+        for (final post in posts) {
+          if (post.timestamp.isAfter(lastCheck)) {
+             NotificationService.instance.showCommunityUpdateNotification(
+              'New Community Update',
+              '${post.authorName}: ${post.message}',
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Background post check error: $e');
+      }
+    }
+
+    await prefs.setInt('last_background_check', DateTime.now().millisecondsSinceEpoch);
+  }
+
+  Future<void> _loadNotificationsFromAPI({DateTime? lastCheckTime}) async {
     if (_isLoading) return;
     _isLoading = true;
 
@@ -42,6 +125,9 @@ class NotificationRepository {
       final notifications = <NotificationModel>[];
       
       for (final eq in earthquakes) {
+        // Check background time constraint
+        if (lastCheckTime != null && eq.dateTime.isBefore(lastCheckTime)) continue;
+
         final notificationId = eq.earthquakeId ?? '${eq.latitude}_${eq.longitude}_${eq.dateTime.millisecondsSinceEpoch}';
         
         // Skip if this notification was deleted

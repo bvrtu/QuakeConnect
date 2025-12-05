@@ -4,6 +4,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:image/image.dart' as img;
@@ -95,7 +96,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Posts', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(AppLocalizations.of(context).posts, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => _UserPostsScreen(userId: targetUserId ?? _currentUserId ?? '')));
+                  },
+                  child: Text(AppLocalizations.of(context).viewAll),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             StreamBuilder<List<CommunityPost>>(
               stream: _postRepo.getPostsByUserId(targetUserId, _currentUserId),
@@ -115,15 +127,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Center(
                       child: Text(
-                        'No posts yet',
+                        AppLocalizations.of(context).noUpdatesYet,
                         style: TextStyle(color: Colors.grey.shade600),
                       ),
                     ),
                   );
                 }
                 
+                final displayPosts = posts.take(3).toList();
+                
                 return Column(
-                  children: posts.map((post) => CommunityPostCard(
+                  children: displayPosts.map((post) => CommunityPostCard(
                     post: post,
                     onUpdated: () => setState(() {}),
                     showBanner: (msg, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
@@ -249,10 +263,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildTopHeader() {
+    final canPop = Navigator.of(context).canPop();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
       child: Row(
         children: [
+          if (canPop) ...[
+            IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 12),
+          ],
           Text(
             AppLocalizations.of(context).profileTitle,
             style: const TextStyle(
@@ -405,7 +429,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                     Expanded(child: _buildInfoTile(Localizations.localeOf(context).languageCode == 'tr' ? 'Kilo' : 'Weight', '${user.weightKg ?? 0} kg', 0xFFFFF3E0)),
                 const SizedBox(width: 12),
-                    Expanded(child: _buildInfoTile(AppLocalizations.of(context).disabilityStatus, _disabilitiesLabel(context, user.disabilities, user.disabilityOther), 0xFFF3E5F5)),
+                    Expanded(child: _buildInfoTile(
+                      AppLocalizations.of(context).disabilityStatus,
+                      _disabilitiesLabel(context, user.disabilities, user.disabilityOther),
+                      0xFFF3E5F5,
+                      onTap: user.disabilities.isNotEmpty 
+                          ? () => _showDisabilitiesDialog(context, user.disabilities, user.disabilityOther) 
+                          : null,
+                    )),
               ],
             ),
             const SizedBox(height: 16),
@@ -427,7 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ? Colors.grey.shade300
                                 : Colors.grey.shade700,
                         fontSize: 15),
-                    maxLines: 1,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -953,11 +984,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return hsl.withSaturation(sat).withLightness(light).toColor();
   }
 
-  Widget _buildInfoTile(String title, String value, int bg) {
+  Widget _buildInfoTile(String title, String value, int bg, {VoidCallback? onTap}) {
     final base = Color(bg);
     final accent = _accentFromBg(bg);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
+    final tile = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? base.withValues(alpha: 0.12) : base.withValues(alpha: 0.22),
@@ -1007,6 +1038,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: Theme.of(context).colorScheme.onSurface),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: onTap,
+        child: tile,
+      );
+    }
+    return tile;
+  }
+
+  void _showDisabilitiesDialog(BuildContext context, List<String> disabilities, String? other) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context).disabilityStatus),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: disabilities.map((key) {
+                  String label = key;
+                  if (key == 'physical') label = Localizations.localeOf(context).languageCode == 'tr' ? 'Fiziksel' : 'Physical';
+                  else if (key == 'visual') label = Localizations.localeOf(context).languageCode == 'tr' ? 'Görme' : 'Visual';
+                  else if (key == 'hearing') label = Localizations.localeOf(context).languageCode == 'tr' ? 'İşitme' : 'Hearing';
+                  else if (key == 'speech') label = Localizations.localeOf(context).languageCode == 'tr' ? 'Konuşma' : 'Speech';
+                  else if (key == 'mental') label = Localizations.localeOf(context).languageCode == 'tr' ? 'Zihinsel' : 'Mental';
+                  else if (key == 'other') label = Localizations.localeOf(context).languageCode == 'tr' ? 'Diğer' : 'Other';
+                  
+                  return Chip(
+                    label: Text(label),
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    labelStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer),
+                  );
+                }).toList(),
+              ),
+              if (other != null && other.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  '${AppLocalizations.of(context).otherSpecify}:',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(other),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(AppLocalizations.of(context).confirm), // Using confirm as 'Close' or 'OK'
           ),
         ],
       ),
@@ -1104,6 +1194,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_currentUserId == null) return;
     
     try {
+      // Fetch target user for the name
+      final targetUser = await _userRepo.getUser(targetUserId);
+      final targetName = targetUser?.displayName ?? 'User';
+
       if (currentlyFollowing) {
         await _userRepo.unfollowUser(_currentUserId!, targetUserId);
       } else {
@@ -1113,8 +1207,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _loadCurrentUser();
       _showTopBanner(
         currentlyFollowing 
-            ? 'Unfollowed ${_currentUser?.displayName ?? 'user'}' 
-            : 'Following ${_currentUser?.displayName ?? 'user'}',
+            ? AppLocalizations.of(context).unfollowedUser(targetName)
+            : AppLocalizations.of(context).followedUser(targetName),
         background: currentlyFollowing ? Colors.grey.shade700 : const Color(0xFF2E7D32),
         icon: currentlyFollowing ? Icons.person_remove : Icons.person_add,
       );
@@ -1149,11 +1243,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         int tab = 0; // 0: Upload Image, 1: Choose Color
         File? pickedImageFile;
         int tempGradientIndex = _currentUser?.gradientIndex ?? 0;
@@ -1170,12 +1265,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           [const Color(0xFFFFA726), const Color(0xFFFF7043)],
           [const Color(0xFF7E57C2), const Color(0xFFAB47BC)],
           [const Color(0xFF66BB6A), const Color(0xFF43A047)],
-          [const Color(0xFF42A5F5), const Color(0xFF1E88E5)],
-          [const Color(0xFFEC407A), const Color(0xFFAB47BC)],
         ];
 
         Widget previewAvatar() {
-          // Show selected image if available, otherwise show gradient
           if (pickedImageFile != null) {
             return Container(
               width: 120,
@@ -1196,7 +1288,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             );
           }
-          final colors = gradients[tempGradientIndex % gradients.length];
+
+          if (tab == 1) {
+            final colors = gradients[tempGradientIndex % gradients.length];
+            return Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(colors: colors),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                _initials(_currentUser?.displayName ?? 'Unknown'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 32,
+                ),
+              ),
+            );
+          }
+
+          ImageProvider? imageProvider;
+          final photoURL = _currentUser?.photoURL;
+          
+          if (photoURL != null && photoURL.isNotEmpty) {
+            if (photoURL.startsWith('data:image')) {
+              try {
+                final base64String = photoURL.split(',')[1];
+                imageProvider = MemoryImage(base64Decode(base64String));
+              } catch (e) {
+                debugPrint('Error decoding base64 image: $e');
+              }
+            } else {
+              imageProvider = NetworkImage(photoURL);
+            }
+          }
+
+          if (imageProvider != null) {
+            return Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: imageProvider,
+                  fit: BoxFit.cover,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final colors = gradients[(_currentUser?.gradientIndex ?? 0) % gradients.length];
           return Container(
             width: 120,
             height: 120,
@@ -1245,20 +1403,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
                       child: Row(
                         children: [
-                          const Icon(Icons.photo_camera_outlined),
+                          Icon(Icons.photo_camera_outlined, color: isDark ? Colors.white : Colors.black87),
                           const SizedBox(width: 8),
-                          const Text('Change Profile Picture',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          Text(AppLocalizations.of(context).changeProfilePicture,
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87)),
                           const Spacer(),
                           IconButton(
-                            icon: const Icon(Icons.close),
+                            icon: Icon(Icons.close, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                             onPressed: () => Navigator.pop(context),
                             splashRadius: 20,
                           ),
                         ],
                       ),
                     ),
-                    const Divider(height: 1),
+                    Divider(height: 1, color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
                     const SizedBox(height: 12),
                     Center(child: previewAvatar()),
                     const SizedBox(height: 12),
@@ -1267,7 +1425,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(28),
                         ),
                         child: Row(
@@ -1279,7 +1437,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 child: Container(
                                   height: 44,
                                   decoration: BoxDecoration(
-                                    color: tab == 0 ? Colors.white : Colors.transparent,
+                                    color: tab == 0 ? (isDark ? Colors.grey.shade700 : Colors.white) : Colors.transparent,
                                     borderRadius: BorderRadius.circular(22),
                                     boxShadow: tab == 0
                                         ? [
@@ -1297,10 +1455,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     children: [
                                       Icon(Icons.file_upload_outlined,
                                           size: 18,
-                                          color: tab == 0 ? Colors.black : Colors.black87),
+                                          color: tab == 0 ? (isDark ? Colors.white : Colors.black) : (isDark ? Colors.grey.shade400 : Colors.black87)),
                                       const SizedBox(width: 8),
-                                      const Text('Upload Image',
-                                          style: TextStyle(fontWeight: FontWeight.w600)),
+                                      Text(AppLocalizations.of(context).uploadImageTab,
+                                          style: TextStyle(fontWeight: FontWeight.w600, color: tab == 0 ? (isDark ? Colors.white : Colors.black) : (isDark ? Colors.grey.shade400 : Colors.black87))),
                                     ],
                                   ),
                                 ),
@@ -1314,7 +1472,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 child: Container(
                                   height: 44,
                                   decoration: BoxDecoration(
-                                    color: tab == 1 ? Colors.white : Colors.transparent,
+                                    color: tab == 1 ? (isDark ? Colors.grey.shade700 : Colors.white) : Colors.transparent,
                                     borderRadius: BorderRadius.circular(22),
                                     boxShadow: tab == 1
                                         ? [
@@ -1332,10 +1490,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     children: [
                                       Icon(Icons.color_lens_outlined,
                                           size: 18,
-                                          color: tab == 1 ? Colors.black : Colors.black87),
+                                          color: tab == 1 ? (isDark ? Colors.white : Colors.black) : (isDark ? Colors.grey.shade400 : Colors.black87)),
                                       const SizedBox(width: 8),
-                                      const Text('Choose Color',
-                                          style: TextStyle(fontWeight: FontWeight.w600)),
+                                      Text(AppLocalizations.of(context).chooseColor,
+                                          style: TextStyle(fontWeight: FontWeight.w600, color: tab == 1 ? (isDark ? Colors.white : Colors.black) : (isDark ? Colors.grey.shade400 : Colors.black87))),
                                     ],
                                   ),
                                 ),
@@ -1354,8 +1512,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 8),
-                                  const Text('Upload your photo',
-                                      style: TextStyle(fontWeight: FontWeight.w600)),
+                                  Text(AppLocalizations.of(context).uploadPhotoInstruction,
+                                      style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87)),
                                   const SizedBox(height: 12),
                                   SizedBox(
                                     width: double.infinity,
@@ -1370,9 +1528,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             imageQuality: 85,
                                           );
                                           if (image != null) {
-                                            setSheet(() {
-                                              pickedImageFile = File(image.path);
-                                            });
+                                            final croppedFile = await ImageCropper().cropImage(
+                                              sourcePath: image.path,
+                                              uiSettings: [
+                                                AndroidUiSettings(
+                                                  toolbarTitle: 'Edit Photo',
+                                                  toolbarColor: Colors.black,
+                                                  toolbarWidgetColor: Colors.white,
+                                                  initAspectRatio: CropAspectRatioPreset.original,
+                                                  lockAspectRatio: false,
+                                                ),
+                                                IOSUiSettings(
+                                                  title: 'Edit Photo',
+                                                ),
+                                              ],
+                                            );
+                                            if (croppedFile != null) {
+                                              setSheet(() {
+                                                pickedImageFile = File(croppedFile.path);
+                                              });
+                                            }
                                           }
                                         } catch (e) {
                                           if (context.mounted) {
@@ -1382,12 +1557,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           }
                                         }
                                       },
-                                      icon: const Icon(Icons.file_upload_outlined),
-                                      label: const Text('Choose Image'),
+                                      icon: Icon(Icons.file_upload_outlined, color: isDark ? Colors.white : Colors.black),
+                                      label: Text(AppLocalizations.of(context).chooseImage, style: TextStyle(color: isDark ? Colors.white : Colors.black)),
                                       style: OutlinedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                                         minimumSize: const Size.fromHeight(52),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                        side: BorderSide(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
                                       ),
                                     ),
                                   ),
@@ -1397,23 +1573,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       child: Text(
                                         'Image selected: ${pickedImageFile!.path.split('/').last}',
                                         style: TextStyle(color: Colors.green.shade700, fontSize: 12),
+                                      ),
                                     ),
-                                  ),
                                   const SizedBox(height: 8),
-                                  Text('Max file size: 5MB. Supported: JPG, PNG, GIF',
-                                      style: TextStyle(color: Colors.grey.shade600)),
+                                  Text(AppLocalizations.of(context).maxFileSizeInfo,
+                                      style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
                                 ],
                               )
                             : Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 8),
-                                  const Text('Choose a gradient color',
-                                      style: TextStyle(fontWeight: FontWeight.w600)),
+                                  Text(AppLocalizations.of(context).chooseGradientInstruction,
+                                      style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87)),
                                   const SizedBox(height: 12),
                                   Wrap(
                                     spacing: 12,
                                     runSpacing: 12,
+                                    alignment: WrapAlignment.center,
                                     children: [
                                       for (int i = 0; i < gradients.length; i++)
                                         GestureDetector(
@@ -1425,7 +1602,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               shape: BoxShape.circle,
                                               gradient: LinearGradient(colors: gradients[i]),
                                               border: Border.all(
-                                                color: i == tempGradientIndex ? Colors.black : Colors.white,
+                                                color: i == tempGradientIndex ? (isDark ? Colors.white : Colors.black) : Colors.transparent,
                                                 width: 3,
                                               ),
                                               boxShadow: const [
@@ -1450,6 +1627,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                side: BorderSide(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
+                                foregroundColor: isDark ? Colors.white : Colors.black,
                               ),
                               child: Text(AppLocalizations.of(context).cancel),
                             ),
@@ -1553,12 +1732,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 }
                               } : null,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: hasChanges() ? Colors.black : Colors.grey,
-                                foregroundColor: Colors.white,
+                                backgroundColor: hasChanges() ? (isDark ? Colors.white : Colors.black) : Colors.grey,
+                                foregroundColor: hasChanges() ? (isDark ? Colors.black : Colors.white) : Colors.white70,
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              child: const Text('Save Changes'),
+                              child: Text(AppLocalizations.of(context).saveChangesBtn),
                             ),
                           ),
                         ],
@@ -1683,7 +1862,7 @@ class _CountTile extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey.shade300
+                              ? Colors.grey.shade300
                             : Colors.grey.shade700,
                       ),
                       maxLines: 1,
@@ -1724,6 +1903,7 @@ class _FollowListScreen extends StatefulWidget {
 class _FollowListScreenState extends State<_FollowListScreen> {
   final UserRepository _userRepo = UserRepository.instance;
   String? _currentUserId;
+  OverlayEntry? _bannerEntry;
 
   @override
   void initState() {
@@ -1731,20 +1911,112 @@ class _FollowListScreenState extends State<_FollowListScreen> {
     _currentUserId = AuthService.instance.currentUserId;
   }
 
+  @override
+  void dispose() {
+    _removeBanner();
+    super.dispose();
+  }
+
+  void _removeBanner() {
+    _bannerEntry?.remove();
+    _bannerEntry = null;
+  }
+
+  void _showTopBanner(
+    String message, {
+    Color background = Colors.black87,
+    IconData icon = Icons.check_circle,
+  }) {
+    _removeBanner();
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (context) {
+        final topPadding = MediaQuery.of(context).padding.top;
+        return Positioned(
+          top: topPadding + 16,
+          left: 16,
+          right: 16,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            builder: (context, t, child) {
+              return Transform.translate(
+                offset: Offset(0, (1 - t) * -40),
+                child: Opacity(opacity: t, child: child),
+              );
+            },
+            child: Material(
+              color: Colors.transparent,
+              elevation: 6,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    overlay.insert(entry);
+    _bannerEntry = entry;
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) _removeBanner();
+    });
+  }
+
   Future<void> _handleFollowToggle(String targetUserId, bool currentlyFollowing) async {
     if (_currentUserId == null) return;
     
     try {
+      // Get user details for the snackbar message
+      final userDoc = await _userRepo.getUser(targetUserId);
+      final displayName = userDoc?.displayName ?? 'User';
+
       if (currentlyFollowing) {
         await _userRepo.unfollowUser(_currentUserId!, targetUserId);
+        if (mounted) {
+          _showTopBanner(
+            AppLocalizations.of(context).unfollowedUser(displayName),
+            background: Colors.grey.shade700,
+            icon: Icons.person_remove,
+          );
+        }
       } else {
         await _userRepo.followUser(_currentUserId!, targetUserId);
+        if (mounted) {
+          _showTopBanner(
+            AppLocalizations.of(context).followedUser(displayName),
+            background: const Color(0xFF2E7D32),
+            icon: Icons.person_add,
+          );
+        }
       }
       setState(() {}); // Refresh to update follow status
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        _showTopBanner('Error: $e', background: Colors.red, icon: Icons.error);
+      }
     }
   }
 
@@ -1968,10 +2240,12 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
   late final TextEditingController heightCtrl;
   late final TextEditingController weightCtrl;
   bool hasDisability = false;
+  bool _isLocationFromList = true;
   Set<String> selectedDisabilityKeys = <String>{};
   final TextEditingController otherCtrl = TextEditingController();
   TextEditingController? _typeAheadController; // Store TypeAheadField's controller
   final _formKey = GlobalKey<FormState>();
+  OverlayEntry? _bannerEntry;
 
   @override
   void initState() {
@@ -1996,7 +2270,76 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
     heightCtrl.dispose();
     weightCtrl.dispose();
     otherCtrl.dispose();
+    _removeBanner();
     super.dispose();
+  }
+
+  void _removeBanner() {
+    _bannerEntry?.remove();
+    _bannerEntry = null;
+  }
+
+  void _showTopBanner(
+    String message, {
+    Color background = Colors.black87,
+    IconData icon = Icons.check_circle,
+  }) {
+    _removeBanner();
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (context) {
+        final topPadding = MediaQuery.of(context).padding.top;
+        return Positioned(
+          top: topPadding + 16,
+          left: 16,
+          right: 16,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            builder: (context, t, child) {
+              return Transform.translate(
+                offset: Offset(0, (1 - t) * -40),
+                child: Opacity(opacity: t, child: child),
+              );
+            },
+            child: Material(
+              color: Colors.transparent,
+              elevation: 6,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    overlay.insert(entry);
+    _bannerEntry = entry;
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) _removeBanner();
+    });
   }
 
   bool get _hasChanges {
@@ -2014,6 +2357,17 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
   }
 
   Future<void> _confirmAndSave() async {
+    if (!_isLocationFromList && locationCtrl.text.trim().isNotEmpty) {
+      _showTopBanner(
+        Localizations.localeOf(context).languageCode == 'tr' 
+            ? 'Lütfen listeden bir konum seçin' 
+            : 'Please select a location from the list',
+        background: Colors.red,
+        icon: Icons.error_outline,
+      );
+      return;
+    }
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -2150,6 +2504,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                     TextPosition(offset: suggestion.length),
                   );
                 }
+                _isLocationFromList = true;
                 setState(() {});
               },
               builder: (context, controller, focusNode) {
@@ -2169,6 +2524,7 @@ class _EditProfileScreenState extends State<_EditProfileScreen> {
                   focusNode: focusNode,
                   onChanged: (value) {
                     locationCtrl.text = value;
+                    _isLocationFromList = false;
                     setState(() {});
                   },
                   decoration: InputDecoration(
@@ -3202,3 +3558,70 @@ Widget _seg(bool active, String text, VoidCallback onTap) {
 }
 
 
+
+class _UserPostsScreen extends StatefulWidget {
+  final String userId;
+  const _UserPostsScreen({required this.userId});
+
+  @override
+  State<_UserPostsScreen> createState() => _UserPostsScreenState();
+}
+
+class _UserPostsScreenState extends State<_UserPostsScreen> {
+  final PostRepository _postRepo = PostRepository.instance;
+  String? _currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUserId = AuthService.instance.currentUserId;
+  }
+
+  void _showTopBanner(String message, {Color background = Colors.black87, IconData icon = Icons.check_circle}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(children: [Icon(icon, color: Colors.white, size: 20), const SizedBox(width: 8), Expanded(child: Text(message))]), 
+        backgroundColor: background,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(bottom: MediaQuery.of(context).size.height - 150, left: 16, right: 16),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context).posts),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+      ),
+      body: StreamBuilder<List<CommunityPost>>(
+        stream: _postRepo.getPostsByUserId(widget.userId, _currentUserId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          final posts = snapshot.data ?? [];
+          if (posts.isEmpty) {
+            return Center(child: Text(AppLocalizations.of(context).noUpdatesYet));
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.only(bottom: 20),
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              return CommunityPostCard(
+                post: posts[index],
+                onUpdated: () => setState(() {}),
+                showBanner: _showTopBanner,
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}

@@ -75,6 +75,8 @@ class AppLocalizations {
       'no_contacts_saved': 'No emergency contacts yet',
       'tap_to_add_contact': 'Save trusted people you can reach instantly.',
       'go_to_profile_change_pp': 'Go to your profile to change your profile picture',
+      'followed_user': 'Followed {name}',
+      'unfollowed_user': 'Unfollowed {name}',
 
       'home_subtitle': 'Real-time updates from Turkey',
       'search_hint': 'Search location...',
@@ -103,6 +105,7 @@ class AppLocalizations {
       'community_updates_title': 'Community Updates',
       'following_updates_title': 'Updates from Following',
       'popular_posts': 'Popular Posts',
+      'posts': 'Posts',
       'discover_title': 'Discover',
       'search_users': 'Search Users',
       'search_users_hint': 'Search by name or username...',
@@ -227,6 +230,12 @@ class AppLocalizations {
       'profile_setup_subtitle': 'Set up your profile',
       'choose_image': 'Choose Image',
       'choose_color': 'Choose Color',
+      'change_profile_picture': 'Change Profile Picture',
+      'upload_image_tab': 'Upload Image',
+      'upload_photo_instruction': 'Upload your photo',
+      'max_file_size_info': 'Max file size: 5MB. Supported: JPG, PNG, GIF',
+      'choose_gradient_instruction': 'Choose a gradient color',
+      'save_changes_btn': 'Save Changes',
       'continue_': 'Continue',
       'please_specify': 'Please specify',
     },
@@ -294,6 +303,8 @@ class AppLocalizations {
       'no_contacts_saved': 'Henüz acil durum kişisi yok',
       'tap_to_add_contact': 'Hemen ulaşmak için güvendiğiniz kişileri kaydedin.',
       'go_to_profile_change_pp': 'Profil fotoğrafını değiştirmek için profil sayfana git',
+      'followed_user': '{name} takip edildi',
+      'unfollowed_user': '{name} takipten çıkarıldı',
 
       'home_subtitle': 'Türkiye’den anlık güncellemeler',
       'search_hint': 'Konum ara...',
@@ -322,6 +333,7 @@ class AppLocalizations {
       'community_updates_title': 'Topluluk Güncellemeleri',
       'following_updates_title': 'Takip Ettiklerinizden Güncellemeler',
       'popular_posts': 'Popüler Gönderiler',
+      'posts': 'Gönderiler',
       'discover_title': 'Keşfet',
       'search_users': 'Kullanıcı Ara',
       'search_users_hint': 'İsim veya kullanıcı adı ile ara...',
@@ -446,6 +458,12 @@ class AppLocalizations {
       'profile_setup_subtitle': 'Profilinizi ayarlayın',
       'choose_image': 'Resim Seç',
       'choose_color': 'Renk Seç',
+      'change_profile_picture': 'Profil Fotoğrafını Değiştir',
+      'upload_image_tab': 'Resim Yükle',
+      'upload_photo_instruction': 'Fotoğrafınızı yükleyin',
+      'max_file_size_info': 'Maks. dosya boyutu: 5MB. Desteklenen: JPG, PNG, GIF',
+      'choose_gradient_instruction': 'Bir gradyan rengi seçin',
+      'save_changes_btn': 'Değişiklikleri Kaydet',
       'continue_': 'Devam Et',
       'please_specify': 'Lütfen belirtin',
     }
@@ -524,6 +542,7 @@ class AppLocalizations {
   String get communityUpdatesTitle => _t('community_updates_title');
   String get followingUpdatesTitle => _t('following_updates_title');
   String get popularPosts => _t('popular_posts');
+  String get posts => _t('posts');
   String get discoverTitle => _t('discover_title');
   String get searchUsers => _t('search_users');
   String get searchUsersHint => _t('search_users_hint');
@@ -649,6 +668,12 @@ class AppLocalizations {
   String get profileSetupSubtitle => _t('profile_setup_subtitle');
   String get chooseImage => _t('choose_image');
   String get chooseColor => _t('choose_color');
+  String get changeProfilePicture => _t('change_profile_picture');
+  String get uploadImageTab => _t('upload_image_tab');
+  String get uploadPhotoInstruction => _t('upload_photo_instruction');
+  String get maxFileSizeInfo => _t('max_file_size_info');
+  String get chooseGradientInstruction => _t('choose_gradient_instruction');
+  String get saveChangesBtn => _t('save_changes_btn');
   String get continue_ => _t('continue_');
   String get pleaseSpecify => _t('please_specify');
   String get emergencyTip => _t('emergency_tip');
@@ -671,6 +696,8 @@ class AppLocalizations {
   String get noneOption => _t('none_option');
   String get presentOption => _t('present_option');
   String get goToProfileChangePp => _t('go_to_profile_change_pp');
+  String followedUser(String name) => _t('followed_user').replaceAll('{name}', name);
+  String unfollowedUser(String name) => _t('unfollowed_user').replaceAll('{name}', name);
   String get yourSafetyStatus => _t('your_safety_status');
   String get letOthersKnow => _t('let_others_know');
 }

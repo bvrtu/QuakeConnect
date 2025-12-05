@@ -290,8 +290,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -380,46 +380,37 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Flexible(
-                            child: Text(
-                              user.username,
-                              style: TextStyle(
-                                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                                fontSize: 14,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          Text(
+                            user.username,
+                            style: TextStyle(
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                              fontSize: 14,
                             ),
                           ),
                           if (user.location != null) ...[
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: RichText(
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                text: TextSpan(
-                                  children: [
-                                    WidgetSpan(
-                                      alignment: PlaceholderAlignment.middle,
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(right: 2.0),
-                                        child: Icon(
-                                          Icons.location_on,
-                                          size: 14,
-                                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                                        ),
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: user.location!,
-                                      style: TextStyle(
+                            RichText(
+                              text: TextSpan(
+                                children: [
+                                  WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 2.0),
+                                      child: Icon(
+                                        Icons.location_on,
+                                        size: 14,
                                         color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                                        fontSize: 12,
-                                        fontFamily: DefaultTextStyle.of(context).style.fontFamily,
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  TextSpan(
+                                    text: user.location!,
+                                    style: TextStyle(
+                                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                      fontSize: 12,
+                                      fontFamily: DefaultTextStyle.of(context).style.fontFamily,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -466,14 +457,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           if (following) {
                             await _userRepo.unfollowUser(_currentUserId!, user.id);
                             _showTopBanner(
-                              'Unfollowed ${user.displayName}',
+                              AppLocalizations.of(context).unfollowedUser(user.displayName),
                               background: Colors.grey.shade700,
                               icon: Icons.person_remove,
                             );
                           } else {
                             await _userRepo.followUser(_currentUserId!, user.id);
                             _showTopBanner(
-                              'Following ${user.displayName}',
+                              AppLocalizations.of(context).followedUser(user.displayName),
                               background: const Color(0xFF2E7D32),
                               icon: Icons.person_add,
                             );
