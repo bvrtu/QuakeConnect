@@ -37,6 +37,7 @@ class EarthquakeCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Magnitude Box
             Container(
@@ -77,34 +78,60 @@ class EarthquakeCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   // Time and Depth Row
-                  Row(
+                  Wrap(
+                    spacing: 20,
+                    runSpacing: 6,
                     children: [
-                      Icon(Icons.access_time, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
-                      const SizedBox(width: 6),
-                      Text(
-                        translateRelativeFromEnglish(context, earthquake.timeAgo),
-                        style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(Icons.access_time, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              translateRelativeFromEnglish(context, earthquake.timeAgo),
+                              style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 20),
-                      Icon(Icons.layers, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
-                      const SizedBox(width: 6),
-                      Text(
-                        "${earthquake.depth.toStringAsFixed(1)} km ${AppLocalizations.of(context).deepSuffix}",
-                        style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(Icons.layers, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              "${earthquake.depth.toStringAsFixed(1)} km ${AppLocalizations.of(context).deepSuffix}",
+                              style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   // Distance
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(Icons.location_on, size: 16, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
                       const SizedBox(width: 6),
-                      Text(
-                        earthquake.distance > 0
-                            ? "${earthquake.distance.toStringAsFixed(0)} km ${AppLocalizations.of(context).awaySuffix}"
-                            : AppLocalizations.of(context).distanceUnknown,
-                        style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
+                      Flexible(
+                        child: Text(
+                          earthquake.distance > 0
+                              ? "${earthquake.distance.toStringAsFixed(0)} km ${AppLocalizations.of(context).awaySuffix}"
+                              : AppLocalizations.of(context).distanceUnknown,
+                          style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),

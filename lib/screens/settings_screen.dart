@@ -9,11 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class SettingsScreen extends StatefulWidget {
-  final bool darkMode;
-  final ValueChanged<bool> onDarkModeChanged;
-  final String languageCode;
-  final ValueChanged<String> onLanguageChanged;
-  const SettingsScreen({super.key, required this.darkMode, required this.onDarkModeChanged, required this.languageCode, required this.onLanguageChanged});
+  const SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -52,7 +48,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    language = widget.languageCode == 'tr' ? 'Türkçe' : 'English';
+    final currentLocale = _settingsRepo.locale.value;
+    language = currentLocale.languageCode == 'tr' ? 'Türkçe' : 'English';
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -86,9 +85,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.brightness_5_outlined,
                     title: AppLocalizations.of(context).darkMode,
                     subtitle: AppLocalizations.of(context).toggleDarkTheme,
-                    value: widget.darkMode,
+                    value: isDarkMode,
                     onChanged: (v) {
-                      widget.onDarkModeChanged(v);
+                      _settingsRepo.saveThemeMode(v);
                       setState(() {});
                     },
                   )),
@@ -359,7 +358,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onChanged: (v) {
             if (v == null) return;
             setState(() => language = v);
-            widget.onLanguageChanged(v == 'Türkçe' ? 'tr' : 'en');
+            _settingsRepo.saveLocale(v == 'Türkçe' ? 'tr' : 'en');
           },
           decoration: InputDecoration(
             filled: true,

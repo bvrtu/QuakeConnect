@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsRepository {
@@ -10,6 +11,10 @@ class SettingsRepository {
   bool _nearbyAlerts = true;
   bool _communityUpdates = true;
   bool _locationServices = true;
+  
+  // State Notifiers
+  final ValueNotifier<ThemeMode> themeMode = ValueNotifier(ThemeMode.system);
+  final ValueNotifier<Locale> locale = ValueNotifier(const Locale('en'));
 
   // Getters
   bool get pushNotifications => _pushNotifications;
@@ -26,9 +31,33 @@ class SettingsRepository {
     _nearbyAlerts = prefs.getBool('nearby_alerts') ?? true;
     _communityUpdates = prefs.getBool('community_updates') ?? true;
     _locationServices = prefs.getBool('location_services') ?? true;
+    
+    // Load Theme
+    final isDark = prefs.getBool('is_dark_mode');
+    if (isDark == null) {
+      themeMode.value = ThemeMode.system;
+    } else {
+      themeMode.value = isDark ? ThemeMode.dark : ThemeMode.light;
+    }
+    
+    // Load Language
+    final langCode = prefs.getString('language_code') ?? 'en';
+    locale.value = Locale(langCode);
   }
 
   // Save settings to SharedPreferences
+  Future<void> saveThemeMode(bool isDark) async {
+    themeMode.value = isDark ? ThemeMode.dark : ThemeMode.light;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_dark_mode', isDark);
+  }
+  
+  Future<void> saveLocale(String languageCode) async {
+    locale.value = Locale(languageCode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language_code', languageCode);
+  }
+
   Future<void> savePushNotifications(bool value) async {
     _pushNotifications = value;
     final prefs = await SharedPreferences.getInstance();

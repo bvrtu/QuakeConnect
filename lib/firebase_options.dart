@@ -58,8 +58,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDjMGsKDRVzJInS9pMAEP1R4QMKYp6qnYA',
-    appId: '1:430371063688:ios:YOUR_IOS_APP_ID',
+    apiKey: 'AIzaSyDbqOBa3HaWmVENx21sucm7hzFlboR9DZg',
+    appId: '1:430371063688:ios:0ad643a0defab3b4439c3d',
     messagingSenderId: '430371063688',
     projectId: 'quakeconnect',
     storageBucket: 'quakeconnect.firebasestorage.app',

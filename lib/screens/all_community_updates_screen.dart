@@ -115,11 +115,14 @@ class _AllCommunityUpdatesScreenState extends State<AllCommunityUpdatesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          AppLocalizations.of(context).followingUpdatesTitle,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            AppLocalizations.of(context).followingUpdatesTitle,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         centerTitle: false,

@@ -334,11 +334,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                          Text(user.displayName,
+                          Text(
+                            user.displayName,
                           style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
-                              letterSpacing: -0.2)),
+                                letterSpacing: -0.2),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                       const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -356,14 +360,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             const Icon(Icons.alternate_email,
                                 size: 14, color: Color(0xFF6246EA)),
                             const SizedBox(width: 6),
-                            Text(
-                                  user.username.startsWith('@')
-                                      ? user.username.substring(1)
-                                      : user.username,
+                            Flexible(
+                              child: Text(
+                                user.username.startsWith('@')
+                                    ? user.username.substring(1)
+                                    : user.username,
                               style: TextStyle(
                                 color: Theme.of(context).brightness ==
                                         Brightness.dark
@@ -371,6 +377,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     : Colors.grey.shade700,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -401,6 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 16),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Icon(Icons.location_on,
                     size: 18,
@@ -409,13 +419,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         : Colors.blueGrey),
                 const SizedBox(width: 6),
                 Expanded(
-                        child: Text(user.location ?? 'Unknown',
+                  child: Text(
+                    user.location ?? 'Unknown',
                         style: TextStyle(
                             color: Theme.of(context).brightness ==
                                     Brightness.dark
                                 ? Colors.grey.shade300
                                 : Colors.grey.shade700,
-                            fontSize: 15))),
+                        fontSize: 15),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -497,7 +512,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onTap: () => _openFollowList(isFollowers: true),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: _CountTile(
               color: const Color(0xFFE3F2FD),
@@ -566,15 +581,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           const Icon(Icons.phone_in_talk, color: Colors.redAccent),
           const SizedBox(width: 8),
-                    Text(
-                      t.emergencyContacts,
+                    Expanded(
+                      child: Text(
+                        t.emergencyContacts,
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-          const Spacer(),
+          const SizedBox(width: 8),
           IconButton(
                       icon: Icon(Icons.add_circle_outline, color: Theme.of(context).colorScheme.onSurface),
                       onPressed: _openAddContactForm,
@@ -939,7 +958,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final accent = _accentFromBg(bg);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? base.withValues(alpha: 0.12) : base.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(14),
@@ -954,30 +973,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
               Container(
-                width: 8,
-                height: 8,
+                width: 6,
+                height: 6,
                 decoration: BoxDecoration(
                   color: accent,
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(title,
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  title,
                   style: TextStyle(
                       color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
-                      fontSize: 15)),
+                      fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(value,
+          const SizedBox(height: 4),
+          Text(
+            value,
               style: TextStyle(
-                  fontSize: 16,
+                fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface)),
+                color: Theme.of(context).colorScheme.onSurface),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -1107,7 +1137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _navigateToProfileFromFollowList(String userId) {
-    Navigator.of(context).pop(); // Close follow list screen first
+    // Don't pop, just push the new profile screen
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => ProfileScreen(userId: userId),
@@ -1619,7 +1649,7 @@ class _CountTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.22),
           borderRadius: BorderRadius.circular(16),
@@ -1633,28 +1663,42 @@ class _CountTile extends StatelessWidget {
           ],
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             CircleAvatar(
+              radius: 18,
               backgroundColor: accent,
-              child: Icon(icon, color: Colors.white),
+              child: Icon(icon, color: Colors.white, size: 18),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(label,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
                       style: TextStyle(
-                          color: Theme.of(context).brightness ==
-                                  Brightness.dark
-                              ? Colors.grey.shade300
-                              : Colors.grey.shade700)),
+                        fontSize: 12,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade300
+                            : Colors.grey.shade700,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text('$value',
+                  Text(
+                    '$value',
                       style: TextStyle(
-                          fontSize: 18,
+                        fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.onSurface)),
+                        color: Theme.of(context).colorScheme.onSurface),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
@@ -1705,135 +1749,11 @@ class _FollowListScreenState extends State<_FollowListScreen> {
   }
 
   void _navigateToProfile(String userId) {
-    Navigator.of(context).pop(); // Close follow list screen first
-    final t = AppLocalizations.of(context);
+    // Simply push the profile screen without custom navigation
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          body: ProfileScreen(userId: userId),
-          bottomNavigationBar: BottomNavigationBar(
-            type: BottomNavigationBarType.fixed,
-            currentIndex: 4, // Profile tab
-            selectedFontSize: 12,
-            unselectedFontSize: 11,
-            onTap: (index) {
-              Navigator.of(context).pop(); // Close profile screen
-              
-              // Navigate to the selected screen
-              Widget targetScreen;
-              switch (index) {
-                case 0: // Home
-                  targetScreen = HomeScreen(
-                    onOpenOnMap: (eq) {},
-                    onOpenMapTab: () {},
-                    onOpenSafetyTab: () {},
-                  );
-                  break;
-                case 1: // Map
-                  targetScreen = const MapScreen();
-                  break;
-                case 2: // Safety
-                  targetScreen = const SafetyScreen();
-                  break;
-                case 3: // Discover
-                  targetScreen = const DiscoverScreen();
-                  break;
-                case 4: // Profile
-                  targetScreen = const ProfileScreen();
-                  break;
-                case 5: // Settings
-                  targetScreen = SettingsScreen(
-                    darkMode: false,
-                    onDarkModeChanged: (_) {},
-                    languageCode: 'en',
-                    onLanguageChanged: (_) {},
-                  );
-                  break;
-                default:
-                  targetScreen = const ProfileScreen();
-              }
-              
-              // Navigate to the selected screen
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (ctx) => Scaffold(
-                    body: targetScreen,
-                    bottomNavigationBar: _buildBottomNavBar(ctx, index, t),
-                  ),
-                ),
-              );
-            },
-            selectedItemColor: Colors.red,
-            unselectedItemColor: Colors.grey,
-            items: [
-              BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
-              BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
-              BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
-              BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
-              BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
-              BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
-            ],
-          ),
-        ),
+        builder: (context) => ProfileScreen(userId: userId),
       ),
-    );
-  }
-
-  Widget _getScreenForIndex(int index, AppLocalizations t) {
-    switch (index) {
-      case 0: // Home
-        return HomeScreen(
-          onOpenOnMap: (eq) {},
-          onOpenMapTab: () {},
-          onOpenSafetyTab: () {},
-        );
-      case 1: // Map
-        return const MapScreen();
-      case 2: // Safety
-        return const SafetyScreen();
-      case 3: // Discover
-        return const DiscoverScreen();
-      case 4: // Profile
-        return const ProfileScreen();
-      case 5: // Settings
-        return SettingsScreen(
-          darkMode: false,
-          onDarkModeChanged: (_) {},
-          languageCode: 'en',
-          onLanguageChanged: (_) {},
-        );
-      default:
-        return const ProfileScreen();
-    }
-  }
-
-  BottomNavigationBar _buildBottomNavBar(BuildContext context, int currentIndex, AppLocalizations t) {
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      currentIndex: currentIndex,
-      selectedFontSize: 12,
-      unselectedFontSize: 11,
-      onTap: (index) {
-        final targetScreen = _getScreenForIndex(index, t);
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (ctx) => Scaffold(
-              body: targetScreen,
-              bottomNavigationBar: _buildBottomNavBar(ctx, index, t),
-            ),
-          ),
-        );
-      },
-      selectedItemColor: Colors.red,
-      unselectedItemColor: Colors.grey,
-      items: [
-        BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
-        BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
-        BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
-        BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
-        BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
-        BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
-      ],
     );
   }
 
@@ -2712,7 +2632,11 @@ class _AddEmergencyContactScreenState extends State<_AddEmergencyContactScreen> 
     final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? t.editContact : t.emergencyContacts),
+        title: Text(
+          _isEditing ? t.editContact : t.emergencyContacts,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         elevation: 0.5,
         actions: [
           Padding(

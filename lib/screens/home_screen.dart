@@ -261,49 +261,61 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
         children: [
           // Logo
           Image.asset(
             'assets/quakeconnect.png',
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           // App Name and Subtitle
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('QuakeConnect',
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'QuakeConnect',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                     letterSpacing: -0.5,
-                  )),
-              Text(
-                AppLocalizations.of(context).homeSubtitle,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade300
-                      : Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+                Text(
+                  AppLocalizations.of(context).homeSubtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade300
+                        : Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
-          // Spacer to push notification to the right
-          const Spacer(),
+          const SizedBox(width: 4),
           // Notifications
           Stack(
             children: [
               IconButton(
                 icon: const Icon(Icons.notifications_outlined),
                 color: Theme.of(context).colorScheme.onSurface,
-                iconSize: 28,
+                iconSize: 24,
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(
+                  minWidth: 40,
+                  minHeight: 40,
+                ),
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -354,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: TextField(
         controller: _searchController,
         focusNode: _searchFocusNode,
@@ -401,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _buildFilterButtons() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           Expanded(
@@ -437,7 +449,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         backgroundColor: isSelected ? cs.primary : cs.surface,
         foregroundColor: isSelected ? cs.onPrimary : cs.onSurface,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
@@ -457,11 +471,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               Icon(icon, size: 16),
               const SizedBox(width: 4),
             ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ),
           ],

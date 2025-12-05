@@ -23,16 +23,21 @@ import 'models/user_model.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
-  // Load settings from SharedPreferences
-  await SettingsRepository.instance.loadSettings();
-  
-  // Initialize notification service
-  await NotificationService.instance.initialize();
+  try {
+    // Initialize Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    
+    // Load settings from SharedPreferences
+    await SettingsRepository.instance.loadSettings();
+    
+    // Initialize notification service
+    await NotificationService.instance.initialize();
+  } catch (e) {
+    debugPrint('Error initializing app: $e');
+    // Continue anyway - the app will show error state if needed
+  }
   
   runApp(const QuakeConnectApp());
 }
@@ -47,8 +52,6 @@ class QuakeConnectApp extends StatefulWidget {
 class _QuakeConnectAppState extends State<QuakeConnectApp> {
   int _selectedIndex = 0;
   int _previousIndex = 0;
-  bool _isDarkMode = false;
-  Locale _locale = const Locale('en');
   Earthquake? _mapSelection;
   bool _isAuthenticated = false;
   bool _isCheckingAuth = true;
@@ -100,32 +103,37 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
         const SafetyScreen(),
         const DiscoverScreen(),
         const ProfileScreen(),
-        SettingsScreen(
-          darkMode: _isDarkMode,
-          onDarkModeChanged: (v) => setState(() => _isDarkMode = v),
-          languageCode: _locale.languageCode,
-          onLanguageChanged: (code) => setState(() => _locale = Locale(code)),
-        ),
+        const SettingsScreen(),
       ];
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'QuakeConnect',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en'), Locale('tr')],
-      locale: _locale,
-      routes: {
-        '/': (context) => _buildAuthWrapper(context),
+    return ValueListenableBuilder<Locale>(
+      valueListenable: SettingsRepository.instance.locale,
+      builder: (context, locale, child) {
+        return ValueListenableBuilder<ThemeMode>(
+          valueListenable: SettingsRepository.instance.themeMode,
+          builder: (context, themeMode, child) {
+            return MaterialApp(
+              title: 'QuakeConnect',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeMode,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [Locale('en'), Locale('tr')],
+              locale: locale,
+              routes: {
+                '/': (context) => _buildAuthWrapper(context),
+              },
+            );
+          },
+        );
       },
     );
   }

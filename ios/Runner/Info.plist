@@ -47,5 +47,13 @@
 	<true/>
 	<key>NSContactsUsageDescription</key>
 	<string>We need access to your contacts so you can import trusted emergency contacts.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show you nearby earthquakes and help you stay safe.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We need your location to show you nearby earthquakes and help you stay safe.</string>
+    <key>GMSApiKey</key>
+    <string>AIzaSyClgydmQ7UOYcLEHdvSBkMJM2kwJvTapGo</string>
+    <key>io.flutter.embedded_views_preview</key>
+    <true/>
 </dict>
 </plist>

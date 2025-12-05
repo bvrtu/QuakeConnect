@@ -177,7 +177,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     }
   }
 
-  Widget _getScreenForIndex(int index, AppLocalizations t) {
+  Widget _getScreenForIndex(int index) {
     switch (index) {
       case 0: // Home
         return HomeScreen(
@@ -194,31 +194,28 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       case 4: // Profile
         return const ProfileScreen();
       case 5: // Settings
-        return SettingsScreen(
-          darkMode: false,
-          onDarkModeChanged: (_) {},
-          languageCode: 'en',
-          onLanguageChanged: (_) {},
-        );
+        return const SettingsScreen();
       default:
         return const ProfileScreen();
     }
   }
 
-  BottomNavigationBar _buildBottomNavBar(BuildContext context, int currentIndex, AppLocalizations t) {
+  BottomNavigationBar _buildBottomNavBar(BuildContext context, int currentIndex) {
+    final t = AppLocalizations.of(context);
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
       currentIndex: currentIndex,
       selectedFontSize: 12,
       unselectedFontSize: 11,
       onTap: (index) {
-        final targetScreen = _getScreenForIndex(index, t);
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (ctx) => Scaffold(
-              body: targetScreen,
-              bottomNavigationBar: _buildBottomNavBar(ctx, index, t),
-            ),
+            builder: (ctx) {
+              return Scaffold(
+                body: _getScreenForIndex(index),
+                bottomNavigationBar: _buildBottomNavBar(ctx, index),
+              );
+            },
           ),
         );
       },
@@ -236,13 +233,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   void _navigateToProfile(String userId) {
-    final t = AppLocalizations.of(context);
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          body: ProfileScreen(userId: userId),
-          bottomNavigationBar: _buildBottomNavBar(context, 4, t),
-        ),
+        builder: (context) {
+          return Scaffold(
+            body: ProfileScreen(userId: userId),
+            bottomNavigationBar: _buildBottomNavBar(context, 4),
+          );
+        },
       ),
     );
   }
@@ -377,35 +375,61 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Text(
-                            user.username,
-                            style: TextStyle(
-                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                              fontSize: 14,
+                          Flexible(
+                            child: Text(
+                              user.username,
+                              style: TextStyle(
+                                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (user.location != null) ...[
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                            ),
                             const SizedBox(width: 4),
-                            Text(
-                              user.location!,
-                              style: TextStyle(
-                                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                                fontSize: 12,
+                            Flexible(
+                              child: RichText(
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                text: TextSpan(
+                                  children: [
+                                    WidgetSpan(
+                                      alignment: PlaceholderAlignment.middle,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(right: 2.0),
+                                        child: Icon(
+                                          Icons.location_on,
+                                          size: 14,
+                                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: user.location!,
+                                      style: TextStyle(
+                                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                        fontSize: 12,
+                                        fontFamily: DefaultTextStyle.of(context).style.fontFamily,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Row(
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
                             '${user.followers} ${AppLocalizations.of(context).followers.toLowerCase()}',
@@ -413,14 +437,17 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                               color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                               fontSize: 12,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(width: 12),
                           Text(
                             '${user.following} ${AppLocalizations.of(context).following.toLowerCase()}',
                             style: TextStyle(
                               color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                               fontSize: 12,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -472,7 +499,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         foregroundColor: following
                             ? Colors.grey.shade700
                             : Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),

@@ -29,6 +29,8 @@ class _MapScreenState extends State<MapScreen> {
   bool _pendingInitialAnimation = false;
   bool _isLoading = true;
   bool _previousLocationServicesState = true;
+  bool _canRenderMap = false;
+  bool _myLocationEnabled = false;
 
   // Minimal dark map style for better night readability
   static const String _darkMapStyle = '[{"elementType":"geometry","stylers":[{"color":"#242f3e"}]},{"elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"elementType":"labels.text.stroke","stylers":[{"color":"#242f3e"}]},{"featureType":"administrative","elementType":"geometry","stylers":[{"color":"#757575"}]},{"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#d6d6d6"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#263c3f"}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#38414e"}]},{"featureType":"road","elementType":"geometry.stroke","stylers":[{"color":"#212a37"}]},{"featureType":"transit","elementType":"geometry","stylers":[{"color":"#2f3948"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#17263c"}]}]';
@@ -38,7 +40,17 @@ class _MapScreenState extends State<MapScreen> {
     super.initState();
     _previousLocationServicesState = SettingsRepository.instance.locationServices;
     _loadEarthquakes();
-    _loadUserLocation();
+    
+    // Delay map rendering to prevent freeze during navigation animation
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        setState(() {
+          _canRenderMap = true;
+        });
+        // Only load user location after map is allowed to render
+        _loadUserLocation();
+      }
+    });
   }
 
   Future<void> _loadUserLocation() async {
@@ -46,6 +58,7 @@ class _MapScreenState extends State<MapScreen> {
     if (!SettingsRepository.instance.locationServices) {
       setState(() {
         _userLocation = null; // Clear user location when disabled
+        _myLocationEnabled = false;
       });
       return;
     }
@@ -54,6 +67,7 @@ class _MapScreenState extends State<MapScreen> {
     if (location != null) {
       setState(() {
         _userLocation = location;
+        _myLocationEnabled = true; // Enable My Location layer only when location is successfully obtained
       });
     } else {
       // Only try last known position if location services are enabled in settings
@@ -223,20 +237,28 @@ class _MapScreenState extends State<MapScreen> {
 
   void _animateToEarthquake(Earthquake earthquake) {
     if (_mapController != null) {
-      // Smooth zoom-in effect: center, slight zoom, then closer
-      final target = LatLng(earthquake.latitude, earthquake.longitude);
-      // First, move to location with medium zoom
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(target, 8.0),
-      );
-      // Then zoom in much closer after a short delay
-      Future.delayed(const Duration(milliseconds: 400), () {
-        if (_mapController != null && mounted) {
-          _mapController!.animateCamera(
-            CameraUpdate.newLatLngZoom(target, 15.0), // Much closer zoom for detailed view
-          );
-        }
-      });
+      try {
+        // Smooth zoom-in effect: center, slight zoom, then closer
+        final target = LatLng(earthquake.latitude, earthquake.longitude);
+        // First, move to location with medium zoom
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(target, 8.0),
+        );
+        // Then zoom in much closer after a short delay
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (_mapController != null && mounted) {
+            try {
+              _mapController!.animateCamera(
+                CameraUpdate.newLatLngZoom(target, 15.0), // Much closer zoom for detailed view
+              );
+            } catch (e) {
+              debugPrint('Error animating camera: $e');
+            }
+          }
+        });
+      } catch (e) {
+        debugPrint('Error in _animateToEarthquake: $e');
+      }
     } else {
       // If controller is not ready, wait a bit and try again
       Future.delayed(const Duration(milliseconds: 300), () {
@@ -249,13 +271,17 @@ class _MapScreenState extends State<MapScreen> {
 
   void _applyMapStyle() {
     if (_mapController == null) return;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (isDark && !_appliedDark) {
-      _mapController!.setMapStyle(_darkMapStyle);
-      _appliedDark = true;
-    } else if (!isDark && _appliedDark) {
-      _mapController!.setMapStyle(null);
-      _appliedDark = false;
+    try {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      if (isDark && !_appliedDark) {
+        _mapController!.setMapStyle(_darkMapStyle);
+        _appliedDark = true;
+      } else if (!isDark && _appliedDark) {
+        _mapController!.setMapStyle(null);
+        _appliedDark = false;
+      }
+    } catch (e) {
+      debugPrint('Error applying map style: $e');
     }
   }
 
@@ -354,40 +380,68 @@ class _MapScreenState extends State<MapScreen> {
               child: Stack(
                 children: [
                   // Google Map
-                  GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: _turkeyCenter,
-                      zoom: _zoomLevel,
-                    ),
-                    onMapCreated: (GoogleMapController controller) async {
-                      _mapController = controller;
-                    _applyMapStyle();
-                      // Wait for map to be fully ready
-                      await Future.delayed(const Duration(milliseconds: 300));
-                      
-                      // Run initial selection animation after map is ready
-                      if (_pendingInitialAnimation && _selectedEarthquake != null && mounted) {
-                        // Update markers first to show selected state
-                        setState(() {});
-                        
-                        // Wait a bit more to ensure markers are rendered
-                        await Future.delayed(const Duration(milliseconds: 200));
-                        
-                        if (mounted && _mapController != null && _selectedEarthquake != null) {
-                          _animateToEarthquake(_selectedEarthquake!);
-                          _pendingInitialAnimation = false;
+                  if (_canRenderMap)
+                    GoogleMap(
+                      initialCameraPosition: CameraPosition(
+                        target: _turkeyCenter,
+                        zoom: _zoomLevel,
+                      ),
+                      onMapCreated: (GoogleMapController controller) {
+                        try {
+                          if (!mounted) return;
+                          _mapController = controller;
+                          // Apply map style after a short delay to ensure map is ready
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            if (mounted && _mapController != null) {
+                              try {
+                                _applyMapStyle();
+                              } catch (e) {
+                                debugPrint('Error applying map style: $e');
+                              }
+                            }
+                          });
+                          
+                          // Run initial selection animation after map is ready
+                          if (_pendingInitialAnimation && _selectedEarthquake != null) {
+                            Future.delayed(const Duration(milliseconds: 500), () {
+                              if (mounted && _mapController != null && _selectedEarthquake != null) {
+                                try {
+                                  setState(() {}); // Update markers first
+                                  Future.delayed(const Duration(milliseconds: 200), () {
+                                    if (mounted && _mapController != null && _selectedEarthquake != null) {
+                                      try {
+                                        _animateToEarthquake(_selectedEarthquake!);
+                                        _pendingInitialAnimation = false;
+                                      } catch (e) {
+                                        debugPrint('Error animating to earthquake: $e');
+                                      }
+                                    }
+                                  });
+                                } catch (e) {
+                                  debugPrint('Error updating markers: $e');
+                                }
+                              }
+                            });
+                          }
+                        } catch (e) {
+                          debugPrint('Error in onMapCreated: $e');
+                          // Continue even if there's an error
                         }
-                      }
-                    },
-                    markers: _createMarkers(),
-                    mapType: _currentMapType,
-                    zoomControlsEnabled: true,
-                    myLocationButtonEnabled: false,
-                    mapToolbarEnabled: false,
-                  ),
+                      },
+                      markers: _createMarkers(),
+                      mapType: _currentMapType,
+                      zoomControlsEnabled: false, // Disable zoom controls for cleaner UI
+                      myLocationButtonEnabled: false, // Use custom button instead if needed, or keep it minimal
+                      myLocationEnabled: _myLocationEnabled, // Only enable if permission granted
+                      mapToolbarEnabled: false,
+                    )
+                  else
+                    const Center(
+                      child: CircularProgressIndicator(),
+                    ),
 
                   // Loading Overlay
-                  if (_isLoading)
+                  if (_isLoading && _canRenderMap)
                     Container(
                       color: Colors.black.withValues(alpha: 0.3),
                       child: const Center(
@@ -438,7 +492,7 @@ class _MapScreenState extends State<MapScreen> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
         children: [
           Column(
@@ -543,27 +597,54 @@ class _MapScreenState extends State<MapScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 4,
                   children: [
-                    Icon(Icons.access_time, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Text(
-                      translateRelativeFromEnglish(context, earthquake.timeAgo),
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.access_time, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            translateRelativeFromEnglish(context, earthquake.timeAgo),
+                            style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Icon(Icons.layers, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Text(
-                      "${earthquake.depth.toStringAsFixed(1)} km ${AppLocalizations.of(context).deepSuffix}",
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.layers, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            "${earthquake.depth.toStringAsFixed(1)} km ${AppLocalizations.of(context).deepSuffix}",
+                            style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Icon(Icons.location_on, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Text(
-                      "${earthquake.distance.toStringAsFixed(0)} km ${AppLocalizations.of(context).awaySuffix}",
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.location_on, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            "${earthquake.distance.toStringAsFixed(0)} km ${AppLocalizations.of(context).awaySuffix}",
+                            style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

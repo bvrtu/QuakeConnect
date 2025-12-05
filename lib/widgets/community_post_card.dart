@@ -200,7 +200,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
     );
   }
 
-  Widget _getScreenForIndex(int index, AppLocalizations t) {
+  Widget _getScreenForIndex(int index) {
     switch (index) {
       case 0: // Home
         return HomeScreen(
@@ -217,31 +217,28 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
       case 4: // Profile
         return const ProfileScreen();
       case 5: // Settings
-        return SettingsScreen(
-          darkMode: false,
-          onDarkModeChanged: (_) {},
-          languageCode: 'en',
-          onLanguageChanged: (_) {},
-        );
+        return const SettingsScreen();
       default:
         return const ProfileScreen();
     }
   }
 
-  BottomNavigationBar _buildBottomNavBar(BuildContext context, int currentIndex, AppLocalizations t) {
+  BottomNavigationBar _buildBottomNavBar(BuildContext context, int currentIndex) {
+    final t = AppLocalizations.of(context);
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
       currentIndex: currentIndex,
       selectedFontSize: 12,
       unselectedFontSize: 11,
       onTap: (index) {
-        final targetScreen = _getScreenForIndex(index, t);
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (ctx) => Scaffold(
-              body: targetScreen,
-              bottomNavigationBar: _buildBottomNavBar(ctx, index, t),
-            ),
+            builder: (ctx) {
+              return Scaffold(
+                body: _getScreenForIndex(index),
+                bottomNavigationBar: _buildBottomNavBar(ctx, index),
+              );
+            },
           ),
         );
       },
@@ -259,13 +256,14 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
   }
 
   void _navigateToProfile(String userId) {
-    final t = AppLocalizations.of(context);
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          body: ProfileScreen(userId: userId),
-          bottomNavigationBar: _buildBottomNavBar(context, 4, t),
-        ),
+        builder: (context) {
+          return Scaffold(
+            body: ProfileScreen(userId: userId),
+            bottomNavigationBar: _buildBottomNavBar(context, 4),
+          );
+        },
       ),
     );
   }
@@ -398,16 +396,22 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              Row(
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  Text(
+                                  Flexible(
+                                    child: Text(
                                     widget.post.handle,
                                     style: TextStyle(
                                       color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                       fontSize: 13,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  const SizedBox(width: 6),
                                   Container(
                                     width: 4,
                                     height: 4,
@@ -416,12 +420,15 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                       shape: BoxShape.circle,
                                     ),
                                   ),
-                                  const SizedBox(width: 6),
-                                  Text(
+                                  Flexible(
+                                    child: Text(
                                     formatTimeAgo(context, widget.post.timestamp),
                                     style: TextStyle(
                                       color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                       fontSize: 13,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -444,6 +451,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                     ),
                     const SizedBox(height: 10),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.location_on,
@@ -458,6 +466,8 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                               color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                               fontSize: 13,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -583,16 +593,22 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Icon(isActive ? activeIcon : icon, size: 20, color: color),
             if (showLabel) ...[
               const SizedBox(width: 6),
-              Text(
-                label.toString(),
-                style: TextStyle(
-                  color: color,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+              Flexible(
+                child: Text(
+                  label.toString(),
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -713,13 +729,36 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(children: [
-                                Text(c.authorName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                                const SizedBox(width: 6),
-                                Text(c.timeAgo, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                              ]),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      c.authorName,
+                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Flexible(
+                                    child: Text(
+                                      c.timeAgo,
+                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                               const SizedBox(height: 4),
-                              Text(c.text, style: const TextStyle(fontSize: 14)),
+                              Text(
+                                c.text,
+                                style: const TextStyle(fontSize: 14),
+                                maxLines: 10,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                               const SizedBox(height: 6),
                               Row(children: [
                                 _buildActionButton(

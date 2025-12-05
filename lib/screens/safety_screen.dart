@@ -217,29 +217,31 @@ class _SafetyScreenState extends State<SafetyScreen> {
   }
 
   void _navigateToProfileForContacts() {
-    final t = AppLocalizations.of(context);
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          body: const ProfileScreen(),
-          bottomNavigationBar: BottomNavigationBar(
-            type: BottomNavigationBarType.fixed,
-            currentIndex: 4,
-            selectedFontSize: 12,
-            unselectedFontSize: 11,
-            onTap: (_) => Navigator.of(context).pop(),
-            selectedItemColor: Colors.red,
-            unselectedItemColor: Colors.grey,
-            items: [
-              BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
-              BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
-              BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
-              BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
-              BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
-              BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
-            ],
-          ),
-        ),
+        builder: (context) {
+          final t = AppLocalizations.of(context);
+          return Scaffold(
+            body: const ProfileScreen(),
+            bottomNavigationBar: BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              currentIndex: 4,
+              selectedFontSize: 12,
+              unselectedFontSize: 11,
+              onTap: (_) => Navigator.of(context).pop(),
+              selectedItemColor: Colors.red,
+              unselectedItemColor: Colors.grey,
+              items: [
+                BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
+                BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
+                BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
+                BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
+                BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
+                BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -565,6 +567,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
                   letterSpacing: -0.5,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
               Text(
@@ -575,6 +579,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
                       : Colors.grey.shade600,
                   fontSize: 15,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 24),
               _buildSafetyStatusCard(),
@@ -622,6 +628,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
@@ -641,6 +648,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       _hasMarkedSafe ? t.imSafe : t.yourSafetyStatus,
@@ -649,6 +657,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
                         fontWeight: FontWeight.w600,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -657,6 +667,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
                         fontSize: 14,
                         color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -669,11 +681,15 @@ class _SafetyScreenState extends State<SafetyScreen> {
             child: ElevatedButton.icon(
               onPressed: _handleMarkSafePressed,
               icon: Icon(_hasMarkedSafe ? Icons.shield : Icons.shield_outlined, size: 20),
-              label: Text(
-                _hasMarkedSafe ? AppLocalizations.of(context).imSafe : AppLocalizations.of(context).markAsSafe,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              label: Flexible(
+                child: Text(
+                  _hasMarkedSafe ? AppLocalizations.of(context).imSafe : AppLocalizations.of(context).markAsSafe,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               style: ElevatedButton.styleFrom(
@@ -797,14 +813,28 @@ class _SafetyScreenState extends State<SafetyScreen> {
       children: [
         Row(
           children: [
-            Text(
-              AppLocalizations.of(context).followingUpdatesTitle,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            Expanded(
+              child: Text(
+                AppLocalizations.of(context).followingUpdatesTitle,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             TextButton(
               onPressed: _navigateToAllUpdates,
-              child: Text(AppLocalizations.of(context).viewAll),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                AppLocalizations.of(context).viewAll,
+                style: const TextStyle(fontSize: 14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -898,9 +928,9 @@ class _SafetyScreenState extends State<SafetyScreen> {
   }) {
     final isSelected = _selectedCategory == category;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final horizontalPadding = compact ? 10.0 : 14.0;
-    final verticalPadding = compact ? 12.0 : 14.0;
-    final iconSize = compact ? 16.0 : 18.0;
+    final horizontalPadding = compact ? 6.0 : 14.0;
+    final verticalPadding = compact ? 10.0 : 14.0;
+    final iconSize = compact ? 14.0 : 18.0;
     
     if (isSelected) {
       // Selected state: ElevatedButton with theme color
@@ -911,16 +941,18 @@ class _SafetyScreenState extends State<SafetyScreen> {
           });
         },
         icon: Icon(icon, size: iconSize, color: Colors.white),
-        label: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: compact ? 12.0 : 13.5,
+        label: Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: compact ? 11.0 : 13.5,
+              ),
+              maxLines: 1,
             ),
-            maxLines: 1,
           ),
         ),
         style: ElevatedButton.styleFrom(
@@ -952,9 +984,15 @@ class _SafetyScreenState extends State<SafetyScreen> {
         });
       },
       icon: Icon(icon, size: iconSize, color: textColor),
-      label: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(label, style: labelStyle, maxLines: 1),
+      label: Flexible(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: labelStyle,
+            maxLines: 1,
+          ),
+        ),
       ),
       style: OutlinedButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.surface,

@@ -140,53 +140,78 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Row(
                 children: [
                   // Notifications title with badge
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.notifications,
-                        size: 24,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        AppLocalizations.of(context).notificationsTitle,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.notifications,
+                          size: 18,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '$_unreadCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              AppLocalizations.of(context).notificationsTitle,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              maxLines: 1,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '$_unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 4),
                   // Clear All button
                   if (repo.items.isNotEmpty)
-                    TextButton.icon(
+                    TextButton(
                       onPressed: _clearAllNotifications,
-                      icon: const Icon(Icons.clear_all, size: 18),
-                      label: Text(AppLocalizations.of(context).clearAll),
                       style: TextButton.styleFrom(
                         foregroundColor: Theme.of(context).colorScheme.onSurface,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.clear_all, size: 18),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              AppLocalizations.of(context).clearAll,
+                              style: const TextStyle(fontSize: 13),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   // Refresh button
