@@ -4,6 +4,7 @@ import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../../l10n/app_localizations.dart';
 import '../../data/user_repository.dart';
+import 'email_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -84,8 +85,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (user != null && mounted) {
-        // Navigation will be handled by auth state listener in main.dart
-        Navigator.of(context).pop(); // Close register screen
+        // Navigate to email verification screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => EmailVerificationScreen(
+              email: _emailController.text.trim(),
+            ),
+          ),
+        );
       }
     } catch (e) {
       setState(() {

@@ -4,9 +4,15 @@ import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../../l10n/app_localizations.dart';
 import 'register_screen.dart';
+import 'email_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final bool showEmailVerifiedBanner;
+
+  const LoginScreen({
+    super.key,
+    this.showEmailVerifiedBanner = false,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -21,14 +27,106 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
+  OverlayEntry? _bannerEntry;
+
+  @override
+  void initState() {
+    super.initState();
+    // Show banner if coming from email verification
+    if (widget.showEmailVerifiedBanner) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showTopBanner(
+          AppLocalizations.of(context).emailVerified ?? 'Email verified successfully!',
+          background: const Color(0xFF2E7D32),
+          icon: Icons.check_circle,
+        );
+      });
+    }
+  }
 
   @override
   void dispose() {
+    _removeBanner();
     _emailController.dispose();
     _passwordController.dispose();
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
     super.dispose();
+  }
+
+  void _removeBanner() {
+    _bannerEntry?.remove();
+    _bannerEntry = null;
+  }
+
+  void _showTopBanner(
+    String message, {
+    Color background = Colors.black87,
+    IconData icon = Icons.check_circle,
+  }) {
+    _removeBanner();
+    final overlay = Overlay.of(context);
+
+    final entry = OverlayEntry(
+      builder: (context) {
+        final topPadding = MediaQuery.of(context).padding.top;
+        return Positioned(
+          top: topPadding + 16,
+          left: 16,
+          right: 16,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            builder: (context, t, child) {
+              return Transform.translate(
+                offset: Offset(0, (1 - t) * -40),
+                child: Opacity(opacity: t, child: child),
+              );
+            },
+            child: Material(
+              color: Colors.transparent,
+              elevation: 6,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    overlay.insert(entry);
+    _bannerEntry = entry;
+
+    // Auto-remove after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) _removeBanner();
+    });
   }
 
   Future<void> _handleLogin() async {
@@ -47,8 +145,28 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (user != null && mounted) {
-        // Navigation will be handled by auth state listener in main.dart
-        Navigator.of(context).pop(); // Close login screen
+        // Check if email is verified
+        final currentUser = AuthService.instance.currentUser;
+        if (currentUser != null && !currentUser.emailVerified) {
+          // Navigate to email verification screen
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => EmailVerificationScreen(
+                email: currentUser.email ?? _emailController.text.trim(),
+              ),
+            ),
+          );
+        } else {
+          // Navigation will be handled by auth state listener in main.dart
+          // We check if we can pop (e.g. if pushed from onboarding), otherwise let main.dart handle it
+          if (Navigator.canPop(context)) {
+            Navigator.of(context).pop();
+          } else {
+            // If we can't pop (e.g. came from pushAndRemoveUntil via EmailVerification),
+            // we need to reset the navigation stack to trigger Main's AuthWrapper
+            Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+          }
+        }
       }
     } catch (e) {
       setState(() {

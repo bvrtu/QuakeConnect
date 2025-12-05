@@ -43,6 +43,9 @@ class AuthService {
       // Update display name
       await userCredential.user!.updateDisplayName(displayName);
 
+      // Send email verification
+      await userCredential.user!.sendEmailVerification();
+
       // Create user document in Firestore
       // Username will be set during onboarding, use email-based default for now
       final defaultUsername = '@${email.split('@')[0]}';
@@ -129,6 +132,38 @@ class AuthService {
     final userId = currentUserId;
     if (userId == null) return null;
     return await _userRepo.getUser(userId);
+  }
+
+  /// Check if current user's email is verified
+  bool get isEmailVerified => _auth.currentUser?.emailVerified ?? false;
+
+  /// Send email verification to current user
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('No user logged in');
+    }
+    if (user.emailVerified) {
+      throw Exception('Email already verified');
+    }
+    await user.sendEmailVerification();
+  }
+
+  /// Reload user to check if email is verified
+  Future<void> reloadUser() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('No user logged in');
+    }
+    await user.reload();
+  }
+
+  /// Check if email is verified (reloads user first)
+  Future<bool> checkEmailVerified() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    await user.reload();
+    return user.emailVerified;
   }
 
   /// Sign in with Google

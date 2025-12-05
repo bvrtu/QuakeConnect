@@ -207,6 +207,20 @@ class AppLocalizations {
       'username_taken': 'Username is already taken',
       'enter_email_for_password_reset': 'Please enter your email first',
       'password_reset_email_sent': 'Password reset email sent',
+      'verify_email': 'Verify Email',
+      'verify_email_title': 'Verify Your Email',
+      'verify_email_message': 'We\'ve sent a verification link to',
+      'verify_email_instructions': 'Instructions:',
+      'verify_email_steps': '1. Check your email inbox\n2. Click on the verification link\n3. Return to this screen',
+      'email_verified': 'Email Verified!',
+      'email_verified_message': 'Your email has been verified successfully. You can now log in.',
+      'email_verified_success': 'Your email has been verified! Redirecting to login...',
+      'verification_email_sent': 'Verification email sent!',
+      'resend_verification_email': 'Resend Verification Email',
+      'resending': 'Resending...',
+      'check_verification': 'Check Verification',
+      'back_to_login': 'Back to Login',
+      'email_not_verified': 'Please verify your email before continuing',
       'personal_info_title': 'Personal Information',
       'personal_info_subtitle': 'Help us personalize your experience',
       'profile_setup_title': 'One More Step',
@@ -412,6 +426,20 @@ class AppLocalizations {
       'username_taken': 'Kullanıcı adı zaten alınmış',
       'enter_email_for_password_reset': 'Lütfen önce e-postanızı girin',
       'password_reset_email_sent': 'Şifre sıfırlama e-postası gönderildi',
+      'verify_email': 'E-postayı Doğrula',
+      'verify_email_title': 'E-postanızı Doğrulayın',
+      'verify_email_message': 'Doğrulama bağlantısını şu adrese gönderdik:',
+      'verify_email_instructions': 'Talimatlar:',
+      'verify_email_steps': '1. E-posta kutunuzu kontrol edin\n2. Doğrulama bağlantısına tıklayın\n3. Bu ekrana geri dönün',
+      'email_verified': 'E-posta Doğrulandı!',
+      'email_verified_message': 'E-postanız başarıyla doğrulandı. Artık giriş yapabilirsiniz.',
+      'email_verified_success': 'E-postanız doğrulandı! Giriş sayfasına yönlendiriliyorsunuz...',
+      'verification_email_sent': 'Doğrulama e-postası gönderildi!',
+      'resend_verification_email': 'Doğrulama E-postasını Yeniden Gönder',
+      'resending': 'Yeniden gönderiliyor...',
+      'check_verification': 'Doğrulamayı Kontrol Et',
+      'back_to_login': 'Giriş Sayfasına Dön',
+      'email_not_verified': 'Devam etmeden önce lütfen e-postanızı doğrulayın',
       'personal_info_title': 'Kişisel Bilgiler',
       'personal_info_subtitle': 'Deneyiminizi kişiselleştirmemize yardımcı olun',
       'profile_setup_title': 'Son Bir Adım',
@@ -601,6 +629,20 @@ class AppLocalizations {
   String get usernameTaken => _t('username_taken');
   String get enterEmailForPasswordReset => _t('enter_email_for_password_reset');
   String get passwordResetEmailSent => _t('password_reset_email_sent');
+  String get verifyEmail => _t('verify_email');
+  String get verifyEmailTitle => _t('verify_email_title');
+  String get verifyEmailMessage => _t('verify_email_message');
+  String get verifyEmailInstructions => _t('verify_email_instructions');
+  String get verifyEmailSteps => _t('verify_email_steps');
+  String get emailVerified => _t('email_verified');
+  String get emailVerifiedMessage => _t('email_verified_message');
+  String get emailVerifiedSuccess => _t('email_verified_success');
+  String get verificationEmailSent => _t('verification_email_sent');
+  String get resendVerificationEmail => _t('resend_verification_email');
+  String get resending => _t('resending');
+  String get checkVerification => _t('check_verification');
+  String get backToLogin => _t('back_to_login');
+  String get emailNotVerified => _t('email_not_verified');
   String get personalInfoTitle => _t('personal_info_title');
   String get personalInfoSubtitle => _t('personal_info_subtitle');
   String get profileSetupTitle => _t('profile_setup_title');

@@ -15,6 +15,7 @@ import 'data/settings_repository.dart';
 import 'services/notification_service.dart';
 import 'services/auth_service.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/email_verification_screen.dart';
 import 'screens/onboarding/personal_info_onboarding_screen.dart';
 import 'data/user_repository.dart';
 import 'models/user_model.dart';
@@ -123,91 +124,101 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
       ],
       supportedLocales: const [Locale('en'), Locale('tr')],
       locale: _locale,
-      home: Builder(builder: (context) {
-        // Show login screen if not authenticated
-        if (_isCheckingAuth) {
+      routes: {
+        '/': (context) => _buildAuthWrapper(context),
+      },
+    );
+  }
+
+  Widget _buildAuthWrapper(BuildContext context) {
+    // Show login screen if not authenticated
+    if (_isCheckingAuth) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    if (!_isAuthenticated) {
+      return const LoginScreen();
+    }
+    
+    // Check if email is verified
+    final currentUser = AuthService.instance.currentUser;
+    if (currentUser != null && !currentUser.emailVerified) {
+      return EmailVerificationScreen(email: currentUser.email ?? '');
+    }
+    
+    // Check if user needs onboarding
+    return FutureBuilder<UserModel?>(
+      future: AuthService.instance.getCurrentUserModel(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
         
-        if (!_isAuthenticated) {
-          return const LoginScreen();
+        final user = snapshot.data;
+        // Check if user needs onboarding (age, height, or weight is null)
+        final needsOnboarding = user == null || 
+            user.age == null || 
+            user.heightCm == null || 
+            user.weightKg == null;
+        
+        if (needsOnboarding) {
+          return const PersonalInfoOnboardingScreen();
         }
         
-        // Check if user needs onboarding
-        return FutureBuilder<UserModel?>(
-          future: AuthService.instance.getCurrentUserModel(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+        final t = AppLocalizations.of(context);
+        return Scaffold(
+          body: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              // Determine slide direction based on index change
+              final isMovingRight = _selectedIndex > _previousIndex;
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: Offset(isMovingRight ? 0.1 : -0.1, 0.0),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  )),
+                  child: child,
+                ),
               );
-            }
-            
-            final user = snapshot.data;
-            // Check if user needs onboarding (age, height, or weight is null)
-            final needsOnboarding = user == null || 
-                user.age == null || 
-                user.heightCm == null || 
-                user.weightKg == null;
-            
-            if (needsOnboarding) {
-              return const PersonalInfoOnboardingScreen();
-            }
-            
-            final t = AppLocalizations.of(context);
-            return Scaffold(
-        body: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            // Determine slide direction based on index change
-            final isMovingRight = _selectedIndex > _previousIndex;
-            return FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: Offset(isMovingRight ? 0.1 : -0.1, 0.0),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutCubic,
-                )),
-                child: child,
-              ),
-            );
-          },
-          child: Container(
-            key: ValueKey<int>(_selectedIndex),
-            child: _screens[_selectedIndex],
+            },
+            child: Container(
+              key: ValueKey<int>(_selectedIndex),
+              child: _screens[_selectedIndex],
+            ),
           ),
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          currentIndex: _selectedIndex,
-          selectedFontSize: 12,
-          unselectedFontSize: 11,
-          onTap: (index) {
-            setState(() {
-              _previousIndex = _selectedIndex;
-              _selectedIndex = index;
-            });
-          },
-          selectedItemColor: Colors.red,
-          unselectedItemColor: Colors.grey,
-          items: [
-            BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
-            BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
-            BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
-            BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
-            BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
-            BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
-          ],
-        ),
-      );
-          },
+          bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _selectedIndex,
+            selectedFontSize: 12,
+            unselectedFontSize: 11,
+            onTap: (index) {
+              setState(() {
+                _previousIndex = _selectedIndex;
+                _selectedIndex = index;
+              });
+            },
+            selectedItemColor: Colors.red,
+            unselectedItemColor: Colors.grey,
+            items: [
+              BottomNavigationBarItem(icon: const Icon(Icons.home), label: t.navHome),
+              BottomNavigationBarItem(icon: const Icon(Icons.map), label: t.navMap),
+              BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.navSafety),
+              BottomNavigationBarItem(icon: const Icon(Icons.explore), label: t.navDiscover),
+              BottomNavigationBarItem(icon: const Icon(Icons.person), label: t.navProfile),
+              BottomNavigationBarItem(icon: const Icon(Icons.settings), label: t.navSettings),
+            ],
+          ),
         );
-      }),
+      },
     );
   }
 }
