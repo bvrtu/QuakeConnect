@@ -24,27 +24,43 @@ class NotificationRepository {
 
   List<NotificationModel> _items = [];
   bool _isLoading = false;
-  final Set<String> _deletedIds = {}; // Track deleted notification IDs
-  final Set<String> _shownNotificationIds = {}; // Track which notifications were already shown on phone
+  // User-specific tracking maps: userId -> Set of IDs
+  final Map<String, Set<String>> _deletedIdsByUser = {}; // Track deleted notification IDs per user
+  final Map<String, Set<String>> _shownNotificationIdsByUser = {}; // Track shown notifications per user
+  final Map<String, Set<String>> _shownPostIdsByUser = {}; // Track shown posts per user
+  final Map<String, bool> _isInitialLoadByUser = {}; // Track initial load state per user
 
   List<NotificationModel> get items => _items;
   int get unreadCount => _items.where((n) => !n.isRead).length;
 
   Timer? _monitoringTimer;
   DateTime _lastPostCheckTime = DateTime.now();
-  final Set<String> _shownPostIds = {};
   StreamSubscription? _postSubscription;
   StreamSubscription? _authSubscription;
   StreamSubscription? _userNotificationsSubscription;
   String? _currentUserId;
+  String? _previousUserId; // Track previous user to detect changes
 
   void startMonitoring() {
     if (_monitoringTimer != null) return;
     
     _currentUserId = AuthService.instance.currentUserId;
+    _previousUserId = _currentUserId;
+    
     _authSubscription ??= AuthService.instance.authStateChanges.listen((user) {
-      _currentUserId = user?.uid;
+      final newUserId = user?.uid;
+      
+      // If user changed, clear all data and reload
+      if (_previousUserId != newUserId) {
+        _onUserChanged(_previousUserId, newUserId);
+      }
+      
+      _previousUserId = newUserId;
+      _currentUserId = newUserId;
+      
+      // Restart monitoring for new user
       _startUserNotificationsMonitoring();
+      _startPostMonitoring();
     });
     
     // Initial fetch
@@ -58,6 +74,27 @@ class NotificationRepository {
     // Listen for community updates
     _startPostMonitoring();
     _startUserNotificationsMonitoring();
+  }
+
+  void _onUserChanged(String? oldUserId, String? newUserId) {
+    // Clear all notifications for the old user
+    _items.clear();
+    
+    // Reset initial load flag for new user
+    if (newUserId != null) {
+      _isInitialLoadByUser[newUserId] = true;
+    }
+    
+    // Cancel existing subscriptions
+    _userNotificationsSubscription?.cancel();
+    _userNotificationsSubscription = null;
+    _postSubscription?.cancel();
+    _postSubscription = null;
+    
+    // Clear shown IDs for old user (optional, can keep for memory efficiency)
+    // We'll keep them per user in the maps
+    
+    debugPrint('User changed from $oldUserId to $newUserId - cleared notifications');
   }
 
   void stopMonitoring() {
@@ -75,23 +112,40 @@ class NotificationRepository {
     _userNotificationsSubscription?.cancel();
     if (_currentUserId == null) return;
 
+    final userId = _currentUserId!; // Capture current user ID
+    
+    // Get user-specific sets
+    final deletedIds = _deletedIdsByUser.putIfAbsent(userId, () => <String>{});
+    final shownNotificationIds = _shownNotificationIdsByUser.putIfAbsent(userId, () => <String>{});
+    
+    // Reset initial load flag for this user
+    _isInitialLoadByUser[userId] = true;
+
     _userNotificationsSubscription = FirebaseFirestore.instance
         .collection('users')
-        .doc(_currentUserId)
+        .doc(userId)
         .collection('notifications')
         .orderBy('timestamp', descending: true)
         .limit(50)
         .snapshots()
         .listen((snapshot) {
-      bool hasUpdates = false;
+      // Check if user changed during async operation
+      if (_currentUserId != userId) {
+        return; // User changed, ignore this snapshot
+      }
       
-      for (final change in snapshot.docChanges) {
-        if (change.type == DocumentChangeType.added) {
-          final data = change.doc.data();
+      bool hasUpdates = false;
+      final isInitialLoad = _isInitialLoadByUser[userId] ?? false;
+      
+      // On initial load, load all existing notifications
+      if (isInitialLoad) {
+        _isInitialLoadByUser[userId] = false;
+        for (final doc in snapshot.docs) {
+          final data = doc.data();
           if (data == null) continue;
 
-          final id = change.doc.id;
-          if (_deletedIds.contains(id)) continue;
+          final id = doc.id;
+          if (deletedIds.contains(id)) continue;
           if (_items.any((n) => n.id == id)) continue;
 
           final typeStr = data['type'] as String? ?? 'info';
@@ -129,14 +183,64 @@ class NotificationRepository {
             postId: postId,
           );
 
-          _items.insert(0, notification);
+          _items.add(notification);
           hasUpdates = true;
+        }
+      } else {
+        // For subsequent updates, only process new changes
+        for (final change in snapshot.docChanges) {
+          if (change.type == DocumentChangeType.added) {
+            final data = change.doc.data();
+            if (data == null) continue;
 
-          if (!isRead && DateTime.now().difference(timestamp).inMinutes < 1) {
-            if (SettingsRepository.instance.pushNotifications) {
-              if (!_shownNotificationIds.contains(id)) {
-                _shownNotificationIds.add(id);
-                NotificationService.instance.showRemoteNotification(title, body, payload: 'post:$postId');
+            final id = change.doc.id;
+            if (deletedIds.contains(id)) continue;
+            if (_items.any((n) => n.id == id)) continue;
+
+            final typeStr = data['type'] as String? ?? 'info';
+            NotificationType type;
+            switch (typeStr) {
+              case 'like':
+                type = NotificationType.like;
+                break;
+              case 'comment':
+                type = NotificationType.comment;
+                break;
+              case 'repost':
+                type = NotificationType.repost;
+                break;
+              case 'reply':
+                type = NotificationType.reply;
+                break;
+              default:
+                type = NotificationType.communityUpdate;
+            }
+
+            final title = data['title'] as String? ?? 'Notification';
+            final body = data['body'] as String? ?? '';
+            final postId = data['postId'] as String?;
+            final timestamp = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+            final isRead = data['isRead'] as bool? ?? false;
+
+            final notification = NotificationModel(
+              id: id,
+              type: type,
+              title: title,
+              content: body,
+              isRead: isRead,
+              createdAt: timestamp,
+              postId: postId,
+            );
+
+            _items.insert(0, notification);
+            hasUpdates = true;
+
+            if (!isRead && DateTime.now().difference(timestamp).inMinutes < 1) {
+              if (SettingsRepository.instance.pushNotifications) {
+                if (!shownNotificationIds.contains(id)) {
+                  shownNotificationIds.add(id);
+                  NotificationService.instance.showRemoteNotification(title, body, payload: 'post:$postId');
+                }
               }
             }
           }
@@ -154,17 +258,44 @@ class NotificationRepository {
 
   void _startPostMonitoring() {
     _postSubscription?.cancel();
-    _postSubscription = PostRepository.instance.getAllPosts(null).listen((posts) {
+    if (_currentUserId == null) return;
+    
+    final userId = _currentUserId!; // Capture current user ID
+    
+    // Get user-specific shown post IDs
+    final shownPostIds = _shownPostIdsByUser.putIfAbsent(userId, () => <String>{});
+    
+    _postSubscription = PostRepository.instance.getAllPosts(null).listen((posts) async {
+      // Check if user changed during async operation
+      if (_currentUserId != userId) return;
+      
       final settings = SettingsRepository.instance;
       if (!settings.communityUpdates) return;
 
-      for (final post in posts) {
-        if (_shownPostIds.contains(post.id)) continue;
-        _shownPostIds.add(post.id);
+      // Get list of followed users
+      Set<String>? followingIds;
+      try {
+        final followingSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('following')
+            .get();
+        followingIds = followingSnapshot.docs.map((doc) => doc.id).toSet();
+      } catch (e) {
+        followingIds = <String>{};
+      }
 
-        // Skip if user is not logged in or it's their own post
-        if (_currentUserId == null) continue;
-        if (post.authorId == _currentUserId) continue;
+      for (final post in posts) {
+        if (shownPostIds.contains(post.id)) continue;
+        shownPostIds.add(post.id);
+
+        // Skip if it's their own post
+        if (post.authorId == userId) continue;
+
+        // Only show notifications for posts from followed users
+        if (followingIds == null || !followingIds.contains(post.authorId)) {
+          continue;
+        }
 
         _addCommunityNotification(post);
 
@@ -174,7 +305,7 @@ class NotificationRepository {
           final body = message.isEmpty
               ? post.authorName
               : '${post.authorName}: ${message.length > 80 ? '${message.substring(0, 80)}...' : message}';
-          NotificationService.instance.showCommunityUpdateNotification(categoryName, body, payload: post.id);
+          NotificationService.instance.showCommunityUpdateNotification(categoryName, body, payload: 'post:${post.id}');
         }
       }
 
@@ -218,17 +349,33 @@ class NotificationRepository {
     // Fetch earthquakes
     await _loadNotificationsFromAPI(lastCheckTime: lastCheck);
     
-    // Fetch posts
+    // Fetch posts (only from followed users)
     if (SettingsRepository.instance.communityUpdates) {
       try {
-        final posts = await PostRepository.instance.getAllPosts(null).first;
-        for (final post in posts) {
-          if (post.timestamp.isAfter(lastCheck)) {
-             NotificationService.instance.showCommunityUpdateNotification(
-              'New Community Update',
-              '${post.authorName}: ${post.message}',
-              payload: 'post:${post.id}',
-            );
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          // Get list of followed users
+          final followingSnapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('following')
+              .get();
+          final followingIds = followingSnapshot.docs.map((doc) => doc.id).toSet();
+          
+          if (followingIds.isNotEmpty) {
+            final posts = await PostRepository.instance.getAllPosts(null).first;
+            for (final post in posts) {
+              // Only show notifications for posts from followed users
+              if (followingIds.contains(post.authorId) && 
+                  post.timestamp.isAfter(lastCheck) &&
+                  post.authorId != user.uid) {
+                NotificationService.instance.showCommunityUpdateNotification(
+                  'New Community Update',
+                  '${post.authorName}: ${post.message}',
+                  payload: 'post:${post.id}',
+                );
+              }
+            }
           }
         }
       } catch (e) {
@@ -282,7 +429,11 @@ class NotificationRepository {
         if (lastCheckTime != null && eq.dateTime.isBefore(lastCheckTime)) continue;
 
         final notificationId = eq.earthquakeId ?? '${eq.latitude}_${eq.longitude}_${eq.dateTime.millisecondsSinceEpoch}';
-        if (_deletedIds.contains(notificationId)) {
+        // Earthquakes are global, but deleted IDs should be per user
+        final deletedIds = _currentUserId != null 
+            ? _deletedIdsByUser.putIfAbsent(_currentUserId!, () => <String>{})
+            : <String>{};
+        if (deletedIds.contains(notificationId)) {
           continue;
         }
 
@@ -340,8 +491,12 @@ class NotificationRepository {
           ),
         );
 
-        if (settings.pushNotifications && shouldNotify && !_shownNotificationIds.contains(notificationId)) {
-          _shownNotificationIds.add(notificationId);
+        // Earthquakes are global, but shown IDs should be per user
+        final shownNotificationIds = _currentUserId != null
+            ? _shownNotificationIdsByUser.putIfAbsent(_currentUserId!, () => <String>{})
+            : <String>{};
+        if (settings.pushNotifications && shouldNotify && !shownNotificationIds.contains(notificationId)) {
+          shownNotificationIds.add(notificationId);
           Future.delayed(const Duration(milliseconds: 100), () {
             NotificationService.instance.showEarthquakeNotification(earthquakeWithDistance);
           });
@@ -406,16 +561,35 @@ class NotificationRepository {
 
   void remove(String id) {
     _items.removeWhere((n) => n.id == id);
-    _deletedIds.add(id);
-    // Optionally delete from Firestore
+    if (_currentUserId != null) {
+      final deletedIds = _deletedIdsByUser.putIfAbsent(_currentUserId!, () => <String>{});
+      deletedIds.add(id);
+    }
+    // Optionally delete from Firestore for user notifications
+    if (_currentUserId != null && !id.startsWith('post_') && !id.contains('_')) {
+      // Likely a user notification (like, comment, etc.)
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(_currentUserId)
+          .collection('notifications')
+          .doc(id)
+          .delete()
+          .catchError((e) {});
+    }
   }
 
   void clearShownEarthquakeCache() {
-    _shownNotificationIds.clear();
+    if (_currentUserId != null) {
+      _shownNotificationIdsByUser[_currentUserId!]?.clear();
+    }
   }
+  
   void clearAll() {
-    for (final n in _items) {
-      _deletedIds.add(n.id);
+    if (_currentUserId != null) {
+      final deletedIds = _deletedIdsByUser.putIfAbsent(_currentUserId!, () => <String>{});
+      for (final n in _items) {
+        deletedIds.add(n.id);
+      }
     }
     _items.clear();
   }

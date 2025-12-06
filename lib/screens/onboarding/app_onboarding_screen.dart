@@ -57,12 +57,8 @@ class _AppOnboardingScreenState extends State<AppOnboardingScreen> {
   }
 
   void _handleGetStarted() {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => const QuakeConnectApp(),
-      ),
-      (route) => false,
-    );
+    // Navigate back to the main app (which will show the home screen)
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override

@@ -55,5 +55,22 @@
     <string>AIzaSyClgydmQ7UOYcLEHdvSBkMJM2kwJvTapGo</string>
     <key>io.flutter.embedded_views_preview</key>
     <true/>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>googlechrome</string>
+        <string>https</string>
+        <string>http</string>
+    </array>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.430371063688-aeaq1ri8opbmllmkc1c4buo4i96vlq30</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>

@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'dart:io' show Platform;
 import '../models/user_model.dart';
 import '../data/user_repository.dart';
 
@@ -8,7 +9,16 @@ class AuthService {
   AuthService._();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: [
+      'email',
+      'profile',
+    ],
+    // iOS specific configuration - use serverClientId from GoogleService-Info.plist
+    serverClientId: '430371063688-aeaq1ri8opbmllmkc1c4buo4i96vlq30.apps.googleusercontent.com',
+    hostedDomain: null,
+    signInOption: SignInOption.standard,
+  );
   UserRepository _userRepo = UserRepository.instance;
 
   // Get current user
@@ -169,6 +179,11 @@ class AuthService {
   /// Sign in with Google
   Future<UserModel?> signInWithGoogle() async {
     try {
+      // For iOS, ensure we sign out any previous session first
+      if (Platform.isIOS) {
+        await _googleSignIn.signOut();
+      }
+      
       // Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
@@ -179,6 +194,11 @@ class AuthService {
 
       // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Ensure we have both accessToken and idToken
+      if (googleAuth.accessToken == null || googleAuth.idToken == null) {
+        throw Exception('Google authentication failed: Missing tokens');
+      }
 
       // Create a new credential
       final credential = GoogleAuthProvider.credential(
@@ -222,6 +242,10 @@ class AuthService {
 
       return userModel;
     } catch (e) {
+      // Sign out from Google Sign In on error to prevent stuck state
+      if (Platform.isIOS) {
+        await _googleSignIn.signOut();
+      }
       throw Exception('Google sign-in failed: $e');
     }
   }

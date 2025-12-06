@@ -78,12 +78,16 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
           _isAuthenticated = user != null;
           _isCheckingAuth = false;
         });
+        // Update settings repository with new user ID
+        SettingsRepository.instance.updateUserId(user?.uid);
       }
     });
     
     // Check initial auth state
     _isAuthenticated = AuthService.instance.isLoggedIn;
     _isCheckingAuth = false;
+    // Update settings repository with current user ID
+    SettingsRepository.instance.updateUserId(AuthService.instance.currentUserId);
     
     NotificationService.instance.onNotificationTap.listen((payload) {
       if (payload != null && payload.startsWith('post:')) {
