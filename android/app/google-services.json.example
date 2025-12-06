@@ -1,0 +1,50 @@
+{
+  "project_info": {
+    "project_number": "YOUR_PROJECT_NUMBER",
+    "project_id": "YOUR_PROJECT_ID",
+    "storage_bucket": "YOUR_STORAGE_BUCKET"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "YOUR_ANDROID_APP_ID",
+        "android_client_info": {
+          "package_name": "com.example.quakeconnect"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "YOUR_ANDROID_CLIENT_ID",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.quakeconnect"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "YOUR_ANDROID_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "YOUR_WEB_CLIENT_ID",
+              "client_type": 3
+            },
+            {
+              "client_id": "YOUR_IOS_CLIENT_ID",
+              "client_type": 1,
+              "ios_info": {
+                "bundle_id": "com.example.quakeconnect"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+

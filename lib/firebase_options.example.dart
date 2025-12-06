@@ -50,19 +50,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDjMGsKDRVzJInS9pMAEP1R4QMKYp6qnYA',
-    appId: '1:430371063688:android:886dfffc62d71972439c3d',
-    messagingSenderId: '430371063688',
-    projectId: 'quakeconnect',
-    storageBucket: 'quakeconnect.firebasestorage.app',
+    apiKey: 'YOUR_ANDROID_API_KEY',
+    appId: 'YOUR_ANDROID_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_STORAGE_BUCKET',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDbqOBa3HaWmVENx21sucm7hzFlboR9DZg',
-    appId: '1:430371063688:ios:0ad643a0defab3b4439c3d',
-    messagingSenderId: '430371063688',
-    projectId: 'quakeconnect',
-    storageBucket: 'quakeconnect.firebasestorage.app',
+    apiKey: 'YOUR_IOS_API_KEY',
+    appId: 'YOUR_IOS_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_STORAGE_BUCKET',
     iosBundleId: 'com.example.quakeconnect',
   );
 }
