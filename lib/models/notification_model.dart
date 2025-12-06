@@ -6,6 +6,10 @@ enum NotificationType {
   earthquake,
   safetyReport,
   communityUpdate,
+  like,
+  comment,
+  repost,
+  reply,
 }
 
 class NotificationModel {
@@ -13,23 +17,33 @@ class NotificationModel {
   final NotificationType type;
   final String title;
   final String content;
-  final String timeAgo;
   final String? magnitude;
   final Color? badgeColor;
   bool isRead;
+  final DateTime createdAt;
   final Earthquake? earthquake;
+  final String? postId;
 
   NotificationModel({
     required this.id,
     required this.type,
     required this.title,
     required this.content,
-    required this.timeAgo,
     this.magnitude,
     this.badgeColor,
     this.isRead = false,
     this.earthquake,
-  });
+    this.postId,
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+
+  String get timeAgo {
+    final diff = DateTime.now().difference(createdAt);
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
 
   IconData get icon {
     switch (type) {
@@ -40,6 +54,13 @@ class NotificationModel {
         return Icons.check_circle;
       case NotificationType.communityUpdate:
         return Icons.info;
+      case NotificationType.like:
+        return Icons.favorite;
+      case NotificationType.comment:
+      case NotificationType.reply:
+        return Icons.comment;
+      case NotificationType.repost:
+        return Icons.repeat;
     }
   }
 
@@ -52,6 +73,13 @@ class NotificationModel {
         return Colors.green;
       case NotificationType.communityUpdate:
         return Colors.blue;
+      case NotificationType.like:
+        return Colors.red;
+      case NotificationType.comment:
+      case NotificationType.reply:
+        return Colors.blue;
+      case NotificationType.repost:
+        return Colors.green;
     }
   }
 
@@ -70,46 +98,45 @@ class NotificationModel {
         type: NotificationType.majorEarthquake,
         title: 'Major Earthquake Alert',
         content: 'M5.2 earthquake detected in Ege Denizi, İzmir - 45km from your location',
-        timeAgo: '2 min ago',
         magnitude: 'M5.2',
         badgeColor: Colors.red,
         earthquake: byMag(5.2),
+        createdAt: DateTime.now().subtract(const Duration(minutes: 2)),
       ),
       NotificationModel(
         id: 'n2',
         type: NotificationType.safetyReport,
         title: 'Safety Report',
         content: 'Ayşe Yılmaz marked themselves as safe in Kadıköy',
-        timeAgo: '5 min ago',
+        createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
       ),
       NotificationModel(
         id: 'n3',
         type: NotificationType.earthquake,
         title: 'Earthquake Detected',
         content: 'M4.8 earthquake in Marmara Denizi, Tekirdağ',
-        timeAgo: '1 hour ago',
         magnitude: 'M4.8',
         badgeColor: Colors.orange,
         earthquake: byMag(4.8),
+        createdAt: DateTime.now().subtract(const Duration(hours: 1)),
       ),
       NotificationModel(
         id: 'n4',
         type: NotificationType.communityUpdate,
         title: 'Community Update',
         content: 'New safety tips posted for earthquake preparedness',
-        timeAgo: '3 hours ago',
+        createdAt: DateTime.now().subtract(const Duration(hours: 3)),
       ),
       NotificationModel(
         id: 'n5',
         type: NotificationType.majorEarthquake,
         title: 'Major Earthquake Alert',
         content: 'M5.6 earthquake in Ege Denizi, Gökova Körfezi',
-        timeAgo: '6 hours ago',
         magnitude: 'M5.6',
         badgeColor: Colors.red,
         earthquake: byMag(5.6),
+        createdAt: DateTime.now().subtract(const Duration(hours: 6)),
       ),
     ];
   }
 }
-

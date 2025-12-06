@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:async';
 import '../models/earthquake.dart';
 import '../data/settings_repository.dart';
 
@@ -8,9 +9,11 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  final _notificationTapController = StreamController<String?>.broadcast();
   
   // Expose notifications plugin for permission requests
   FlutterLocalNotificationsPlugin get notifications => _notifications;
+  Stream<String?> get onNotificationTap => _notificationTapController.stream;
 
   /// Initialize the notification service
   Future<void> initialize() async {
@@ -43,8 +46,9 @@ class NotificationService {
 
   /// Handle notification tap
   void _onNotificationTapped(NotificationResponse response) {
-    // Handle notification tap - can navigate to specific screen
-    // This will be handled by the app's navigation system
+    if (response.payload != null) {
+      _notificationTapController.add(response.payload);
+    }
   }
 
   /// Show earthquake notification
@@ -104,11 +108,12 @@ class NotificationService {
       title,
       body,
       details,
+      payload: 'eq:${earthquake.earthquakeId}',
     );
   }
 
   /// Show community update notification
-  Future<void> showCommunityUpdateNotification(String title, String body) async {
+  Future<void> showCommunityUpdateNotification(String title, String body, {String? payload}) async {
     final settings = SettingsRepository.instance;
     
     // Only show if community updates are enabled
@@ -141,7 +146,37 @@ class NotificationService {
       title,
       body,
       details,
+      payload: payload,
+    );
+  }
+
+  Future<void> showRemoteNotification(String title, String body, {String? payload}) async {
+    const androidDetails = AndroidNotificationDetails(
+      "remote_channel",
+      "General Notifications",
+      channelDescription: "Notifications for QuakeConnect updates",
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: "@mipmap/ic_launcher",
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _notifications.show(
+      DateTime.now().millisecondsSinceEpoch % 100000,
+      title,
+      body,
+      details,
+      payload: payload,
     );
   }
 }
-

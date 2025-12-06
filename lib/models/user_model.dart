@@ -10,6 +10,7 @@ class UserModel {
   final int? weightKg;
   final List<String> disabilities;
   final String? disabilityOther;
+  final List<String> fcmTokens;
   final int gradientIndex; // For avatar gradient
   final int followers;
   final int following;
@@ -28,12 +29,14 @@ class UserModel {
     this.weightKg,
     List<String>? disabilities,
     this.disabilityOther,
+    List<String>? fcmTokens,
     this.gradientIndex = 0,
     this.followers = 0,
     this.following = 0,
     required this.createdAt,
     this.updatedAt,
-  }) : disabilities = disabilities ?? [];
+  }) : disabilities = disabilities ?? [],
+        fcmTokens = fcmTokens ?? [];
 
   // Convert to Firestore document
   Map<String, dynamic> toMap() {
@@ -49,6 +52,7 @@ class UserModel {
       'weightKg': weightKg,
       'disabilities': disabilities,
       'disabilityOther': disabilityOther,
+      'fcmTokens': fcmTokens,
       'gradientIndex': gradientIndex,
       'followers': followers,
       'following': following,
@@ -69,8 +73,9 @@ class UserModel {
       age: map['age'] as int?,
       heightCm: map['heightCm'] as int?,
       weightKg: map['weightKg'] as int?,
-      disabilities: (map['disabilities'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      disabilities: (map['disabilities'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
       disabilityOther: map['disabilityOther'] as String?,
+      fcmTokens: (map['fcmTokens'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
       gradientIndex: map['gradientIndex'] as int? ?? 0,
       followers: map['followers'] as int? ?? 0,
       following: map['following'] as int? ?? 0,
@@ -104,6 +109,7 @@ class UserModel {
     int? weightKg,
     List<String>? disabilities,
     String? disabilityOther,
+    List<String>? fcmTokens,
     int? gradientIndex,
     int? followers,
     int? following,
@@ -122,6 +128,7 @@ class UserModel {
       weightKg: weightKg ?? this.weightKg,
       disabilities: disabilities ?? this.disabilities,
       disabilityOther: disabilityOther ?? this.disabilityOther,
+      fcmTokens: fcmTokens ?? this.fcmTokens,
       gradientIndex: gradientIndex ?? this.gradientIndex,
       followers: followers ?? this.followers,
       following: following ?? this.following,

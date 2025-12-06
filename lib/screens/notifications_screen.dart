@@ -5,6 +5,7 @@ import '../widgets/notification_card.dart';
 import '../l10n/app_localizations.dart';
 import '../data/notification_repository.dart';
 import '../models/earthquake.dart';
+import 'post_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   final VoidCallback? onOpenMapTab;
@@ -87,6 +88,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NotificationType.communityUpdate:
         Navigator.of(context).pop();
         widget.onOpenSafetyTab?.call();
+        break;
+      case NotificationType.like:
+      case NotificationType.comment:
+      case NotificationType.repost:
+      case NotificationType.reply:
+        if (n.postId != null) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => PostDetailScreen(postId: n.postId),
+            ),
+          );
+        }
         break;
     }
   }

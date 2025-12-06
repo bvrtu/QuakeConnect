@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/notification_model.dart';
 import '../models/earthquake.dart';
 import '../models/community_post.dart';
@@ -11,6 +13,7 @@ import '../services/notification_service.dart';
 import '../data/settings_repository.dart';
 import '../data/post_repository.dart';
 import '../l10n/app_localizations.dart';
+import '../services/auth_service.dart';
 
 class NotificationRepository {
   static final NotificationRepository instance = NotificationRepository._();
@@ -31,9 +34,18 @@ class NotificationRepository {
   DateTime _lastPostCheckTime = DateTime.now();
   final Set<String> _shownPostIds = {};
   StreamSubscription? _postSubscription;
+  StreamSubscription? _authSubscription;
+  StreamSubscription? _userNotificationsSubscription;
+  String? _currentUserId;
 
   void startMonitoring() {
     if (_monitoringTimer != null) return;
+    
+    _currentUserId = AuthService.instance.currentUserId;
+    _authSubscription ??= AuthService.instance.authStateChanges.listen((user) {
+      _currentUserId = user?.uid;
+      _startUserNotificationsMonitoring();
+    });
     
     // Initial fetch
     _loadNotificationsFromAPI();
@@ -45,6 +57,7 @@ class NotificationRepository {
     
     // Listen for community updates
     _startPostMonitoring();
+    _startUserNotificationsMonitoring();
   }
 
   void stopMonitoring() {
@@ -52,29 +65,149 @@ class NotificationRepository {
     _monitoringTimer = null;
     _postSubscription?.cancel();
     _postSubscription = null;
+    _authSubscription?.cancel();
+    _authSubscription = null;
+    _userNotificationsSubscription?.cancel();
+    _userNotificationsSubscription = null;
+  }
+
+  void _startUserNotificationsMonitoring() {
+    _userNotificationsSubscription?.cancel();
+    if (_currentUserId == null) return;
+
+    _userNotificationsSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(_currentUserId)
+        .collection('notifications')
+        .orderBy('timestamp', descending: true)
+        .limit(50)
+        .snapshots()
+        .listen((snapshot) {
+      bool hasUpdates = false;
+      
+      for (final change in snapshot.docChanges) {
+        if (change.type == DocumentChangeType.added) {
+          final data = change.doc.data();
+          if (data == null) continue;
+
+          final id = change.doc.id;
+          if (_deletedIds.contains(id)) continue;
+          if (_items.any((n) => n.id == id)) continue;
+
+          final typeStr = data['type'] as String? ?? 'info';
+          NotificationType type;
+          switch (typeStr) {
+            case 'like':
+              type = NotificationType.like;
+              break;
+            case 'comment':
+              type = NotificationType.comment;
+              break;
+            case 'repost':
+              type = NotificationType.repost;
+              break;
+            case 'reply':
+              type = NotificationType.reply;
+              break;
+            default:
+              type = NotificationType.communityUpdate;
+          }
+
+          final title = data['title'] as String? ?? 'Notification';
+          final body = data['body'] as String? ?? '';
+          final postId = data['postId'] as String?;
+          final timestamp = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+          final isRead = data['isRead'] as bool? ?? false;
+
+          final notification = NotificationModel(
+            id: id,
+            type: type,
+            title: title,
+            content: body,
+            isRead: isRead,
+            createdAt: timestamp,
+            postId: postId,
+          );
+
+          _items.insert(0, notification);
+          hasUpdates = true;
+
+          if (!isRead && DateTime.now().difference(timestamp).inMinutes < 1) {
+            if (SettingsRepository.instance.pushNotifications) {
+              if (!_shownNotificationIds.contains(id)) {
+                _shownNotificationIds.add(id);
+                NotificationService.instance.showRemoteNotification(title, body, payload: 'post:$postId');
+              }
+            }
+          }
+        }
+      }
+      
+      if (hasUpdates) {
+        _items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        if (_items.length > 200) {
+          _items = _items.sublist(0, 200);
+        }
+      }
+    });
   }
 
   void _startPostMonitoring() {
     _postSubscription?.cancel();
-    // Listen to all posts stream
     _postSubscription = PostRepository.instance.getAllPosts(null).listen((posts) {
       final settings = SettingsRepository.instance;
       if (!settings.communityUpdates) return;
 
-      // Filter new posts
       for (final post in posts) {
-        // Check if post is created after we started monitoring and we haven't shown it yet
-        if (post.timestamp.isAfter(_lastPostCheckTime) && !_shownPostIds.contains(post.id)) {
-          _shownPostIds.add(post.id);
-          
-          // Trigger notification
-          NotificationService.instance.showCommunityUpdateNotification(
-            'New Community Update',
-            '${post.authorName}: ${post.message}',
-          );
+        if (_shownPostIds.contains(post.id)) continue;
+        _shownPostIds.add(post.id);
+
+        // Skip if user is not logged in or it's their own post
+        if (_currentUserId == null) continue;
+        if (post.authorId == _currentUserId) continue;
+
+        _addCommunityNotification(post);
+
+        if (settings.pushNotifications) {
+          final categoryName = post.type == CommunityPostType.safe ? 'Safety Report' : 'New Community Update';
+          final message = post.message.trim();
+          final body = message.isEmpty
+              ? post.authorName
+              : '${post.authorName}: ${message.length > 80 ? '${message.substring(0, 80)}...' : message}';
+          NotificationService.instance.showCommunityUpdateNotification(categoryName, body, payload: post.id);
         }
       }
+
+      _lastPostCheckTime = DateTime.now();
     });
+  }
+
+  void _addCommunityNotification(CommunityPost post) {
+    final type = post.type == CommunityPostType.safe
+        ? NotificationType.safetyReport
+        : NotificationType.communityUpdate;
+    final title = type == NotificationType.safetyReport ? 'Safety Report' : 'Community Update';
+    final trimmedMessage = post.message.trim();
+    final snippet = trimmedMessage.isEmpty
+        ? ''
+        : (trimmedMessage.length > 140 ? '${trimmedMessage.substring(0, 140)}...' : trimmedMessage);
+    final content = snippet.isEmpty ? post.authorName : '${post.authorName}: $snippet';
+
+    final notification = NotificationModel(
+      id: 'post_${post.id}',
+      type: type,
+      title: title,
+      content: content,
+      isRead: false,
+      createdAt: post.timestamp,
+      postId: post.id,
+    );
+
+    _items.insert(0, notification);
+    _items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    if (_items.length > 200) {
+      _items = _items.sublist(0, 200);
+    }
   }
 
   Future<void> checkUpdatesInBackground() async {
@@ -88,19 +221,42 @@ class NotificationRepository {
     // Fetch posts
     if (SettingsRepository.instance.communityUpdates) {
       try {
-        // Use first to get current state without listening
         final posts = await PostRepository.instance.getAllPosts(null).first;
         for (final post in posts) {
           if (post.timestamp.isAfter(lastCheck)) {
              NotificationService.instance.showCommunityUpdateNotification(
               'New Community Update',
               '${post.authorName}: ${post.message}',
+              payload: 'post:${post.id}',
             );
           }
         }
       } catch (e) {
         debugPrint('Background post check error: $e');
       }
+    }
+
+    // Fetch user notifications (likes, comments, etc.)
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && SettingsRepository.instance.pushNotifications) {
+       try {
+         final snapshot = await FirebaseFirestore.instance
+             .collection('users')
+             .doc(user.uid)
+             .collection('notifications')
+             .where('timestamp', isGreaterThan: Timestamp.fromDate(lastCheck))
+             .get();
+             
+         for (final doc in snapshot.docs) {
+            final data = doc.data();
+            final title = data['title'] as String? ?? 'Notification';
+            final body = data['body'] as String? ?? '';
+            final postId = data['postId'] as String?;
+            NotificationService.instance.showRemoteNotification(title, body, payload: 'post:$postId');
+         }
+       } catch (e) {
+         debugPrint('Background user notification check error: $e');
+       }
     }
 
     await prefs.setInt('last_background_check', DateTime.now().millisecondsSinceEpoch);
@@ -114,28 +270,22 @@ class NotificationRepository {
       final earthquakes = await EarthquakeApiService.fetchRecentEarthquakes(limit: 100);
       final settings = SettingsRepository.instance;
       
-      // Get user location if location services are enabled
       Position? userLocation;
       double? calculatedDistance;
       if (settings.locationServices) {
         userLocation = await LocationService.getCurrentLocation();
       }
       
-      // Create notifications from real earthquake data
-      final notifications = <NotificationModel>[];
-      
+      final earthquakeNotifications = <NotificationModel>[];
+
       for (final eq in earthquakes) {
-        // Check background time constraint
         if (lastCheckTime != null && eq.dateTime.isBefore(lastCheckTime)) continue;
 
         final notificationId = eq.earthquakeId ?? '${eq.latitude}_${eq.longitude}_${eq.dateTime.millisecondsSinceEpoch}';
-        
-        // Skip if this notification was deleted
         if (_deletedIds.contains(notificationId)) {
           continue;
         }
-        
-        // Calculate distance if we have user location
+
         if (userLocation != null) {
           calculatedDistance = LocationService.calculateDistance(
             userLocation.latitude,
@@ -144,32 +294,26 @@ class NotificationRepository {
             eq.longitude,
           );
         } else {
-          // Use distance from API if available, otherwise null
           calculatedDistance = eq.distance > 0 ? eq.distance : null;
         }
-        
-        // Show all earthquakes in the notifications list
-        // Filters are only applied for push notifications, not for the list display
+
         bool shouldNotify = false;
-        
-        // Check minimum magnitude filter (for push notifications only)
         if (eq.magnitude >= settings.minMagnitude) {
           shouldNotify = true;
         }
-        
-        // Check nearby alerts filter (for push notifications only)
         if (settings.nearbyAlerts && calculatedDistance != null && calculatedDistance <= 200) {
           shouldNotify = true;
         }
-        
-        // Always add to notifications list, regardless of filters
-        // Filters only affect push notifications (checked later)
-        
-        final notificationType = eq.magnitude >= 5.0 
-            ? NotificationType.majorEarthquake 
+
+        // FILTER: Don't add to list if magnitude is too low
+        if (eq.magnitude < settings.minMagnitude) {
+           continue;
+        }
+
+        final notificationType = eq.magnitude >= 5.0
+            ? NotificationType.majorEarthquake
             : NotificationType.earthquake;
-        
-        // Create earthquake with calculated distance
+
         final earthquakeWithDistance = Earthquake(
           magnitude: eq.magnitude,
           location: eq.location,
@@ -182,45 +326,35 @@ class NotificationRepository {
           provider: eq.provider,
           dateTime: eq.dateTime,
         );
-        
-        notifications.add(
+
+        earthquakeNotifications.add(
           NotificationModel(
             id: notificationId,
             type: notificationType,
-            title: eq.magnitude >= 5.0 ? 'major_earthquake_alert' : 'earthquake_detected', // Localization key
-            content: 'M${eq.magnitude.toStringAsFixed(1)} earthquake in ${eq.location}', // Will be localized in card
-            timeAgo: eq.timeAgo,
+            title: eq.magnitude >= 5.0 ? 'major_earthquake_alert' : 'earthquake_detected',
+            content: 'M${eq.magnitude.toStringAsFixed(1)} earthquake in ${eq.location}',
             magnitude: 'M${eq.magnitude.toStringAsFixed(1)}',
-            badgeColor: null, // Will be set based on magnitude in card
+            badgeColor: null,
             earthquake: earthquakeWithDistance,
-            isRead: false,
+            createdAt: eq.dateTime,
           ),
         );
-        
-        // Show phone notification if push notifications are enabled, filters match, and this is a new notification
+
         if (settings.pushNotifications && shouldNotify && !_shownNotificationIds.contains(notificationId)) {
           _shownNotificationIds.add(notificationId);
-          // Show notification on phone (this will be handled by NotificationService)
-          // We'll call this after a small delay to avoid showing too many at once
           Future.delayed(const Duration(milliseconds: 100), () {
             NotificationService.instance.showEarthquakeNotification(earthquakeWithDistance);
           });
         }
       }
-      
-      // Sort by date (newest first)
-      notifications.sort((a, b) {
-        if (a.earthquake != null && b.earthquake != null) {
-          return b.earthquake!.dateTime.compareTo(a.earthquake!.dateTime);
-        }
-        return 0;
-      });
-      
-      _items = notifications;
+
+      final otherItems = _items.where((n) => n.type != NotificationType.earthquake && n.type != NotificationType.majorEarthquake).toList();
+      otherItems.addAll(earthquakeNotifications);
+      otherItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      _items = otherItems.length > 200 ? otherItems.sublist(0, 200) : otherItems;
       _isLoading = false;
     } catch (e) {
       _isLoading = false;
-      // On error, keep empty list or use sample data as fallback
       _items = [];
     }
   }
@@ -229,21 +363,22 @@ class NotificationRepository {
     await _loadNotificationsFromAPI();
   }
 
-  void markReadAndRemove(String id) {
-    // Legacy method name kept for compatibility; no longer removes.
-    // Now it only marks as read, preserving the item in the list.
-    for (final n in _items) {
-      if (n.id == id) {
-        n.isRead = true;
-        break;
-      }
-    }
-  }
-
   void markRead(String id) {
     for (final n in _items) {
       if (n.id == id) {
         n.isRead = true;
+        // Also update in Firestore if it's a user notification
+        if (n.type != NotificationType.earthquake && n.type != NotificationType.majorEarthquake && n.type != NotificationType.communityUpdate && n.type != NotificationType.safetyReport) {
+             if (_currentUserId != null) {
+                 FirebaseFirestore.instance
+                   .collection('users')
+                   .doc(_currentUserId)
+                   .collection('notifications')
+                   .doc(id)
+                   .update({'isRead': true})
+                   .catchError((e) {});
+             }
+        }
         break;
       }
     }
@@ -253,6 +388,17 @@ class NotificationRepository {
     for (final n in _items) {
       if (n.id == id) {
         n.isRead = false;
+         if (n.type != NotificationType.earthquake && n.type != NotificationType.majorEarthquake && n.type != NotificationType.communityUpdate && n.type != NotificationType.safetyReport) {
+             if (_currentUserId != null) {
+                 FirebaseFirestore.instance
+                   .collection('users')
+                   .doc(_currentUserId)
+                   .collection('notifications')
+                   .doc(id)
+                   .update({'isRead': false})
+                   .catchError((e) {});
+             }
+        }
         break;
       }
     }
@@ -260,17 +406,17 @@ class NotificationRepository {
 
   void remove(String id) {
     _items.removeWhere((n) => n.id == id);
-    _deletedIds.add(id); // Mark as deleted so it won't come back on refresh
+    _deletedIds.add(id);
+    // Optionally delete from Firestore
   }
 
+  void clearShownEarthquakeCache() {
+    _shownNotificationIds.clear();
+  }
   void clearAll() {
-    // Mark all notification IDs as deleted so they won't come back on refresh
     for (final n in _items) {
       _deletedIds.add(n.id);
     }
-    // Clear all items from the list
     _items.clear();
   }
 }
-
-

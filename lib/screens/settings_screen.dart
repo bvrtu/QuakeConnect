@@ -6,7 +6,6 @@ import '../services/notification_service.dart';
 import '../services/auth_service.dart';
 import '../data/notification_repository.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -111,32 +110,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       // This ensures permission is requested when toggling off and on
                       if (v) {
                         // Request notification permission when enabling
-                        final androidPlugin = await NotificationService.instance.notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-                        if (androidPlugin != null) {
-                          final granted = await androidPlugin.requestNotificationsPermission();
-                          if (granted != true) {
-                            // Permission denied, don't enable
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(AppLocalizations.of(context).notificationPermissionDenied),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            }
+                        final status = await Permission.notification.status;
+                        if (!status.isGranted) {
+                          if (status.isPermanentlyDenied) {
+                            await openAppSettings();
                             return;
                           }
-                        }
-                        // For iOS, check if notifications are enabled
-                        final iosPlugin = await NotificationService.instance.notifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
-                        if (iosPlugin != null) {
-                          final settings = await iosPlugin.requestPermissions(
-                            alert: true,
-                            badge: true,
-                            sound: true,
-                          );
-                          if (settings != true) {
-                            if (mounted) {
+                          final result = await Permission.notification.request();
+                          if (!result.isGranted) {
+                            if (result.isPermanentlyDenied) {
+                              await openAppSettings();
+                            } else if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(AppLocalizations.of(context).notificationPermissionDenied),
@@ -416,7 +400,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: (v) {
                     setState(() => minMagnitude = v);
                     _settingsRepo.saveMinMagnitude(v);
-                    // Refresh notifications to apply new settings
+                    NotificationRepository.instance.clearShownEarthquakeCache();
                     NotificationRepository.instance.refresh();
                   },
                 ),

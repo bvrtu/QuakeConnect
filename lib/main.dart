@@ -21,6 +21,9 @@ import 'screens/onboarding/personal_info_onboarding_screen.dart';
 import 'data/user_repository.dart';
 import 'data/notification_repository.dart';
 import 'models/user_model.dart';
+import 'screens/post_detail_screen.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,6 +84,19 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
     // Check initial auth state
     _isAuthenticated = AuthService.instance.isLoggedIn;
     _isCheckingAuth = false;
+    
+    NotificationService.instance.onNotificationTap.listen((payload) {
+      if (payload != null && payload.startsWith('post:')) {
+        final postId = payload.substring(5);
+        if (postId.isNotEmpty && postId != 'null') {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) => PostDetailScreen(postId: postId),
+            ),
+          );
+        }
+      }
+    });
   }
 
   @override
@@ -130,6 +146,7 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
           valueListenable: SettingsRepository.instance.themeMode,
           builder: (context, themeMode, child) {
             return MaterialApp(
+              navigatorKey: navigatorKey,
               title: 'QuakeConnect',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.lightTheme,

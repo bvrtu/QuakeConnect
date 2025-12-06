@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:convert';
+import 'dart:io' show Platform;
 import '../models/community_post.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/formatters.dart';
 import '../data/post_repository.dart';
 import '../data/comment_repository.dart' show Comment, CommentRepository;
+import '../data/app_notification_repository.dart';
 import '../services/auth_service.dart';
 import '../data/user_repository.dart';
 import '../models/user_model.dart';
@@ -124,10 +126,19 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
     
     try {
       await _postRepo.likePost(widget.post.id, _currentUserId!);
+      
+      if (!previousLiked && widget.post.authorId != _currentUserId) {
+        await AppNotificationRepository.instance.sendLikeNotification(
+          postAuthorId: widget.post.authorId,
+          likerId: _currentUserId!,
+          postId: widget.post.id,
+        );
+      }
+
       // After successful update, reset flag so StreamBuilder can sync
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
-          setState(() {
+    setState(() {
             _hasOptimisticLike = false;
           });
         }
@@ -162,6 +173,15 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
     
     try {
       await _postRepo.repostPost(widget.post.id, _currentUserId!);
+      
+      if (!previousReposted && widget.post.authorId != _currentUserId) {
+        await AppNotificationRepository.instance.sendRepostNotification(
+          postAuthorId: widget.post.authorId,
+          reposterId: _currentUserId!,
+          postId: widget.post.id,
+        );
+      }
+
       // After successful update, reset flag so StreamBuilder can sync
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
@@ -193,13 +213,6 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
         );
       }
     }
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
-    );
   }
 
   Widget _getScreenForIndex(int index) {
@@ -497,7 +510,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
           ),
         ],
       ),
-    ),
+      ),
     );
   }
 
@@ -577,26 +590,49 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
           label: widget.post.shares,
           showLabel: false,
           onTap: () async {
+            try {
             final shareMessage =
                 '${widget.post.message}\n\nLocation: ${widget.post.location}';
-            final box = context.findRenderObject() as RenderBox?;
-            
-            await Share.share(
-              shareMessage, 
-              subject: 'QuakeConnect Update',
-              sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
-            );
-            HapticFeedback.selectionClick();
+              
+              // sharePositionOrigin is only needed for iPad on iOS
+              Rect? sharePositionOrigin;
+              if (Platform.isIOS) {
+                final box = context.findRenderObject() as RenderBox?;
+                if (box != null) {
+                  final position = box.localToGlobal(Offset.zero);
+                  sharePositionOrigin = Rect.fromLTWH(
+                    position.dx,
+                    position.dy,
+                    box.size.width,
+                    box.size.height,
+                  );
+                }
+              }
+              
+              await Share.share(
+                shareMessage, 
+                subject: 'QuakeConnect Update',
+                sharePositionOrigin: sharePositionOrigin,
+              );
+              HapticFeedback.selectionClick();
             setState(() {
               widget.post.shares += 1;
             });
             widget.onUpdated?.call();
-            final t = AppLocalizations.of(context);
-            widget.showBanner?.call(
-              t.postSharedExternal,
-              background: Colors.black87,
-              icon: Icons.share,
-            );
+              final t = AppLocalizations.of(context);
+              widget.showBanner?.call(
+                t.postSharedExternal,
+                background: Colors.black87,
+                icon: Icons.share,
+              );
+            } catch (e) {
+              debugPrint('Share error: $e');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Share failed: $e')),
+                );
+              }
+            }
           },
         ),
       ],
@@ -808,13 +844,17 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                   label: 0,
                                   showLabel: false,
                                   onTap: () async {
-                                    await Share.share(c.text, subject: 'QuakeConnect Reply');
-                                    final t = AppLocalizations.of(context);
-                                    widget.showBanner?.call(
-                                      t.postSharedExternal,
-                                      background: Colors.black87,
-                                      icon: Icons.share,
-                                    );
+                                    try {
+                                      await Share.share(c.text, subject: 'QuakeConnect Reply');
+                                      final t = AppLocalizations.of(context);
+                                      widget.showBanner?.call(
+                                        t.postSharedExternal,
+                                        background: Colors.black87,
+                                        icon: Icons.share,
+                                      );
+                                    } catch (e) {
+                                      debugPrint('Share error: $e');
+                                    }
                                   },
                                 ),
                               ]),
@@ -1056,7 +1096,23 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                   user: user,
                                 );
                                 
-                                controller.clear();
+                                if (replyingTo != null) {
+                                  await AppNotificationRepository.instance.sendReplyNotification(
+                                    commentAuthorId: replyingTo!.authorId,
+                                    replierId: _currentUserId!,
+                                    postId: widget.post.id,
+                                    replyText: text,
+                                  );
+                                } else {
+                                  await AppNotificationRepository.instance.sendCommentNotification(
+                                    postAuthorId: widget.post.authorId,
+                                    commenterId: _currentUserId!,
+                                    postId: widget.post.id,
+                                    commentText: text,
+                                  );
+                                }
+                                
+                              controller.clear();
                                 if (replyingTo != null) {
                               modalSetState(() {
                                   replyingTo = null;
@@ -1099,7 +1155,23 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                     user: user,
                                   );
                                   
-                                  controller.clear();
+                                  if (replyingTo != null) {
+                                    await AppNotificationRepository.instance.sendReplyNotification(
+                                      commentAuthorId: replyingTo!.authorId,
+                                      replierId: _currentUserId!,
+                                      postId: widget.post.id,
+                                      replyText: text,
+                                    );
+                              } else {
+                                    await AppNotificationRepository.instance.sendCommentNotification(
+                                      postAuthorId: widget.post.authorId,
+                                      commenterId: _currentUserId!,
+                                      postId: widget.post.id,
+                                      commentText: text,
+                                    );
+                                  }
+                                  
+                            controller.clear();
                                   if (replyingTo != null) {
                             modalSetState(() {
                                 replyingTo = null;
@@ -1134,7 +1206,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                                     ? BorderSide(color: Colors.grey.shade700, width: 1.5)
                                     : null,
                               ),
-                              child: const Icon(Icons.send, size: 18),
+                          child: const Icon(Icons.send, size: 18),
                             );
                           },
                         ),

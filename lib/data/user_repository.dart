@@ -261,4 +261,3 @@ class UserRepository {
     return users;
   }
 }
-

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/notification_model.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/formatters.dart';
 
 class NotificationCard extends StatelessWidget {
   final NotificationModel notification;
@@ -133,7 +134,7 @@ class NotificationCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  notification.timeAgo,
+                  formatTimeAgo(context, notification.createdAt),
                   style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
                 ),
               ],
