@@ -31,6 +31,7 @@ class _MapScreenState extends State<MapScreen> {
   bool _previousLocationServicesState = true;
   bool _canRenderMap = false;
   bool _myLocationEnabled = false;
+  double _currentZoom = 6.0;
 
   // Minimal dark map style for better night readability
   static const String _darkMapStyle = '[{"elementType":"geometry","stylers":[{"color":"#242f3e"}]},{"elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"elementType":"labels.text.stroke","stylers":[{"color":"#242f3e"}]},{"featureType":"administrative","elementType":"geometry","stylers":[{"color":"#757575"}]},{"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#d6d6d6"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#263c3f"}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#38414e"}]},{"featureType":"road","elementType":"geometry.stroke","stylers":[{"color":"#212a37"}]},{"featureType":"transit","elementType":"geometry","stylers":[{"color":"#2f3948"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#17263c"}]}]';
@@ -386,6 +387,9 @@ class _MapScreenState extends State<MapScreen> {
                         target: _turkeyCenter,
                         zoom: _zoomLevel,
                       ),
+                      onCameraMove: (CameraPosition position) {
+                        _currentZoom = position.zoom;
+                      },
                       onMapCreated: (GoogleMapController controller) {
                         try {
                           if (!mounted) return;
@@ -481,11 +485,93 @@ class _MapScreenState extends State<MapScreen> {
                       right: 16,
                       child: _buildEarthquakeCard(_selectedEarthquake!),
                     ),
+
+                  // Zoom Controls
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: _buildZoomControls(),
+                  ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildZoomControls() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Zoom In Button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                if (_mapController != null) {
+                  _mapController!.animateCamera(
+                    CameraUpdate.zoomIn(),
+                  );
+                }
+              },
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+              child: Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                child: const Icon(Icons.add, size: 24),
+              ),
+            ),
+          ),
+          // Divider
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade700
+                : Colors.grey.shade300,
+          ),
+          // Zoom Out Button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                if (_mapController != null) {
+                  _mapController!.animateCamera(
+                    CameraUpdate.zoomOut(),
+                  );
+                }
+              },
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(8),
+                bottomRight: Radius.circular(8),
+              ),
+              child: Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                child: const Icon(Icons.remove, size: 24),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

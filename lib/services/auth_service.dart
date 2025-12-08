@@ -15,7 +15,10 @@ class AuthService {
       'profile',
     ],
     // iOS specific configuration - use serverClientId from GoogleService-Info.plist
-    serverClientId: '430371063688-aeaq1ri8opbmllmkc1c4buo4i96vlq30.apps.googleusercontent.com',
+    // Android doesn't need serverClientId, it uses the OAuth client from google-services.json
+    serverClientId: Platform.isIOS 
+        ? '430371063688-aeaq1ri8opbmllmkc1c4buo4i96vlq30.apps.googleusercontent.com'
+        : null,
     hostedDomain: null,
     signInOption: SignInOption.standard,
   );

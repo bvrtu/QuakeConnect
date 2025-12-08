@@ -709,102 +709,108 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        StreamBuilder<UserModel?>(
-                          stream: c.authorId.isNotEmpty 
-                              ? _userRepo.getUserStream(c.authorId)
-                              : null,
-                          builder: (context, snapshot) {
-                            final user = snapshot.data;
-                            final gradients = [
-                              [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
-                              [const Color(0xFF00C853), const Color(0xFF1DE9B6)],
-                              [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
-                              [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
-                              [const Color(0xFFFF4081), const Color(0xFFFFAB40)],
-                              [const Color(0xFF00BCD4), const Color(0xFF448AFF)],
-                              [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
-                              [const Color(0xFFFFA726), const Color(0xFFFF7043)],
-                              [const Color(0xFF7E57C2), const Color(0xFFAB47BC)],
-                              [const Color(0xFF66BB6A), const Color(0xFF43A047)],
-                              [const Color(0xFF42A5F5), const Color(0xFF1E88E5)],
-                              [const Color(0xFFEC407A), const Color(0xFFAB47BC)],
-                            ];
-                            final gradientIndex = user?.gradientIndex ?? 0;
-                            final colors = gradients[gradientIndex % gradients.length];
-                            
-                            // Check if photoURL is a data URI (base64) or regular URL
-                            final photoURL = user?.photoURL;
-                            ImageProvider? imageProvider;
-                            
-                            if (photoURL != null && photoURL.isNotEmpty) {
-                              if (photoURL.startsWith('data:image')) {
-                                // Base64 data URI
-                                try {
-                                  final base64String = photoURL.split(',')[1];
-                                  final imageBytes = base64Decode(base64String);
-                                  imageProvider = MemoryImage(imageBytes);
-                                } catch (e) {
-                                  debugPrint('Error decoding base64 image: $e');
+                        GestureDetector(
+                          onTap: () => _navigateToProfile(c.authorId),
+                          child: StreamBuilder<UserModel?>(
+                            stream: c.authorId.isNotEmpty 
+                                ? _userRepo.getUserStream(c.authorId)
+                                : null,
+                            builder: (context, snapshot) {
+                              final user = snapshot.data;
+                              final gradients = [
+                                [const Color(0xFF7B61FF), const Color(0xFF36C2FF)],
+                                [const Color(0xFF00C853), const Color(0xFF1DE9B6)],
+                                [const Color(0xFFFF6D00), const Color(0xFFFFD180)],
+                                [const Color(0xFF2979FF), const Color(0xFF7C4DFF)],
+                                [const Color(0xFFFF4081), const Color(0xFFFFAB40)],
+                                [const Color(0xFF00BCD4), const Color(0xFF448AFF)],
+                                [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
+                                [const Color(0xFFFFA726), const Color(0xFFFF7043)],
+                                [const Color(0xFF7E57C2), const Color(0xFFAB47BC)],
+                                [const Color(0xFF66BB6A), const Color(0xFF43A047)],
+                                [const Color(0xFF42A5F5), const Color(0xFF1E88E5)],
+                                [const Color(0xFFEC407A), const Color(0xFFAB47BC)],
+                              ];
+                              final gradientIndex = user?.gradientIndex ?? 0;
+                              final colors = gradients[gradientIndex % gradients.length];
+                              
+                              // Check if photoURL is a data URI (base64) or regular URL
+                              final photoURL = user?.photoURL;
+                              ImageProvider? imageProvider;
+                              
+                              if (photoURL != null && photoURL.isNotEmpty) {
+                                if (photoURL.startsWith('data:image')) {
+                                  // Base64 data URI
+                                  try {
+                                    final base64String = photoURL.split(',')[1];
+                                    final imageBytes = base64Decode(base64String);
+                                    imageProvider = MemoryImage(imageBytes);
+                                  } catch (e) {
+                                    debugPrint('Error decoding base64 image: $e');
+                                  }
+                                } else {
+                                  // Regular URL
+                                  imageProvider = NetworkImage(photoURL);
                                 }
-                              } else {
-                                // Regular URL
-                                imageProvider = NetworkImage(photoURL);
                               }
-                            }
-                            
-                            return Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                image: imageProvider != null
-                                    ? DecorationImage(
-                                        image: imageProvider,
-                                        fit: BoxFit.cover,
+                              
+                              return Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  image: imageProvider != null
+                                      ? DecorationImage(
+                                          image: imageProvider,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
+                                  gradient: imageProvider == null ? LinearGradient(colors: colors) : null,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                alignment: imageProvider == null ? Alignment.center : null,
+                                child: imageProvider == null
+                                    ? Text(
+                                        _buildInitials(user?.displayName ?? c.authorName),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
                                       )
                                     : null,
-                                gradient: imageProvider == null ? LinearGradient(colors: colors) : null,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              alignment: imageProvider == null ? Alignment.center : null,
-                              child: imageProvider == null
-                                  ? Text(
-                                      _buildInitials(user?.displayName ?? c.authorName),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    )
-                                  : null,
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 4,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Text(
-                                    c.authorName,
-                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                                  ),
-                                  Text(
-                                    c.timeAgo,
-                                    style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 12),
-                                  ),
-                                ],
+                              GestureDetector(
+                                onTap: () => _navigateToProfile(c.authorId),
+                                child: Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Text(
+                                      c.authorName,
+                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                    ),
+                                    Text(
+                                      c.timeAgo,
+                                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
