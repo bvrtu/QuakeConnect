@@ -339,11 +339,14 @@ exports.onCommentCreated = functions.firestore
     const commenterDoc = await admin.firestore().collection('users').doc(commenterId).get();
     const commenterName = commenterDoc.exists ? commenterDoc.data().displayName || 'Someone' : 'Someone';
 
-    const commentText = commentData.message || '';
+    // Get comment text - try both 'text' and 'message' fields for compatibility
+    const commentText = commentData.text || commentData.message || '';
     // Show full comment text in notification (up to 200 characters for notification display)
     const body = commentText.length > 200 
       ? `${commenterName}: ${commentText.substring(0, 200)}...`
-      : `${commenterName}: ${commentText}`;
+      : commentText.length > 0
+      ? `${commenterName}: ${commentText}`
+      : `${commenterName} commented on your post`;
 
     // Send notification to post author
     await sendNotification(authorId, 'New Comment', body, {

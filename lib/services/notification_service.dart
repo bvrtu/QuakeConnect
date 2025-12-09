@@ -29,7 +29,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Show local notification for background messages
   final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
   
-  const androidSettings = AndroidInitializationSettings('@drawable/ic_stat_quakeconnectnotextnobg');
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_stat_quakeconnectnotextnobg');
   const iosSettings = DarwinInitializationSettings(
     requestAlertPermission: true,
     requestBadgePermission: true,
@@ -51,7 +51,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       channelDescription: message.data['channelDescription'] ?? 'Notifications',
       importance: Importance.high,
       priority: Priority.high,
-      icon: '@drawable/ic_stat_quakeconnectnotextnobg',
+      icon: '@mipmap/ic_stat_quakeconnectnotextnobg',
+      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_stat_quakeconnectnotextnobg'),
     );
 
     final iosDetails = DarwinNotificationDetails(
@@ -95,7 +96,7 @@ class NotificationService {
     if (_initialized) return;
 
     // Initialize local notifications
-    const androidSettings = AndroidInitializationSettings('@drawable/ic_stat_quakeconnectnotextnobg');
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_stat_quakeconnectnotextnobg');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -210,7 +211,8 @@ class NotificationService {
         channelDescription: message.data['channelDescription'] ?? 'Notifications',
         importance: Importance.high,
         priority: Priority.high,
-        icon: '@drawable/ic_stat_quakeconnectnotextnobg',
+        icon: '@mipmap/ic_stat_quakeconnectnotextnobg',
+      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_stat_quakeconnectnotextnobg'),
       );
 
       final iosDetails = DarwinNotificationDetails(
@@ -294,7 +296,8 @@ class NotificationService {
       channelDescription: 'Notifications for earthquake alerts',
       importance: Importance.high,
       priority: Priority.high,
-      icon: '@drawable/ic_stat_quakeconnectnotextnobg',
+      icon: '@mipmap/ic_stat_quakeconnectnotextnobg',
+      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_stat_quakeconnectnotextnobg'),
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -332,7 +335,8 @@ class NotificationService {
       channelDescription: 'Notifications for community updates',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
-      icon: '@drawable/ic_stat_quakeconnectnotextnobg',
+      icon: '@mipmap/ic_stat_quakeconnectnotextnobg',
+      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_stat_quakeconnectnotextnobg'),
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -362,7 +366,8 @@ class NotificationService {
       channelDescription: "Notifications for QuakeConnect updates",
       importance: Importance.high,
       priority: Priority.high,
-      icon: "@drawable/ic_stat_quakeconnectnotextnobg",
+      icon: "@mipmap/ic_stat_quakeconnectnotextnobg",
+      largeIcon: const DrawableResourceAndroidBitmap("@mipmap/ic_stat_quakeconnectnotextnobg"),
     );
 
     const iosDetails = DarwinNotificationDetails(
