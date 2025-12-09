@@ -2,14 +2,6 @@
 
 Bu dosya, QuakeConnect projesini yerel ortamınızda çalıştırmak için gerekli adımları içerir.
 
-## ⚠️ ÖNEMLİ: Hassas Dosyalar
-
-Aşağıdaki dosyalar güvenlik nedeniyle git repository'sine dahil edilmemiştir. Bu dosyaları oluşturmanız **ZORUNLUDUR**:
-
-- `android/app/google-services.json`
-- `ios/Runner/GoogleService-Info.plist`
-- `lib/firebase_options.dart`
-
 ## 📋 Ön Gereksinimler
 
 1. **Flutter SDK** (3.8.1 veya üzeri)
@@ -50,12 +42,6 @@ flutter pub get
 5. `google-services.json` dosyasını indirin
 6. Dosyayı `android/app/` klasörüne kopyalayın
 
-**Veya örnek dosyayı kullanın:**
-```bash
-cp android/app/google-services.json.example android/app/google-services.json
-# Sonra dosyayı düzenleyip gerçek değerlerle doldurun
-```
-
 #### iOS için
 
 1. Firebase Console'a gidin
@@ -67,15 +53,9 @@ cp android/app/google-services.json.example android/app/google-services.json
 7. Xcode'da projeyi açın (`ios/Runner.xcworkspace`)
 8. Dosyayı Xcode projesine sürükleyip bırakın (Copy items if needed seçeneğini işaretleyin)
 
-**Veya örnek dosyayı kullanın:**
-```bash
-cp ios/Runner/GoogleService-Info.plist.example ios/Runner/GoogleService-Info.plist
-# Sonra dosyayı düzenleyip gerçek değerlerle doldurun
-```
-
 #### Firebase Options Dosyası
 
-**Yöntem 1: FlutterFire CLI (Önerilen)**
+FlutterFire CLI kullanarak otomatik oluşturun:
 
 ```bash
 # FlutterFire CLI'yi yükleyin (eğer yoksa)
@@ -88,16 +68,11 @@ firebase login
 flutterfire configure
 ```
 
-**Yöntem 2: Manuel Oluşturma**
+Veya manuel olarak `lib/firebase_options.dart` dosyasını oluşturun:
 
-1. `lib/firebase_options.example.dart` dosyasını kopyalayın:
-   ```bash
-   cp lib/firebase_options.example.dart lib/firebase_options.dart
-   ```
-
-2. Firebase Console'dan aldığınız değerleri `lib/firebase_options.dart` dosyasına doldurun:
-   - Android: `apiKey`, `appId`, `messagingSenderId`, `projectId`, `storageBucket`
-   - iOS: `apiKey`, `appId`, `messagingSenderId`, `projectId`, `storageBucket`, `iosBundleId`
+1. `lib/firebase_options.example.dart` dosyasını kopyalayın
+2. `lib/firebase_options.dart` olarak yeniden adlandırın
+3. Firebase Console'dan aldığınız değerleri doldurun
 
 ### 4. Google Maps API Key
 
@@ -116,7 +91,7 @@ flutterfire configure
 
 #### Android'de Kullanım
 
-`android/app/src/main/AndroidManifest.xml` dosyasını açın ve şu satırı ekleyin/güncelleyin:
+`android/app/src/main/AndroidManifest.xml` dosyasını açın ve şu satırı ekleyin:
 
 ```xml
 <application>
@@ -129,9 +104,7 @@ flutterfire configure
 
 #### iOS'te Kullanım
 
-**AppDelegate.swift:**
-
-`ios/Runner/AppDelegate.swift` dosyasını açın ve şu satırı ekleyin/güncelleyin:
+`ios/Runner/AppDelegate.swift` dosyasını açın ve şu satırı ekleyin:
 
 ```swift
 import GoogleMaps
@@ -149,20 +122,12 @@ import GoogleMaps
 }
 ```
 
-**Info.plist:**
-
-`ios/Runner/Info.plist` dosyasına da ekleyin:
+Ayrıca `ios/Runner/Info.plist` dosyasına da ekleyin:
 
 ```xml
 <key>GMSApiKey</key>
 <string>YOUR_GOOGLE_MAPS_API_KEY</string>
 ```
-
-**Kod İçinde:**
-
-Aşağıdaki dosyalarda da API key'i güncelleyin:
-- `lib/screens/profile_screen.dart` (line 2825)
-- `lib/screens/onboarding/personal_info_onboarding_screen.dart` (line 54)
 
 ### 5. Google Sign-In Yapılandırması
 
@@ -222,15 +187,15 @@ override func application(
 
 Android için genellikle `google-services.json` dosyası yeterlidir. Ek bir yapılandırma gerekmez.
 
-#### Kod İçinde
+### 6. Kod İçindeki API Key'leri
 
-`lib/services/auth_service.dart` dosyasında (line 18) `serverClientId` değerini güncelleyin:
+Aşağıdaki dosyalarda API key'leri güncelleyin:
 
-```dart
-serverClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-```
+- `lib/services/auth_service.dart`: `serverClientId` (iOS için)
+- `lib/screens/profile_screen.dart`: Google Maps API key (eğer varsa)
+- `lib/screens/onboarding/personal_info_onboarding_screen.dart`: Google Maps API key (eğer varsa)
 
-### 6. Uygulamayı Çalıştırın
+### 7. Uygulamayı Çalıştırın
 
 ```bash
 # Android
@@ -248,8 +213,8 @@ flutter run -d <device_id>
 
 Kurulum tamamlandıktan sonra şunları kontrol edin:
 
-- [ ] `android/app/google-services.json` dosyası mevcut ve doğru değerlerle doldurulmuş
-- [ ] `ios/Runner/GoogleService-Info.plist` dosyası mevcut, doğru değerlerle doldurulmuş ve Xcode projesine eklenmiş
+- [ ] `android/app/google-services.json` dosyası mevcut
+- [ ] `ios/Runner/GoogleService-Info.plist` dosyası mevcut ve Xcode projesine eklenmiş
 - [ ] `lib/firebase_options.dart` dosyası mevcut ve doğru değerlerle doldurulmuş
 - [ ] Google Maps API key'i Android ve iOS'ta yapılandırılmış
 - [ ] Google Sign-In iOS'ta yapılandırılmış

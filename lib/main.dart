@@ -10,9 +10,10 @@ import 'theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'data/settings_repository.dart';
-import 'services/notification_service.dart';
+import 'services/notification_service.dart' show NotificationService, firebaseMessagingBackgroundHandler;
 import 'services/auth_service.dart';
 import 'services/background_service.dart';
 import 'screens/auth/login_screen.dart';
@@ -33,6 +34,9 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    
+    // Set up background message handler (must be registered before runApp)
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     
     // Load settings from SharedPreferences
     await SettingsRepository.instance.loadSettings();
@@ -80,6 +84,10 @@ class _QuakeConnectAppState extends State<QuakeConnectApp> {
         });
         // Update settings repository with new user ID
         SettingsRepository.instance.updateUserId(user?.uid);
+        // Update FCM token for new user
+        if (user != null) {
+          NotificationService.instance.saveTokenToFirestore(NotificationService.instance.fcmToken);
+        }
       }
     });
     
