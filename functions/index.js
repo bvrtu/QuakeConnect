@@ -340,8 +340,9 @@ exports.onCommentCreated = functions.firestore
     const commenterName = commenterDoc.exists ? commenterDoc.data().displayName || 'Someone' : 'Someone';
 
     const commentText = commentData.message || '';
-    const body = commentText.length > 50 
-      ? `${commenterName}: ${commentText.substring(0, 50)}...`
+    // Show full comment text in notification (up to 200 characters for notification display)
+    const body = commentText.length > 200 
+      ? `${commenterName}: ${commentText.substring(0, 200)}...`
       : `${commenterName}: ${commentText}`;
 
     // Send notification to post author
