@@ -61,6 +61,8 @@ dependencies:
   firebase_messaging: ^15.1.3
   google_sign_in: ^6.2.1
   image_cropper: ^11.0.0
+  audioplayers: ^6.1.0
+  cloud_functions: ^5.1.1
 
 dev_dependencies:
   flutter_test:
@@ -90,6 +92,7 @@ flutter:
     - assets/quakeconnect.png
     - assets/google_logo.png
     - assets/quakeconnectnotext.png
+    - assets/sounds/duduk.mp3
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

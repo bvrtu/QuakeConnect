@@ -361,3 +361,108 @@ exports.onCommentCreated = functions.firestore
     return null;
   });
 
+// HTTP callable function to send safety status notifications to emergency contacts
+exports.sendSafetyStatusNotifications = functions.https.onCall(async (data, context) => {
+  // Verify authentication
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const senderUserId = data.senderUserId;
+  const senderName = data.senderName || 'Someone';
+  const phoneNumbers = data.phoneNumbers || [];
+  const location = data.location || 'Unknown location';
+  const timestamp = data.timestamp || new Date().toISOString();
+
+  if (!phoneNumbers || phoneNumbers.length === 0) {
+    return { success: false, message: 'No phone numbers provided' };
+  }
+
+  try {
+    // Normalize phone numbers (remove non-digits)
+    const normalizedPhones = phoneNumbers.map(p => p.replace(/\D/g, ''));
+    const phoneSet = new Set(normalizedPhones);
+
+    // Get all users with FCM tokens
+    const usersSnapshot = await admin.firestore()
+      .collection('users')
+      .where('fcmToken', '!=', null)
+      .get();
+
+    if (usersSnapshot.empty) {
+      return { success: true, notified: 0 };
+    }
+
+    const notifiedUsers = [];
+
+    // For each user, check if any of their emergency contacts' phone numbers match
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+      
+      // Skip the sender
+      if (userId === senderUserId) continue;
+      
+      // Get user's emergency contacts
+      const contactsSnapshot = await admin.firestore()
+        .collection('users')
+        .doc(userId)
+        .collection('emergencyContacts')
+        .get();
+      
+      // Check if any emergency contact's phone matches the sender's emergency contacts
+      let shouldNotify = false;
+      for (const contactDoc of contactsSnapshot.docs) {
+        const contactData = contactDoc.data();
+        const contactPhone = (contactData.phone || '').replace(/\D/g, '');
+        
+        // If this user has a contact with a phone number that matches sender's emergency contacts
+        if (phoneSet.has(contactPhone)) {
+          shouldNotify = true;
+          break;
+        }
+      }
+      
+      if (shouldNotify) {
+        const userData = userDoc.data();
+        const fcmToken = userData.fcmToken;
+        
+        if (fcmToken) {
+          // Check user settings
+          const settingsDoc = await admin.firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('settings')
+            .doc('app_settings')
+            .get();
+          
+          const settings = settingsDoc.exists ? settingsDoc.data() : {};
+          
+          if (settings.pushNotifications !== false) {
+            const body = `${senderName} marked themselves safe. Location: ${location}`;
+            
+            await sendNotification(userId, 'Safety Status Update', body, {
+              channel: 'remote_channel',
+              channelName: 'General Notifications',
+              type: 'safety_status',
+              senderUserId: senderUserId,
+              location: location,
+              timestamp: timestamp,
+            });
+            
+            notifiedUsers.push(userId);
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      notified: notifiedUsers.length,
+      message: `Notifications sent to ${notifiedUsers.length} users`,
+    };
+  } catch (error) {
+    console.error('Error sending safety status notifications:', error);
+    throw new functions.https.HttpsError('internal', 'Error sending notifications', error);
+  }
+});
+

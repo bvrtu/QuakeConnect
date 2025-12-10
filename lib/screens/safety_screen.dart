@@ -15,8 +15,12 @@ import '../data/settings_repository.dart';
 import '../data/emergency_contact_repository.dart';
 import '../models/emergency_contact.dart';
 import 'profile_screen.dart';
+import 'earthquake_info_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class SafetyScreen extends StatefulWidget {
   const SafetyScreen({super.key});
@@ -40,6 +44,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
   String _userLocation = 'Unknown Location';
   StreamSubscription<List<EmergencyContact>>? _contactsSub;
   List<EmergencyContact> _emergencyContacts = [];
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlayingWhistle = false;
 
   @override
   void dispose() {
@@ -47,6 +53,10 @@ class _SafetyScreenState extends State<SafetyScreen> {
     _postFocusNode.dispose();
     _removeBanner();
     _contactsSub?.cancel();
+    _audioPlayer.dispose();
+    if (_isPlayingWhistle) {
+      _audioPlayer.stop();
+    }
     super.dispose();
   }
 
@@ -188,7 +198,76 @@ class _SafetyScreenState extends State<SafetyScreen> {
       background: const Color(0xFF2E7D32),
       icon: Icons.check_circle,
     );
+    
+    // Automatically send SMS to all emergency contacts
+    final message = _buildSafetyStatusMessage();
+    await _sendSmsToAllContacts(message);
+    
+    // Send notifications to contacts who have the app installed
+    await _sendNotificationsToContacts();
+    
+    // Show the share sheet with only "Call" button
     await _openSafetyShareSheet();
+  }
+  
+  Future<void> _sendSmsToAllContacts(String message) async {
+    final t = AppLocalizations.of(context);
+    int successCount = 0;
+    int failCount = 0;
+    
+    for (var contact in _emergencyContacts) {
+      try {
+        final uri = Uri.parse('sms:${_sanitizePhone(contact.phone)}?body=${Uri.encodeComponent(message)}');
+        if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+        // Small delay between SMS sends to avoid overwhelming the system
+        await Future.delayed(const Duration(milliseconds: 300));
+      } catch (e) {
+        print('Error sending SMS to ${contact.name}: $e');
+        failCount++;
+      }
+    }
+    
+    if (failCount > 0 && mounted) {
+      _showTopBanner(
+        '${successCount} SMS sent, ${failCount} failed',
+        background: Colors.orange,
+        icon: Icons.info_outline,
+      );
+    }
+  }
+  
+  Future<void> _sendNotificationsToContacts() async {
+    if (_currentUserId == null) return;
+    
+    try {
+      // Get current user info
+      final currentUser = await _userRepo.getUser(_currentUserId!);
+      if (currentUser == null) return;
+      
+      // Prepare phone numbers list
+      final phoneNumbers = _emergencyContacts.map((c) => _sanitizePhone(c.phone)).toList();
+      
+      // Call Cloud Function to send notifications to users with matching phone numbers
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('sendSafetyStatusNotifications');
+      
+      final result = await callable.call({
+        'senderUserId': _currentUserId,
+        'senderName': currentUser.displayName,
+        'phoneNumbers': phoneNumbers,
+        'location': _userLocation,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+      
+      print('Notification result: ${result.data}');
+    } catch (e) {
+      print('Error sending notifications: $e');
+      // Don't show error to user, SMS is more important
+    }
   }
 
   Future<void> _promptToAddContacts() async {
@@ -345,24 +424,36 @@ class _SafetyScreenState extends State<SafetyScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _callNumber(contact.phone),
-                  icon: const Icon(Icons.call, size: 18),
-                  label: Text(t.call),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _callNumber(contact.phone),
+              icon: const Icon(Icons.call, size: 18),
+              label: Text(t.call),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, size: 16, color: Color(0xFF2E7D32)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'SMS sent automatically',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _sendSafetySms(contact.phone, message),
-                  icon: const Icon(Icons.sms_outlined, size: 18),
-                  label: Text(t.sendSms),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -585,6 +676,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
               const SizedBox(height: 24),
               _buildSafetyStatusCard(),
               const SizedBox(height: 24),
+              _buildEmergencyActionsCard(),
+              const SizedBox(height: 24),
               _buildShareInformationCard(),
               const SizedBox(height: 24),
               _buildCommunityUpdatesSection(),
@@ -712,6 +805,109 @@ class _SafetyScreenState extends State<SafetyScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildEmergencyActionsCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.2),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 6)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppLocalizations.of(context).emergencyTools,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const EarthquakeInfoScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.info_outline, size: 20),
+                  label: Text(AppLocalizations.of(context).earthquakeInfo),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isPlayingWhistle ? _stopWhistle : _playWhistle,
+                  icon: Icon(_isPlayingWhistle ? Icons.stop : Icons.campaign, size: 20),
+                  label: Text(_isPlayingWhistle ? AppLocalizations.of(context).stop : AppLocalizations.of(context).whistle),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isPlayingWhistle 
+                        ? Colors.red 
+                        : const Color(0xFFFF6B00),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _playWhistle() async {
+    if (_isPlayingWhistle) return;
+    
+    setState(() {
+      _isPlayingWhistle = true;
+    });
+    
+    HapticFeedback.heavyImpact();
+    
+    try {
+      // Play the whistle sound file in loop mode until stopped
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      await _audioPlayer.setVolume(1.0); // Maximum volume
+      await _audioPlayer.play(AssetSource('sounds/duduk.mp3'));
+      
+      print('Whistle sound started playing');
+    } catch (e) {
+      print('Error playing whistle: $e');
+      setState(() {
+        _isPlayingWhistle = false;
+      });
+    }
+  }
+
+  Future<void> _stopWhistle() async {
+    setState(() {
+      _isPlayingWhistle = false;
+    });
+    try {
+      await _audioPlayer.stop();
+      print('Whistle sound stopped');
+    } catch (e) {
+      print('Error stopping whistle: $e');
+    }
+    HapticFeedback.lightImpact();
   }
 
   Widget _buildShareInformationCard() {

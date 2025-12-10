@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/community_post.dart';
 import '../services/auth_service.dart';
@@ -56,26 +57,95 @@ class PostRepository {
   /// Get posts by user ID with like/repost status
   /// Uses client-side sorting to avoid Firestore composite index requirement
   Stream<List<CommunityPost>> getPostsByUserId(String userId, String? currentUserId) {
-    return _firestore
+    // Combine user's own posts and reposted posts
+    final ownPostsStream = _firestore
         .collection(_collection)
         .where('authorId', isEqualTo: userId)
-        .snapshots()
-        .asyncMap((snapshot) async {
-      final posts = <CommunityPost>[];
-      for (var doc in snapshot.docs) {
-        final post = _postFromDoc(doc);
+        .snapshots();
+    
+    final repostsStream = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('reposts')
+        .snapshots();
+    
+    // Use StreamController to combine both streams
+    final controller = StreamController<List<CommunityPost>>();
+    QuerySnapshot? lastOwnPosts;
+    QuerySnapshot? lastReposts;
+    
+    void emitCombined() async {
+      if (lastOwnPosts != null && lastReposts != null) {
+        final combined = await _combinePostsAndReposts(lastOwnPosts!, lastReposts!, currentUserId);
+        if (!controller.isClosed) {
+          controller.add(combined);
+        }
+      }
+    }
+    
+    ownPostsStream.listen((snapshot) {
+      lastOwnPosts = snapshot;
+      emitCombined();
+    });
+    
+    repostsStream.listen((snapshot) {
+      lastReposts = snapshot;
+      emitCombined();
+    });
+    
+    // Initial load
+    ownPostsStream.first.then((snapshot) {
+      lastOwnPosts = snapshot;
+      repostsStream.first.then((repostsSnapshot) {
+        lastReposts = repostsSnapshot;
+        emitCombined();
+      });
+    });
+    
+    return controller.stream;
+  }
+  
+  Future<List<CommunityPost>> _combinePostsAndReposts(
+    QuerySnapshot ownPostsSnapshot,
+    QuerySnapshot repostsSnapshot,
+    String? currentUserId,
+  ) async {
+    final posts = <CommunityPost>[];
+    
+    // Add user's own posts
+    for (var doc in ownPostsSnapshot.docs) {
+      final post = _postFromDoc(doc);
+      if (currentUserId != null) {
+        final isLiked = await isPostLiked(doc.id, currentUserId);
+        final isReposted = await isPostReposted(doc.id, currentUserId);
+        posts.add(post.copyWith(isLiked: isLiked, isReposted: isReposted));
+      } else {
+        posts.add(post);
+      }
+    }
+    
+    // Add reposted posts
+    for (var repostDoc in repostsSnapshot.docs) {
+      final repostData = repostDoc.data() as Map<String, dynamic>?;
+      final postId = repostData?['postId'] as String? ?? repostDoc.id;
+      final postDoc = await _firestore.collection(_collection).doc(postId).get();
+      
+      if (postDoc.exists) {
+        final post = _postFromDoc(postDoc);
+        // Mark as reposted by this user
         if (currentUserId != null) {
-          final isLiked = await isPostLiked(doc.id, currentUserId);
-          final isReposted = await isPostReposted(doc.id, currentUserId);
+          final isLiked = await isPostLiked(postId, currentUserId);
+          final isReposted = await isPostReposted(postId, currentUserId);
           posts.add(post.copyWith(isLiked: isLiked, isReposted: isReposted));
         } else {
           posts.add(post);
         }
       }
-      // Sort by timestamp descending (client-side to avoid index requirement)
-      posts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      return posts;
-    });
+    }
+    
+    // Sort by timestamp descending (client-side to avoid index requirement)
+    posts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return posts;
   }
 
   /// Get single post by ID
@@ -154,6 +224,12 @@ class PostRepository {
           .doc(postId)
           .collection('reposts')
           .doc(userId));
+      // Remove from user's reposts collection
+      batch.delete(_firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reposts')
+          .doc(postId));
       batch.update(_firestore.collection(_collection).doc(postId), {
         'reposts': FieldValue.increment(-1),
       });
@@ -164,6 +240,15 @@ class PostRepository {
           .doc(postId)
           .collection('reposts')
           .doc(userId), {
+        'repostedAt': FieldValue.serverTimestamp(),
+      });
+      // Add to user's reposts collection (so it appears in their profile)
+      batch.set(_firestore
+          .collection('users')
+          .doc(userId)
+          .collection('reposts')
+          .doc(postId), {
+        'postId': postId,
         'repostedAt': FieldValue.serverTimestamp(),
       });
       batch.update(_firestore.collection(_collection).doc(postId), {

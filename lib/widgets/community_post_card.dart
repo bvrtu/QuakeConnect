@@ -110,6 +110,25 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
   bool get _isReposted => _optimisticIsReposted ?? widget.post.isReposted;
   int get _likes => _optimisticLikes ?? widget.post.likes;
   int get _reposts => _optimisticReposts ?? widget.post.reposts;
+  
+  String _formatShareTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+    
+    if (diff.inMinutes < 1) {
+      return 'Just now';
+    } else if (diff.inMinutes < 60) {
+      return '${diff.inMinutes}m ago';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours}h ago';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays}d ago';
+    } else {
+      // Format as date: "Dec 10, 2024"
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year}';
+    }
+  }
 
   Future<void> _toggleLike() async {
     if (_currentUserId == null) return;
@@ -591,8 +610,24 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
           showLabel: false,
           onTap: () async {
             try {
-            final shareMessage =
-                '${widget.post.message}\n\nLocation: ${widget.post.location}';
+              // Create Twitter-like rich share message
+              final postType = widget.post.type == CommunityPostType.needHelp 
+                  ? '🆘 Need Help'
+                  : widget.post.type == CommunityPostType.safe
+                      ? '✅ I\'m Safe'
+                      : 'ℹ️ Info';
+              
+              // Format message similar to Twitter
+              final shareMessage = '''$postType
+
+${widget.post.message}
+
+📍 ${widget.post.location}
+👤 ${widget.post.authorName} ${widget.post.handle}
+🕐 ${_formatShareTime(widget.post.timestamp)}
+
+Shared via QuakeConnect
+#QuakeConnect #EarthquakeSafety''';
               
               // sharePositionOrigin is only needed for iPad on iOS
               Rect? sharePositionOrigin;
@@ -611,7 +646,7 @@ class _CommunityPostCardState extends State<CommunityPostCard> {
               
               await Share.share(
                 shareMessage, 
-                subject: 'QuakeConnect Update',
+                subject: 'QuakeConnect: ${widget.post.authorName}\'s Update',
                 sharePositionOrigin: sharePositionOrigin,
               );
               HapticFeedback.selectionClick();

@@ -118,6 +118,94 @@ class AppLocalizations {
       'post_shared': 'Your update has been shared with the community',
       'comment_sent': 'Comment sent',
       'repost_added': 'Repost added to your updates',
+      'emergency_tools': 'Emergency Tools',
+      'earthquake_info': 'Earthquake Info',
+      'whistle': 'Whistle',
+      'stop': 'Stop',
+      'earthquake_info_title': 'Earthquake Information',
+      'before_earthquake': 'Before',
+      'during_earthquake': 'During',
+      'after_earthquake': 'After',
+      'home_preparations': 'Home Preparations',
+      'emergency_kit': 'Emergency Kit',
+      'family_plan': 'Family Plan',
+      'do_not_do': 'What Not to Do',
+      'if_indoors': 'If Indoors',
+      'if_outdoors': 'If Outdoors',
+      'if_in_vehicle': 'If in Vehicle',
+      'immediately_after': 'Immediately After',
+      'communication': 'Communication',
+      'safety_check': 'Safety Check',
+      'help_and_support': 'Help and Support',
+      'home_prep_1': 'Secure heavy furniture (cabinets, bookshelves, TV) to walls',
+      'home_prep_2': 'Place shelves and cabinets securely',
+      'home_prep_3': 'Place breakable items on lower shelves',
+      'home_prep_4': 'Keep beds away from windows and glass',
+      'home_prep_5': 'Learn the location of gas and water valves',
+      'home_prep_6': 'Prepare an emergency kit',
+      'emergency_kit_1': 'Water (at least 3 days worth)',
+      'emergency_kit_2': 'Canned food and can opener',
+      'emergency_kit_3': 'First aid kit',
+      'emergency_kit_4': 'Flashlight and spare batteries',
+      'emergency_kit_5': 'Radio (battery-powered)',
+      'emergency_kit_6': 'Important documents (copies)',
+      'emergency_kit_7': 'Cash',
+      'emergency_kit_8': 'Personal medications',
+      'emergency_kit_9': 'Phone charger (powerbank)',
+      'family_plan_1': 'Set a meeting point with family members',
+      'family_plan_2': 'Save emergency contact numbers',
+      'family_plan_3': 'Make an evacuation plan',
+      'family_plan_4': 'Teach children what to do during an earthquake',
+      'family_plan_5': 'Make a plan for pets',
+      'do_not_before_1': 'Don\'t place heavy items on high shelves',
+      'do_not_before_2': 'Don\'t place gas cylinders on the balcony',
+      'do_not_before_3': 'Don\'t stay in old and damaged buildings',
+      'do_not_before_4': 'Don\'t delay getting earthquake insurance',
+      'indoors_1': 'Stay calm, don\'t panic',
+      'indoors_2': 'Get under a sturdy table or desk',
+      'indoors_3': 'Protect your head and neck',
+      'indoors_4': 'Stay away from windows, glass, and cabinets',
+      'indoors_5': 'Don\'t use elevators',
+      'indoors_6': 'Don\'t run to stairs',
+      'outdoors_1': 'Move to an open area',
+      'outdoors_2': 'Stay away from buildings, walls, and power poles',
+      'outdoors_3': 'If in a vehicle, stop in an open area',
+      'outdoors_4': 'Don\'t stop under bridges or overpasses',
+      'outdoors_5': 'Move away from the coast (tsunami risk)',
+      'vehicle_1': 'Pull over to a safe place',
+      'vehicle_2': 'Don\'t stop under bridges, tunnels, or overpasses',
+      'vehicle_3': 'Stay inside the vehicle',
+      'vehicle_4': 'Turn on the radio and get information',
+      'do_not_during_1': 'Don\'t use elevators',
+      'do_not_during_2': 'Don\'t run to stairs',
+      'do_not_during_3': 'Don\'t go to the balcony',
+      'do_not_during_4': 'Don\'t touch electrical switches',
+      'do_not_during_5': 'Don\'t use matches or lighters (gas leak risk)',
+      'immediately_after_1': 'Stay calm, take deep breaths',
+      'immediately_after_2': 'Check yourself and those around you',
+      'immediately_after_3': 'Provide first aid if there are injuries',
+      'immediately_after_4': 'Check for gas leaks',
+      'immediately_after_5': 'Turn off electrical breakers',
+      'immediately_after_6': 'Check surrounding damage',
+      'communication_1': 'Call 112 Emergency Call Center',
+      'communication_2': 'Use phone only in emergencies',
+      'communication_3': 'Prefer sending SMS (less network load)',
+      'communication_4': 'Share accurate information on social media',
+      'communication_5': 'Don\'t spread false information',
+      'safety_check_1': 'Check the building\'s damage status',
+      'safety_check_2': 'Exit the building if there is major damage',
+      'safety_check_3': 'Be prepared for aftershocks',
+      'safety_check_4': 'Call for help if someone is trapped under debris',
+      'safety_check_5': 'Take your emergency kit with you',
+      'help_support_1': 'Request help from organizations like AFAD and Red Crescent',
+      'help_support_2': 'Communicate with your neighbors',
+      'help_support_3': 'Support people you can help',
+      'help_support_4': 'Get psychological support (if needed)',
+      'do_not_after_1': 'Don\'t enter damaged buildings',
+      'do_not_after_2': 'Don\'t touch electrical wires',
+      'do_not_after_3': 'Don\'t make unnecessary phone calls',
+      'do_not_after_4': 'Don\'t panic, stay calm',
+      'do_not_after_5': 'Don\'t share false information',
       'post_shared_external': 'Post shared',
       'no_updates_yet': 'No updates yet. Be the first to share!',
       'cancel': 'Cancel',
@@ -346,6 +434,94 @@ class AppLocalizations {
       'post_shared': 'Güncellemen toplulukla paylaşıldı',
       'comment_sent': 'Yorum gönderildi',
       'repost_added': 'Repost eklendi',
+      'emergency_tools': 'Acil Durum Araçları',
+      'earthquake_info': 'Deprem Bilgileri',
+      'whistle': 'Düdük',
+      'stop': 'Durdur',
+      'earthquake_info_title': 'Deprem Bilgileri',
+      'before_earthquake': 'Öncesi',
+      'during_earthquake': 'Sırasında',
+      'after_earthquake': 'Sonrası',
+      'home_preparations': 'Ev Hazırlıkları',
+      'emergency_kit': 'Acil Durum Çantası',
+      'family_plan': 'Aile Planı',
+      'do_not_do': 'Yapılmaması Gerekenler',
+      'if_indoors': 'İçerideyseniz',
+      'if_outdoors': 'Dışarıdaysanız',
+      'if_in_vehicle': 'Araçtaysanız',
+      'immediately_after': 'Hemen Sonra',
+      'communication': 'İletişim',
+      'safety_check': 'Güvenlik Kontrolü',
+      'help_and_support': 'Yardım ve Destek',
+      'home_prep_1': 'Ağır eşyaları (dolap, kitaplık, TV) duvara sabitleyin',
+      'home_prep_2': 'Rafları ve dolapları güvenli şekilde yerleştirin',
+      'home_prep_3': 'Kırılabilir eşyaları alt raflara koyun',
+      'home_prep_4': 'Yatakları pencere ve camlardan uzak tutun',
+      'home_prep_5': 'Gaz ve su vanalarının yerini öğrenin',
+      'home_prep_6': 'Acil durum çantası hazırlayın',
+      'emergency_kit_1': 'Su (en az 3 günlük)',
+      'emergency_kit_2': 'Konserve yiyecekler ve açacak',
+      'emergency_kit_3': 'İlk yardım çantası',
+      'emergency_kit_4': 'Fener ve yedek piller',
+      'emergency_kit_5': 'Radyo (pilli)',
+      'emergency_kit_6': 'Önemli belgeler (fotokopi)',
+      'emergency_kit_7': 'Nakit para',
+      'emergency_kit_8': 'Kişisel ilaçlar',
+      'emergency_kit_9': 'Telefon şarj cihazı (powerbank)',
+      'family_plan_1': 'Aile üyeleriyle buluşma noktası belirleyin',
+      'family_plan_2': 'Acil durum iletişim numaralarını kaydedin',
+      'family_plan_3': 'Evden çıkış planı yapın',
+      'family_plan_4': 'Çocuklara deprem sırasında ne yapmaları gerektiğini öğretin',
+      'family_plan_5': 'Evcil hayvanlar için plan yapın',
+      'do_not_before_1': 'Ağır eşyaları yüksek raflara koymayın',
+      'do_not_before_2': 'Gaz tüplerini balkona koymayın',
+      'do_not_before_3': 'Eski ve hasarlı binalarda kalmayın',
+      'do_not_before_4': 'Deprem sigortası yaptırmayı ertelemeyin',
+      'indoors_1': 'Sakin olun, panik yapmayın',
+      'indoors_2': 'Sağlam bir masa veya sıranın altına girin',
+      'indoors_3': 'Başınızı ve boynunuzu koruyun',
+      'indoors_4': 'Pencere, cam, dolaplardan uzak durun',
+      'indoors_5': 'Asansör kullanmayın',
+      'indoors_6': 'Merdivenlere koşmayın',
+      'outdoors_1': 'Açık alana çıkın',
+      'outdoors_2': 'Binalardan, duvarlardan, elektrik direklerinden uzak durun',
+      'outdoors_3': 'Araç içindeyseniz, açık alanda durun',
+      'outdoors_4': 'Köprü, üst geçit altında durmayın',
+      'outdoors_5': 'Deniz kenarından uzaklaşın (tsunami riski)',
+      'vehicle_1': 'Aracı güvenli bir yere çekin',
+      'vehicle_2': 'Köprü, tünel, üst geçit altında durmayın',
+      'vehicle_3': 'Araç içinde kalın',
+      'vehicle_4': 'Radyoyu açın ve bilgi alın',
+      'do_not_during_1': 'Asansör kullanmayın',
+      'do_not_during_2': 'Merdivenlere koşmayın',
+      'do_not_during_3': 'Balkona çıkmayın',
+      'do_not_during_4': 'Elektrik düğmelerine dokunmayın',
+      'do_not_during_5': 'Kibrit, çakmak kullanmayın (gaz kaçağı riski)',
+      'immediately_after_1': 'Sakin olun, derin nefes alın',
+      'immediately_after_2': 'Kendinizi ve çevrenizdekileri kontrol edin',
+      'immediately_after_3': 'Yaralı varsa ilk yardım yapın',
+      'immediately_after_4': 'Gaz kaçağı olup olmadığını kontrol edin',
+      'immediately_after_5': 'Elektrik sigortalarını kapatın',
+      'immediately_after_6': 'Çevredeki hasarları kontrol edin',
+      'communication_1': '112 Acil Çağrı Merkezi\'ni arayın',
+      'communication_2': 'Sadece acil durumlarda telefon kullanın',
+      'communication_3': 'SMS göndermeyi tercih edin (daha az ağ yükü)',
+      'communication_4': 'Sosyal medyada doğru bilgi paylaşın',
+      'communication_5': 'Yanlış bilgi yaymayın',
+      'safety_check_1': 'Binanın hasar durumunu kontrol edin',
+      'safety_check_2': 'Büyük hasar varsa binadan çıkın',
+      'safety_check_3': 'Artçı sarsıntılara hazırlıklı olun',
+      'safety_check_4': 'Yıkıntı altında kalan varsa yardım çağırın',
+      'safety_check_5': 'Acil durum çantanızı yanınıza alın',
+      'help_support_1': 'AFAD ve Kızılay gibi kuruluşlardan yardım isteyin',
+      'help_support_2': 'Komşularınızla iletişim kurun',
+      'help_support_3': 'Yardım edebileceğiniz kişilere destek olun',
+      'help_support_4': 'Psikolojik destek alın (gerekirse)',
+      'do_not_after_1': 'Hasarlı binaya girmeyin',
+      'do_not_after_2': 'Elektrik tellerine dokunmayın',
+      'do_not_after_3': 'Gereksiz telefon görüşmesi yapmayın',
+      'do_not_after_4': 'Panik yapmayın, sakin kalın',
+      'do_not_after_5': 'Yanlış bilgi paylaşmayın',
       'post_shared_external': 'Gönderi paylaşıldı',
       'no_updates_yet': 'Henüz güncelleme yok. İlk paylaşımı yap!',
       'cancel': 'İptal',
@@ -556,6 +732,94 @@ class AppLocalizations {
   String get commentSent => _t('comment_sent');
   String get repostAdded => _t('repost_added');
   String get postSharedExternal => _t('post_shared_external');
+  String get emergencyTools => _t('emergency_tools');
+  String get earthquakeInfo => _t('earthquake_info');
+  String get whistle => _t('whistle');
+  String get stop => _t('stop');
+  String get earthquakeInfoTitle => _t('earthquake_info_title');
+  String get beforeEarthquake => _t('before_earthquake');
+  String get duringEarthquake => _t('during_earthquake');
+  String get afterEarthquake => _t('after_earthquake');
+  String get homePreparations => _t('home_preparations');
+  String get emergencyKit => _t('emergency_kit');
+  String get familyPlan => _t('family_plan');
+  String get doNotDo => _t('do_not_do');
+  String get ifIndoors => _t('if_indoors');
+  String get ifOutdoors => _t('if_outdoors');
+  String get ifInVehicle => _t('if_in_vehicle');
+  String get immediatelyAfter => _t('immediately_after');
+  String get communication => _t('communication');
+  String get safetyCheck => _t('safety_check');
+  String get helpAndSupport => _t('help_and_support');
+  String get homePrep1 => _t('home_prep_1');
+  String get homePrep2 => _t('home_prep_2');
+  String get homePrep3 => _t('home_prep_3');
+  String get homePrep4 => _t('home_prep_4');
+  String get homePrep5 => _t('home_prep_5');
+  String get homePrep6 => _t('home_prep_6');
+  String get emergencyKit1 => _t('emergency_kit_1');
+  String get emergencyKit2 => _t('emergency_kit_2');
+  String get emergencyKit3 => _t('emergency_kit_3');
+  String get emergencyKit4 => _t('emergency_kit_4');
+  String get emergencyKit5 => _t('emergency_kit_5');
+  String get emergencyKit6 => _t('emergency_kit_6');
+  String get emergencyKit7 => _t('emergency_kit_7');
+  String get emergencyKit8 => _t('emergency_kit_8');
+  String get emergencyKit9 => _t('emergency_kit_9');
+  String get familyPlan1 => _t('family_plan_1');
+  String get familyPlan2 => _t('family_plan_2');
+  String get familyPlan3 => _t('family_plan_3');
+  String get familyPlan4 => _t('family_plan_4');
+  String get familyPlan5 => _t('family_plan_5');
+  String get doNotBefore1 => _t('do_not_before_1');
+  String get doNotBefore2 => _t('do_not_before_2');
+  String get doNotBefore3 => _t('do_not_before_3');
+  String get doNotBefore4 => _t('do_not_before_4');
+  String get indoors1 => _t('indoors_1');
+  String get indoors2 => _t('indoors_2');
+  String get indoors3 => _t('indoors_3');
+  String get indoors4 => _t('indoors_4');
+  String get indoors5 => _t('indoors_5');
+  String get indoors6 => _t('indoors_6');
+  String get outdoors1 => _t('outdoors_1');
+  String get outdoors2 => _t('outdoors_2');
+  String get outdoors3 => _t('outdoors_3');
+  String get outdoors4 => _t('outdoors_4');
+  String get outdoors5 => _t('outdoors_5');
+  String get vehicle1 => _t('vehicle_1');
+  String get vehicle2 => _t('vehicle_2');
+  String get vehicle3 => _t('vehicle_3');
+  String get vehicle4 => _t('vehicle_4');
+  String get doNotDuring1 => _t('do_not_during_1');
+  String get doNotDuring2 => _t('do_not_during_2');
+  String get doNotDuring3 => _t('do_not_during_3');
+  String get doNotDuring4 => _t('do_not_during_4');
+  String get doNotDuring5 => _t('do_not_during_5');
+  String get immediatelyAfter1 => _t('immediately_after_1');
+  String get immediatelyAfter2 => _t('immediately_after_2');
+  String get immediatelyAfter3 => _t('immediately_after_3');
+  String get immediatelyAfter4 => _t('immediately_after_4');
+  String get immediatelyAfter5 => _t('immediately_after_5');
+  String get immediatelyAfter6 => _t('immediately_after_6');
+  String get communication1 => _t('communication_1');
+  String get communication2 => _t('communication_2');
+  String get communication3 => _t('communication_3');
+  String get communication4 => _t('communication_4');
+  String get communication5 => _t('communication_5');
+  String get safetyCheck1 => _t('safety_check_1');
+  String get safetyCheck2 => _t('safety_check_2');
+  String get safetyCheck3 => _t('safety_check_3');
+  String get safetyCheck4 => _t('safety_check_4');
+  String get safetyCheck5 => _t('safety_check_5');
+  String get helpSupport1 => _t('help_support_1');
+  String get helpSupport2 => _t('help_support_2');
+  String get helpSupport3 => _t('help_support_3');
+  String get helpSupport4 => _t('help_support_4');
+  String get doNotAfter1 => _t('do_not_after_1');
+  String get doNotAfter2 => _t('do_not_after_2');
+  String get doNotAfter3 => _t('do_not_after_3');
+  String get doNotAfter4 => _t('do_not_after_4');
+  String get doNotAfter5 => _t('do_not_after_5');
   String get noUpdatesYet => _t('no_updates_yet');
   String get cancel => _t('cancel');
   String get confirm => _t('confirm');
