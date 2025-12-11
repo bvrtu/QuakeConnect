@@ -1,3 +1,5 @@
+import 'earthquake_news.dart';
+
 class Earthquake {
   final double magnitude;
   final String location;
@@ -9,6 +11,7 @@ class Earthquake {
   final String? earthquakeId;
   final String? provider;
   final DateTime dateTime;
+  final List<EarthquakeNews>? news; // News articles related to this earthquake
 
   Earthquake({
     required this.magnitude,
@@ -21,6 +24,7 @@ class Earthquake {
     this.earthquakeId,
     this.provider,
     required this.dateTime,
+    this.news,
   });
 
   /// Factory constructor to create Earthquake from API JSON
@@ -101,6 +105,7 @@ class Earthquake {
       latitude: latitude,
       longitude: longitude,
       dateTime: parsedDateTime,
+      news: null, // News will be loaded separately from Firestore
     );
   }
 

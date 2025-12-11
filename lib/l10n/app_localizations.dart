@@ -241,6 +241,10 @@ class AppLocalizations {
       'away_suffix': 'away',
       'deep_suffix': 'deep',
       'distance_unknown': 'Distance unknown',
+      'loading_news': 'Loading news...',
+      'news_articles': 'news articles',
+      'no_news_available': 'No news available',
+      'could_not_open_link': 'Could not open link',
       'your_location': 'Your Location',
       'you_are_here': 'You are here',
       'thread': 'Thread',
@@ -557,6 +561,10 @@ class AppLocalizations {
       'away_suffix': 'uzakta',
       'deep_suffix': 'derinlik',
       'distance_unknown': 'Mesafe bilinmiyor',
+      'loading_news': 'Haberler yükleniyor...',
+      'news_articles': 'haber',
+      'no_news_available': 'Haber bulunamadı',
+      'could_not_open_link': 'Bağlantı açılamadı',
       'your_location': 'Konumunuz',
       'you_are_here': 'Buradayasınız',
       'thread': 'Sohbet',
@@ -860,6 +868,10 @@ class AppLocalizations {
   String get awaySuffix => _t('away_suffix');
   String get deepSuffix => _t('deep_suffix');
   String get distanceUnknown => _t('distance_unknown');
+  String get loadingNews => _t('loading_news');
+  String get newsArticles => _t('news_articles');
+  String get noNewsAvailable => _t('no_news_available');
+  String get couldNotOpenLink => _t('could_not_open_link');
   String get yourLocation => _t('your_location');
   String get youAreHere => _t('you_are_here');
   String get thread => _t('thread');

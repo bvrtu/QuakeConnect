@@ -10,6 +10,7 @@ import 'map_screen.dart';
 import '../services/earthquake_api_service.dart';
 import '../services/location_service.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class HomeScreen extends StatefulWidget {
   final void Function(Earthquake earthquake)? onOpenOnMap;
@@ -27,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   int _filterChangeKey = 0; // Used to trigger animations when filter changes
+  int _newsRefreshKey = 0; // Used to trigger news refresh in earthquake cards
   bool _isLoading = true;
   String? _errorMessage;
   bool _previousLocationServicesState = true;
@@ -66,7 +68,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
 
     try {
-      final earthquakes = await EarthquakeApiService.fetchRecentEarthquakes(limit: 100);
+      // Fetch earthquakes and news in parallel
+      final results = await Future.wait([
+        EarthquakeApiService.fetchRecentEarthquakes(limit: 100),
+        _fetchEarthquakeNews(), // Fetch news in background
+      ]);
+      
+      final earthquakes = results[0] as List<Earthquake>;
       
       // Get user location to calculate distances
       // Only get location if location services are enabled in settings
@@ -134,6 +142,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _allEarthquakes = earthquakesWithDistance;
         _isLoading = false;
         _filterChangeKey++; // Trigger animation
+        _newsRefreshKey++; // Trigger news refresh in cards
       });
     } catch (e) {
       setState(() {
@@ -142,6 +151,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         // Fallback to sample data on error
         _allEarthquakes = Earthquake.getSampleData();
       });
+    }
+  }
+
+  Future<void> _fetchEarthquakeNews() async {
+    try {
+      print('HomeScreen: Triggering news fetch...');
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('fetchEarthquakeNewsManual');
+      
+      final result = await callable.call();
+      print('HomeScreen: News fetch result: ${result.data}');
+      
+      if (result.data != null && result.data['matched'] != null) {
+        print('HomeScreen: Matched ${result.data['matched']} news articles');
+      }
+    } catch (e) {
+      print('HomeScreen: Error fetching news: $e');
+      // Don't show error to user, news fetching is not critical
     }
   }
 
@@ -509,6 +536,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: EarthquakeCard(
+          key: ValueKey('${eq.earthquakeId}_$_newsRefreshKey'), // Force rebuild when news refresh key changes
           earthquake: eq,
           onTap: () {
             if (widget.onOpenOnMap != null) {
