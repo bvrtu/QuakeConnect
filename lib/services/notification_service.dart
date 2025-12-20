@@ -19,12 +19,15 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    print('Firebase initialized in background handler');
   } catch (e) {
     // Firebase might already be initialized
     print('Firebase initialization in background handler: $e');
   }
   
   print('Handling background message: ${message.messageId}');
+  print('Message data: ${message.data}');
+  print('Message notification: ${message.notification?.title} - ${message.notification?.body}');
   
   // Show local notification for background messages
   final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
@@ -42,17 +45,68 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   );
   
   await localNotifications.initialize(initSettings);
+  print('Local notifications initialized in background handler');
+  
+  // Create notification channels for Android (required for Android 8.0+)
+  if (Platform.isAndroid) {
+    final androidImplementation = await localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImplementation != null) {
+      // Create earthquake channel
+      const earthquakeChannel = AndroidNotificationChannel(
+        'earthquake_channel',
+        'Earthquake Alerts',
+        description: 'Notifications for earthquake alerts',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+      );
+      
+      // Create community channel
+      const communityChannel = AndroidNotificationChannel(
+        'community_channel',
+        'Community Updates',
+        description: 'Notifications for community updates',
+        importance: Importance.defaultImportance,
+        playSound: true,
+        enableVibration: true,
+      );
+      
+      // Create remote channel
+      const remoteChannel = AndroidNotificationChannel(
+        'remote_channel',
+        'General Notifications',
+        description: 'Notifications for QuakeConnect updates',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+      );
+      
+      await androidImplementation.createNotificationChannel(earthquakeChannel);
+      await androidImplementation.createNotificationChannel(communityChannel);
+      await androidImplementation.createNotificationChannel(remoteChannel);
+      print('Notification channels created in background handler');
+    }
+  }
   
   final notification = message.notification;
   if (notification != null) {
+    final channelId = message.data['channel'] ?? 'earthquake_channel';
+    final channelName = message.data['channelName'] ?? 'Earthquake Alerts';
+    final channelDescription = message.data['channelDescription'] ?? 'Notifications';
+    
+    print('Showing notification with channel: $channelId');
+    
     final androidDetails = AndroidNotificationDetails(
-      message.data['channel'] ?? 'earthquake_channel',
-      message.data['channelName'] ?? 'Earthquake Alerts',
-      channelDescription: message.data['channelDescription'] ?? 'Notifications',
+      channelId,
+      channelName,
+      channelDescription: channelDescription,
       importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/ic_stat_quakeconnectnotextnobg',
       largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_stat_quakeconnectnotextnobg'),
+      playSound: true,
+      enableVibration: true,
+      showWhen: true,
     );
 
     final iosDetails = DarwinNotificationDetails(
@@ -66,13 +120,20 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       iOS: iosDetails,
     );
 
-    await localNotifications.show(
-      notification.hashCode,
-      notification.title ?? 'Notification',
-      notification.body ?? '',
-      details,
-      payload: message.data['payload'] ?? message.data['postId'] != null ? 'post:${message.data['postId']}' : null,
-    );
+    try {
+      await localNotifications.show(
+        notification.hashCode,
+        notification.title ?? 'Notification',
+        notification.body ?? '',
+        details,
+        payload: message.data['payload'] ?? message.data['postId'] != null ? 'post:${message.data['postId']}' : null,
+      );
+      print('Notification shown successfully');
+    } catch (e) {
+      print('Error showing notification: $e');
+    }
+  } else {
+    print('No notification payload in message');
   }
 }
 
@@ -113,15 +174,66 @@ class NotificationService {
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
+    // Create notification channels for Android (required for Android 8.0+)
+    await _createNotificationChannels();
+
     // Request permissions for Android 13+
-    if (await _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>() != null) {
-      await _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()!.requestNotificationsPermission();
+    if (Platform.isAndroid) {
+      final androidImplementation = await _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImplementation != null) {
+        final granted = await androidImplementation.requestNotificationsPermission();
+        print('Android notification permission granted: $granted');
+      }
     }
 
     // Initialize Firebase Cloud Messaging
     await _initializeFCM();
 
     _initialized = true;
+  }
+
+  /// Create notification channels for Android
+  Future<void> _createNotificationChannels() async {
+    if (!Platform.isAndroid) return;
+
+    final androidImplementation = await _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImplementation == null) return;
+
+    // Create earthquake channel
+    const earthquakeChannel = AndroidNotificationChannel(
+      'earthquake_channel',
+      'Earthquake Alerts',
+      description: 'Notifications for earthquake alerts',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    // Create community channel
+    const communityChannel = AndroidNotificationChannel(
+      'community_channel',
+      'Community Updates',
+      description: 'Notifications for community updates',
+      importance: Importance.defaultImportance,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    // Create remote channel
+    const remoteChannel = AndroidNotificationChannel(
+      'remote_channel',
+      'General Notifications',
+      description: 'Notifications for QuakeConnect updates',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    await androidImplementation.createNotificationChannel(earthquakeChannel);
+    await androidImplementation.createNotificationChannel(communityChannel);
+    await androidImplementation.createNotificationChannel(remoteChannel);
+    
+    print('Notification channels created');
   }
 
   /// Initialize Firebase Cloud Messaging
@@ -146,11 +258,20 @@ class NotificationService {
     }
 
     // Get FCM token
-    _fcmToken = await _firebaseMessaging.getToken();
-    print('FCM Token: $_fcmToken');
-    
-    // Save token to Firestore for current user
-    await saveTokenToFirestore(_fcmToken);
+    try {
+      _fcmToken = await _firebaseMessaging.getToken();
+      print('FCM Token obtained: $_fcmToken');
+      
+      if (_fcmToken == null) {
+        print('WARNING: FCM Token is null!');
+      } else {
+        // Save token to Firestore for current user
+        await saveTokenToFirestore(_fcmToken);
+        print('FCM Token saved to Firestore');
+      }
+    } catch (e) {
+      print('Error getting FCM token: $e');
+    }
 
     // Listen for token refresh
     _firebaseMessaging.onTokenRefresh.listen((newToken) {
@@ -198,21 +319,35 @@ class NotificationService {
   /// Handle foreground messages (when app is open)
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     print('Received foreground message: ${message.messageId}');
+    print('Foreground message data: ${message.data}');
+    print('Foreground message notification: ${message.notification?.title} - ${message.notification?.body}');
     
     final settings = SettingsRepository.instance;
-    if (!settings.pushNotifications) return;
+    if (!settings.pushNotifications) {
+      print('Push notifications disabled in settings');
+      return;
+    }
 
     // Show local notification for foreground messages
     final notification = message.notification;
     if (notification != null) {
+      final channelId = message.data['channel'] ?? 'earthquake_channel';
+      final channelName = message.data['channelName'] ?? 'Earthquake Alerts';
+      final channelDescription = message.data['channelDescription'] ?? 'Notifications';
+      
+      print('Showing foreground notification with channel: $channelId');
+      
       final androidDetails = AndroidNotificationDetails(
-        message.data['channel'] ?? 'earthquake_channel',
-        message.data['channelName'] ?? 'Earthquake Alerts',
-        channelDescription: message.data['channelDescription'] ?? 'Notifications',
+        channelId,
+        channelName,
+        channelDescription: channelDescription,
         importance: Importance.high,
         priority: Priority.high,
         icon: '@mipmap/ic_stat_quakeconnectnotextnobg',
-      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_stat_quakeconnectnotextnobg'),
+        largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_stat_quakeconnectnotextnobg'),
+        playSound: true,
+        enableVibration: true,
+        showWhen: true,
       );
 
       final iosDetails = DarwinNotificationDetails(
@@ -226,13 +361,20 @@ class NotificationService {
         iOS: iosDetails,
       );
 
-      await _notifications.show(
-        notification.hashCode,
-        notification.title ?? 'Notification',
-        notification.body ?? '',
-        details,
-        payload: message.data['payload'] ?? message.data['postId'] != null ? 'post:${message.data['postId']}' : null,
-      );
+      try {
+        await _notifications.show(
+          notification.hashCode,
+          notification.title ?? 'Notification',
+          notification.body ?? '',
+          details,
+          payload: message.data['payload'] ?? message.data['postId'] != null ? 'post:${message.data['postId']}' : null,
+        );
+        print('Foreground notification shown successfully');
+      } catch (e) {
+        print('Error showing foreground notification: $e');
+      }
+    } else {
+      print('No notification payload in foreground message');
     }
   }
 
